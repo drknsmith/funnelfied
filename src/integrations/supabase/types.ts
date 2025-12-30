@@ -134,6 +134,8 @@ export type Database = {
           last_meaningful_activity_date: string | null
           next_action: string | null
           next_action_date: string | null
+          playbook_assigned_at: string | null
+          playbook_assigned_by: string | null
           playbook_id: string | null
           primary_contact_id: string | null
           probability: number | null
@@ -151,6 +153,8 @@ export type Database = {
           last_meaningful_activity_date?: string | null
           next_action?: string | null
           next_action_date?: string | null
+          playbook_assigned_at?: string | null
+          playbook_assigned_by?: string | null
           playbook_id?: string | null
           primary_contact_id?: string | null
           probability?: number | null
@@ -168,6 +172,8 @@ export type Database = {
           last_meaningful_activity_date?: string | null
           next_action?: string | null
           next_action_date?: string | null
+          playbook_assigned_at?: string | null
+          playbook_assigned_by?: string | null
           playbook_id?: string | null
           primary_contact_id?: string | null
           probability?: number | null
@@ -347,9 +353,13 @@ export type Database = {
       }
       playbooks: {
         Row: {
+          associated_deal_type: string | null
           created_at: string
+          created_by: string | null
+          default_nurture_tag: string | null
           exit_rule: string | null
           expansion_seed: string | null
+          expedited: boolean | null
           first_message_email_template: string | null
           first_message_linkedin_template: string | null
           followup_day10_template: string | null
@@ -357,15 +367,25 @@ export type Database = {
           followup_day3_template: string | null
           id: string
           name: string
+          objective: string | null
+          proof_asset_file_ref: string | null
+          proof_asset_label: string | null
+          proof_asset_type: string | null
           proof_asset_url: string | null
+          status: string
           trigger: string | null
           updated_at: string
+          updated_by: string | null
           workspace_id: string
         }
         Insert: {
+          associated_deal_type?: string | null
           created_at?: string
+          created_by?: string | null
+          default_nurture_tag?: string | null
           exit_rule?: string | null
           expansion_seed?: string | null
+          expedited?: boolean | null
           first_message_email_template?: string | null
           first_message_linkedin_template?: string | null
           followup_day10_template?: string | null
@@ -373,15 +393,25 @@ export type Database = {
           followup_day3_template?: string | null
           id?: string
           name: string
+          objective?: string | null
+          proof_asset_file_ref?: string | null
+          proof_asset_label?: string | null
+          proof_asset_type?: string | null
           proof_asset_url?: string | null
+          status?: string
           trigger?: string | null
           updated_at?: string
+          updated_by?: string | null
           workspace_id: string
         }
         Update: {
+          associated_deal_type?: string | null
           created_at?: string
+          created_by?: string | null
+          default_nurture_tag?: string | null
           exit_rule?: string | null
           expansion_seed?: string | null
+          expedited?: boolean | null
           first_message_email_template?: string | null
           first_message_linkedin_template?: string | null
           followup_day10_template?: string | null
@@ -389,9 +419,15 @@ export type Database = {
           followup_day3_template?: string | null
           id?: string
           name?: string
+          objective?: string | null
+          proof_asset_file_ref?: string | null
+          proof_asset_label?: string | null
+          proof_asset_type?: string | null
           proof_asset_url?: string | null
+          status?: string
           trigger?: string | null
           updated_at?: string
+          updated_by?: string | null
           workspace_id?: string
         }
         Relationships: [
