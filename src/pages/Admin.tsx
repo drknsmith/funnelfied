@@ -1,14 +1,16 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import WorkspaceSettings from '@/components/admin/WorkspaceSettings';
 import UserManagement from '@/components/admin/UserManagement';
 import PermissionMatrix from '@/components/admin/PermissionMatrix';
-import { Settings, Users, Lock } from 'lucide-react';
+import { Settings, Users, Lock, HelpCircle } from 'lucide-react';
 
 export default function Admin() {
   const { role, loading } = useAuth();
+  const navigate = useNavigate();
 
   // Redirect non-admins
   if (!loading && role !== 'admin' && role !== 'super_admin') {
@@ -18,11 +20,21 @@ export default function Admin() {
   return (
     <AppLayout>
       <div className="p-6 lg:p-8">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Workspace Admin</h1>
-          <p className="mt-2 text-muted-foreground">
-            Manage your workspace settings, team members, and permissions
-          </p>
+        <header className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Workspace Admin</h1>
+            <p className="mt-2 text-muted-foreground">
+              Manage your workspace settings, team members, and permissions
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => navigate('/help')}
+          >
+            <HelpCircle className="h-4 w-4" />
+            Documentation
+          </Button>
         </header>
 
         <Tabs defaultValue="settings" className="space-y-6">

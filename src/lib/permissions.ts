@@ -73,3 +73,46 @@ export const ACTIONS: Crud[] = ['can_view', 'can_create', 'can_edit', 'can_delet
  * Roles that can have their permissions edited (not super_admin or admin).
  */
 export const EDITABLE_ROLES: AppRole[] = ['moderator', 'user'];
+
+/**
+ * All available roles in order of hierarchy.
+ */
+export const ALL_ROLES: AppRole[] = ['super_admin', 'admin', 'moderator', 'user'];
+
+/**
+ * Role labels for display.
+ */
+export const ROLE_LABELS: Record<AppRole, string> = {
+  super_admin: 'Super Admin',
+  admin: 'Admin',
+  moderator: 'Moderator',
+  user: 'User',
+};
+
+/**
+ * Check if a role can delete another role based on hierarchy.
+ * Super admins can delete anyone.
+ * Admins can delete admins, moderators, users (not super_admins).
+ * Moderators and users cannot delete anyone.
+ */
+export function canDeleteRole(currentRole: AppRole | null, targetRole: AppRole | null): boolean {
+  if (!currentRole || !targetRole) return false;
+  
+  if (currentRole === 'super_admin') return true;
+  if (currentRole === 'admin') return targetRole !== 'super_admin';
+  return false;
+}
+
+/**
+ * Check if a role can assign another role.
+ * Super admins can assign any role.
+ * Admins can assign admin, moderator, user (not super_admin).
+ * Moderators and users cannot assign roles.
+ */
+export function canAssignRole(currentRole: AppRole | null, targetRole: AppRole): boolean {
+  if (!currentRole) return false;
+  
+  if (currentRole === 'super_admin') return true;
+  if (currentRole === 'admin') return targetRole !== 'super_admin';
+  return false;
+}
