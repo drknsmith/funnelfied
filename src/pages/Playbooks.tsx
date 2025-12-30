@@ -35,13 +35,13 @@ export default function Playbooks() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const [dealTypeFilter, setDealTypeFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [dealTypeFilter, setDealTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { playbooks, isLoading, duplicatePlaybook, archivePlaybook } = usePlaybooks({
     search,
-    dealType: dealTypeFilter,
-    status: statusFilter,
+    dealType: dealTypeFilter === 'all' ? '' : dealTypeFilter,
+    status: statusFilter === 'all' ? '' : statusFilter,
   });
 
   const handleDuplicate = async (id: string) => {
@@ -95,7 +95,7 @@ export default function Playbooks() {
               <SelectValue placeholder="All Deal Types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Deal Types</SelectItem>
+              <SelectItem value="all">All Deal Types</SelectItem>
               {PLAYBOOK_DEAL_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
                   {type.label}
@@ -109,7 +109,7 @@ export default function Playbooks() {
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               {PLAYBOOK_STATUSES.map((status) => (
                 <SelectItem key={status.value} value={status.value}>
                   {status.label}
