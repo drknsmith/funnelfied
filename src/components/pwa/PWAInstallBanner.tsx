@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Download, Smartphone, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -12,6 +13,7 @@ export function PWAInstallBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if already installed as PWA
@@ -20,15 +22,20 @@ export function PWAInstallBanner() {
     setIsStandalone(standalone);
 
     // Check if mobile
-    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsMobile(mobile);
 
-    // Check if banner was dismissed recently
-    const dismissedAt = localStorage.getItem('pwa-banner-dismissed');
+    // Device-specific dismissal key
+    const deviceType = mobile ? 'mobile' : 'desktop';
+    const dismissalKey = `pwa-banner-dismissed-${deviceType}`;
+
+    // Check if banner was dismissed recently for this device type
+    const dismissedAt = localStorage.getItem(dismissalKey);
     if (dismissedAt) {
       const dismissedDate = new Date(dismissedAt);
       const daysSinceDismissed = (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceDismissed < 7) {
-        return; // Don't show for 7 days after dismissal
+      if (daysSinceDismissed < 1) {
+        return; // Don't show for 1 day after dismissal (reduced from 7)
       }
     }
 
@@ -66,7 +73,14 @@ export function PWAInstallBanner() {
 
   const handleDismiss = () => {
     setShowBanner(false);
-    localStorage.setItem('pwa-banner-dismissed', new Date().toISOString());
+    // Device-specific dismissal
+    const deviceType = isMobile ? 'mobile' : 'desktop';
+    localStorage.setItem(`pwa-banner-dismissed-${deviceType}`, new Date().toISOString());
+  };
+
+  const handleLearnMore = () => {
+    setShowBanner(false);
+    navigate('/install');
   };
 
   if (!showBanner || isStandalone) {
@@ -101,10 +115,24 @@ export function PWAInstallBanner() {
             Install
           </Button>
         ) : isIOS ? (
-          <span className="text-xs opacity-90">
-            Tap Share → Add to Home Screen
-          </span>
-        ) : null}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleLearnMore}
+            className="shrink-0"
+          >
+            Learn How
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleLearnMore}
+            className="shrink-0"
+          >
+            Learn More
+          </Button>
+        )}
         <Button
           size="icon"
           variant="ghost"

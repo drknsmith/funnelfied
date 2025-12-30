@@ -126,26 +126,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Check if running as standalone PWA
   const [isStandalone, setIsStandalone] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [canInstall, setCanInstall] = useState(false);
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches 
       || (window.navigator as any).standalone === true;
     setIsStandalone(standalone);
-
-    // Listen for the beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setCanInstall(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
   }, []);
 
   useEffect(() => {
@@ -159,17 +144,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const handleRefresh = () => {
     window.location.reload();
-  };
-
-  const handleInstallApp = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setCanInstall(false);
-        setDeferredPrompt(null);
-      }
-    }
   };
 
   const canSeeAdmin = role === 'admin' || role === 'super_admin' || role === 'moderator';
@@ -284,16 +258,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </Button>
                 )}
 
-                {/* Download App Button */}
-                {canInstall && !isStandalone && (
+                {/* Get the App Link - Always visible when not standalone */}
+                {!isStandalone && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="mb-2 w-full justify-start gap-2 text-muted-foreground"
-                    onClick={handleInstallApp}
+                    onClick={() => navigate('/install')}
                   >
                     <Download className="h-4 w-4" />
-                    Download App
+                    Get the App
                   </Button>
                 )}
 
@@ -349,14 +323,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <TooltipContent side="right">Refresh</TooltipContent>
                   </Tooltip>
                 )}
-                {canInstall && !isStandalone && (
+                {!isStandalone && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={handleInstallApp}>
+                      <Button variant="ghost" size="icon" onClick={() => navigate('/install')}>
                         <Download className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">Download App</TooltipContent>
+                    <TooltipContent side="right">Get the App</TooltipContent>
                   </Tooltip>
                 )}
                 <Tooltip>
