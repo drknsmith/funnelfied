@@ -24,9 +24,9 @@ interface MessagesTabProps {
 
 export function MessagesTab({ deal }: MessagesTabProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const { playbook } = usePlaybook(deal.playbook_id || undefined);
-  const { createInteraction } = useInteractions(deal.id);
+  const { createInteraction, isCreating } = useInteractions(deal.id);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [copied, setCopied] = useState(false);
 
@@ -72,14 +72,14 @@ export function MessagesTab({ deal }: MessagesTabProps) {
 
     createInteraction({
       deal_id: deal.id,
+      contact_id: deal.primary_contact_id || null,
       type: isLinkedIn ? 'note' : 'email',
       summary: `Draft generated: ${templateLabel}`,
+      objections: null,
+      commitments: null,
+      external_ref: null,
       occurred_at: new Date().toISOString(),
-    }, {
-      onSuccess: () => toast({ title: 'Interaction logged successfully' }),
-      onError: () => toast({ title: 'Failed to log interaction', variant: 'destructive' }),
     });
-
   };
 
   const handleExport = () => {
@@ -90,7 +90,7 @@ export function MessagesTab({ deal }: MessagesTabProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${deal.account?.name || 'deal'}-${templateLabel.toLowerCase().replace(/\s+/g, '-')}.txt`;
+    a.download = `${deal.accounts?.name || 'deal'}-${templateLabel.toLowerCase().replace(/\s+/g, '-')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -172,7 +172,7 @@ export function MessagesTab({ deal }: MessagesTabProps) {
 
               <Button
                 onClick={handleCreateInteraction}
-                disabled={!mergedContent || createInteraction.isPending}
+                disabled={!mergedContent || isCreating}
                 variant="outline"
               >
                 <Plus className="h-4 w-4 mr-2" />
