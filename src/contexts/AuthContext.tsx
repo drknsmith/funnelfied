@@ -20,7 +20,7 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, inviteCode: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -101,11 +101,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, inviteCode: string) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedCode = inviteCode.toUpperCase().trim();
+
+    // First, validate the invite code
+    const { data: invitation, error: inviteError } = await supabase
+      .from('pending_invitations')
+      .select('*')
+      .eq('invite_code', normalizedCode)
+      .eq('email', normalizedEmail)
+      .is('used_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (inviteError) {
+      return { error: new Error('Error validating invite code') };
+    }
+
+    if (!invitation) {
+      return { error: new Error('Invalid or expired invite code. Please check the code and email address.') };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
@@ -119,64 +140,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error as Error };
     }
 
-    // If signup successful and we have a user, create workspace + profile + role
+    // If signup successful and we have a user, create profile + role in the invited workspace
     if (data.user) {
       try {
-        // Create a new workspace for the user
-        const { data: workspace, error: workspaceError } = await supabase
-          .from('workspaces')
-          .insert({ name: `${fullName}'s Workspace` })
-          .select()
-          .single();
-
-        if (workspaceError) throw workspaceError;
-
-        // Create the profile
+        // Create the profile in the invitation's workspace
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: data.user.id,
-            workspace_id: workspace.id,
+            workspace_id: invitation.workspace_id,
             full_name: fullName,
-            email: email,
+            email: normalizedEmail,
           });
 
         if (profileError) throw profileError;
 
-        // Create the user role (admin for first user of workspace)
+        // Create the user role with the role from the invitation
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: data.user.id,
-            role: 'admin',
+            role: invitation.role,
           });
 
         if (roleError) throw roleError;
 
-        // Create default permissions for moderator and user roles
-        const resources = ['accounts', 'contacts', 'deals', 'interactions', 'playbooks', 'settings', 'users'];
-        const defaultPermissions = resources.flatMap(resource => [
-          {
-            workspace_id: workspace.id,
-            resource,
-            role: 'moderator' as const,
-            can_view: true,
-            can_create: true,
-            can_edit: true,
-            can_delete: resource !== 'users' && resource !== 'settings',
-          },
-          {
-            workspace_id: workspace.id,
-            resource,
-            role: 'user' as const,
-            can_view: true,
-            can_create: resource !== 'users' && resource !== 'settings',
-            can_edit: resource !== 'users' && resource !== 'settings',
-            can_delete: false,
-          },
-        ]);
+        // Mark the invitation as used
+        const { error: updateError } = await supabase
+          .from('pending_invitations')
+          .update({ used_at: new Date().toISOString() })
+          .eq('id', invitation.id);
 
-        await supabase.from('workspace_permissions').insert(defaultPermissions);
+        if (updateError) {
+          console.error('Error marking invitation as used:', updateError);
+        }
 
       } catch (setupError) {
         console.error('Error setting up user:', setupError);

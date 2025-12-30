@@ -301,6 +301,50 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_invitations: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invite_code: string
+          invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
+          used_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invite_code: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["app_role"]
+          used_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invite_code?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          used_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       playbooks: {
         Row: {
           created_at: string

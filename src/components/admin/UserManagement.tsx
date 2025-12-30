@@ -1,12 +1,23 @@
 import { useState } from 'react';
-import { useWorkspaceUsers, WorkspaceUser } from '@/hooks/useWorkspaceUsers';
+import { useWorkspaceUsers, WorkspaceUser, PendingInvitation } from '@/hooks/useWorkspaceUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Users, Shield, ShieldCheck, User, UserCog, Trash2 } from 'lucide-react';
+import { Loader2, Users, Shield, ShieldCheck, User, UserCog, Trash2, Plus, Copy, Check, Pencil, X, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { ALL_ROLES, ROLE_LABELS, canDeleteRole, canAssignRole } from '@/lib/permissions';
 
@@ -58,23 +69,44 @@ function getRoleIcon(role: AppRole | null) {
 
 export default function UserManagement() {
   const { user, role: currentUserRole } = useAuth();
-  const { users, loading, updateUserRole, toggleUserActive, deleteUser } = useWorkspaceUsers();
+  const { 
+    users, 
+    pendingInvitations,
+    loading, 
+    updateUserRole, 
+    toggleUserActive, 
+    deleteUser,
+    updateUserName,
+    createInvitation,
+    revokeInvitation,
+  } = useWorkspaceUsers();
+  
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<WorkspaceUser | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<AppRole>('user');
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   const canEditRole = (targetUser: WorkspaceUser): boolean => {
-    // Can't edit yourself
     if (targetUser.user_id === user?.id) return false;
-    // Check if current role can assign roles
     if (!canAssignRole(currentUserRole, 'user')) return false;
     return true;
   };
 
   const canDelete = (targetUser: WorkspaceUser): boolean => {
-    // Can't delete yourself
     if (targetUser.user_id === user?.id) return false;
-    // Check hierarchy
     return canDeleteRole(currentUserRole, targetUser.role);
+  };
+
+  const canEditName = (targetUser: WorkspaceUser): boolean => {
+    // Can edit own name or if admin/super_admin
+    return targetUser.user_id === user?.id || 
+           currentUserRole === 'super_admin' || 
+           currentUserRole === 'admin';
   };
 
   const handleDeleteClick = (workspaceUser: WorkspaceUser) => {
@@ -90,6 +122,41 @@ export default function UserManagement() {
     }
   };
 
+  const handleCreateInvitation = async () => {
+    if (!inviteEmail.trim()) return;
+    
+    setIsCreatingInvite(true);
+    await createInvitation(inviteEmail, inviteRole);
+    setIsCreatingInvite(false);
+    setInviteEmail('');
+    setInviteRole('user');
+    setInviteDialogOpen(false);
+  };
+
+  const handleCopyCode = async (code: string) => {
+    await navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleStartEditName = (workspaceUser: WorkspaceUser) => {
+    setEditingUserId(workspaceUser.user_id);
+    setEditingName(workspaceUser.full_name || '');
+  };
+
+  const handleSaveName = async (userId: string) => {
+    if (editingName.trim()) {
+      await updateUserName(userId, editingName.trim());
+    }
+    setEditingUserId(null);
+    setEditingName('');
+  };
+
+  const handleCancelEditName = () => {
+    setEditingUserId(null);
+    setEditingName('');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -98,13 +165,84 @@ export default function UserManagement() {
     );
   }
 
+  const assignableRoles = ALL_ROLES.filter(r => r !== 'super_admin');
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <CardTitle>Team Members</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>Team Members</CardTitle>
+            </div>
+            {(currentUserRole === 'super_admin' || currentUserRole === 'admin') && (
+              <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Invite User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Invite New User</DialogTitle>
+                    <DialogDescription>
+                      Create an invitation code for a new team member. They'll use this code when signing up.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="user@company.com"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Role</Label>
+                      <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as AppRole)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {assignableRoles.map((roleOption) => (
+                            <SelectItem 
+                              key={roleOption} 
+                              value={roleOption}
+                              disabled={!canAssignRole(currentUserRole, roleOption)}
+                            >
+                              <div className="flex items-center gap-2">
+                                {ROLE_ICONS[roleOption]}
+                                {ROLE_LABELS[roleOption]}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateInvitation} disabled={isCreatingInvite || !inviteEmail.trim()}>
+                      {isCreatingInvite ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        'Create Invitation'
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
           <CardDescription>
             Manage users in your workspace and their roles
@@ -132,18 +270,64 @@ export default function UserManagement() {
                   const showRoleDropdown = canEditRole(workspaceUser);
                   const showDelete = canDelete(workspaceUser);
                   const showActiveToggle = canEditRole(workspaceUser);
+                  const isEditingThisUser = editingUserId === workspaceUser.user_id;
 
                   return (
                     <TableRow key={workspaceUser.id}>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {workspaceUser.full_name || 'Unnamed User'}
-                            {isCurrentUser && (
-                              <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            {isEditingThisUser ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  className="h-8 w-48"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveName(workspaceUser.user_id);
+                                    if (e.key === 'Escape') handleCancelEditName();
+                                  }}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleSaveName(workspaceUser.user_id)}
+                                >
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={handleCancelEditName}
+                                >
+                                  <X className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">
+                                  {workspaceUser.full_name || 'Unnamed User'}
+                                  {isCurrentUser && (
+                                    <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                                  )}
+                                </p>
+                                {canEditName(workspaceUser) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleStartEditName(workspaceUser)}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             )}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{workspaceUser.email}</p>
+                            <p className="text-sm text-muted-foreground">{workspaceUser.email}</p>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -221,6 +405,79 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pending Invitations */}
+      {(currentUserRole === 'super_admin' || currentUserRole === 'admin') && pendingInvitations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              <CardTitle>Pending Invitations</CardTitle>
+            </div>
+            <CardDescription>
+              Users who have been invited but haven't signed up yet
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Invite Code</TableHead>
+                  <TableHead>Expires</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingInvitations.map((invitation) => (
+                  <TableRow key={invitation.id}>
+                    <TableCell className="font-medium">{invitation.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleBadgeVariant(invitation.role)} className="gap-1">
+                        {getRoleIcon(invitation.role)}
+                        {ROLE_LABELS[invitation.role]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
+                          {invitation.invite_code}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleCopyCode(invitation.invite_code)}
+                        >
+                          {copiedCode === invitation.invite_code ? (
+                            <Check className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(invitation.expires_at), 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => revokeInvitation(invitation.id)}
+                      >
+                        Revoke
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
