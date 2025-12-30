@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,9 +16,14 @@ import {
   Shield,
   LogOut,
   ChevronRight,
-  Briefcase,
+  Sun,
+  Moon,
+  User,
+  UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logoPrimary from '@/assets/logo-primary.png';
+import logoInverse from '@/assets/logo-inverse.png';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -56,26 +62,47 @@ function NavItem({ to, icon, label }: NavItemProps) {
   );
 }
 
+function getRoleIcon(role: string | null) {
+  switch (role) {
+    case 'super_admin':
+      return <Shield className="h-3.5 w-3.5 text-destructive" />;
+    case 'admin':
+      return <Settings className="h-3.5 w-3.5 text-primary" />;
+    case 'moderator':
+      return <UserCog className="h-3.5 w-3.5 text-warning" />;
+    default:
+      return <User className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+}
+
 export default function AppLayout({ children }: AppLayoutProps) {
   const { profile, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth', { replace: true });
   };
 
-  const isAdmin = role === 'admin' || role === 'super_admin';
+  const canSeeAdmin = role === 'admin' || role === 'super_admin' || role === 'moderator';
   const isSuperAdmin = role === 'super_admin';
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <aside className="flex w-64 flex-col border-r border-sidebar-border bg-sidebar">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-2 px-6">
-          <Briefcase className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold text-sidebar-foreground">Karl's CRM</span>
+        <div className="flex h-16 items-center px-6">
+          <img
+            src={theme === 'dark' ? logoInverse : logoPrimary}
+            alt="Funnelfied"
+            className="h-8 w-auto"
+          />
         </div>
 
         <Separator className="bg-sidebar-border" />
@@ -91,7 +118,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" />
           </nav>
 
-          {isAdmin && (
+          {canSeeAdmin && (
             <>
               <Separator className="my-4 bg-sidebar-border" />
               <div className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -112,9 +139,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* User Info & Logout */}
         <div className="p-4">
           <div className="mb-3 rounded-lg bg-sidebar-accent p-3">
-            <p className="text-sm font-medium text-sidebar-foreground">
-              {profile?.full_name || 'User'}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-sidebar-foreground">
+                {profile?.full_name || 'User'}
+              </p>
+              {getRoleIcon(role)}
+            </div>
             <p className="text-xs text-muted-foreground">{profile?.email}</p>
             {role && (
               <span className="mt-1 inline-block rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
@@ -122,6 +152,27 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </span>
             )}
           </div>
+
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-2 w-full justify-start gap-2 text-muted-foreground"
+            onClick={toggleTheme}
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="h-4 w-4" />
+                Light Mode
+              </>
+            ) : (
+              <>
+                <Moon className="h-4 w-4" />
+                Dark Mode
+              </>
+            )}
+          </Button>
+
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
