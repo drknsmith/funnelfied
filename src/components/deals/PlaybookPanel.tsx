@@ -34,7 +34,6 @@ export function PlaybookPanel({ deal, onUpdate, isUpdating }: PlaybookPanelProps
   const handlePlaybookChange = (playbookId: string) => {
     onUpdate({
       playbook_id: playbookId || null,
-      playbook_assigned_at: playbookId ? new Date().toISOString() : null,
     });
   };
 
