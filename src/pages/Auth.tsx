@@ -17,6 +17,7 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  inviteCode: z.string().length(8, 'Invite code must be 8 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -29,6 +30,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -48,7 +50,7 @@ export default function Auth() {
       if (isLogin) {
         loginSchema.parse({ email, password });
       } else {
-        signupSchema.parse({ email, password, confirmPassword, fullName });
+        signupSchema.parse({ email, password, confirmPassword, fullName, inviteCode });
       }
       setErrors({});
       return true;
@@ -97,7 +99,7 @@ export default function Auth() {
           navigate('/', { replace: true });
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, inviteCode.toUpperCase());
         if (error) {
           if (error.message.includes('User already registered')) {
             toast({
@@ -115,7 +117,7 @@ export default function Auth() {
         } else {
           toast({
             title: 'Account created!',
-            description: 'Your workspace is ready. Welcome to Funnelfied!',
+            description: 'Welcome to Funnelfied!',
           });
           navigate('/', { replace: true });
         }
@@ -147,27 +149,46 @@ export default function Auth() {
           <CardDescription>
             {isLogin
               ? 'Enter your credentials to access your CRM'
-              : 'Start managing your sales pipeline today'}
+              : 'Use the invite code provided by your admin'}
           </CardDescription>
         </CardHeader>
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={isLoading}
-                />
-                {errors.fullName && (
-                  <p className="text-sm text-destructive">{errors.fullName}</p>
-                )}
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="inviteCode">Invite Code</Label>
+                  <Input
+                    id="inviteCode"
+                    type="text"
+                    placeholder="ABCD1234"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    disabled={isLoading}
+                    maxLength={8}
+                    className="font-mono uppercase"
+                  />
+                  {errors.inviteCode && (
+                    <p className="text-sm text-destructive">{errors.inviteCode}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  {errors.fullName && (
+                    <p className="text-sm text-destructive">{errors.fullName}</p>
+                  )}
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -231,7 +252,7 @@ export default function Auth() {
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              {isLogin ? "Don't have an account? " : 'Already have an account? '}
+              {isLogin ? "Have an invite code? " : 'Already have an account? '}
               <button
                 type="button"
                 onClick={() => {

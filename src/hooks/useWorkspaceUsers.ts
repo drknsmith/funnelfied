@@ -16,10 +16,23 @@ export interface WorkspaceUser {
   created_at: string;
 }
 
+export interface PendingInvitation {
+  id: string;
+  workspace_id: string;
+  email: string;
+  invite_code: string;
+  role: AppRole;
+  invited_by: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+}
+
 export function useWorkspaceUsers() {
-  const { profile, role: currentUserRole } = useAuth();
+  const { profile, role: currentUserRole, user } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
@@ -73,8 +86,28 @@ export function useWorkspaceUsers() {
     }
   };
 
+  const fetchPendingInvitations = async () => {
+    if (!profile?.workspace_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('pending_invitations')
+        .select('*')
+        .eq('workspace_id', profile.workspace_id)
+        .is('used_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPendingInvitations((data || []) as PendingInvitation[]);
+    } catch (error) {
+      console.error('Error fetching pending invitations:', error);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchPendingInvitations();
   }, [profile?.workspace_id]);
 
   const updateUserRole = async (userId: string, newRole: AppRole) => {
@@ -189,12 +222,127 @@ export function useWorkspaceUsers() {
     }
   };
 
+  const updateUserName = async (userId: string, newName: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: newName })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      await fetchUsers();
+
+      toast({
+        title: 'Name updated',
+        description: 'User name has been updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating user name:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update user name',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const generateInviteCode = (): string => {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+  };
+
+  const createInvitation = async (email: string, role: AppRole) => {
+    if (!profile?.workspace_id || !user?.id) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to invite users',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    try {
+      const inviteCode = generateInviteCode();
+
+      const { data, error } = await supabase
+        .from('pending_invitations')
+        .insert({
+          workspace_id: profile.workspace_id,
+          email: email.toLowerCase().trim(),
+          invite_code: inviteCode,
+          role,
+          invited_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: 'Error',
+            description: 'An invitation for this email already exists',
+            variant: 'destructive',
+          });
+          return null;
+        }
+        throw error;
+      }
+
+      await fetchPendingInvitations();
+
+      toast({
+        title: 'Invitation created',
+        description: `Invite code: ${inviteCode}`,
+      });
+
+      return data as PendingInvitation;
+    } catch (error) {
+      console.error('Error creating invitation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create invitation',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  const revokeInvitation = async (invitationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('pending_invitations')
+        .delete()
+        .eq('id', invitationId);
+
+      if (error) throw error;
+
+      await fetchPendingInvitations();
+
+      toast({
+        title: 'Invitation revoked',
+        description: 'The invitation has been cancelled',
+      });
+    } catch (error) {
+      console.error('Error revoking invitation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to revoke invitation',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return {
     users,
+    pendingInvitations,
     loading,
     refetch: fetchUsers,
+    refetchInvitations: fetchPendingInvitations,
     updateUserRole,
     toggleUserActive,
     deleteUser,
+    updateUserName,
+    createInvitation,
+    revokeInvitation,
   };
 }
