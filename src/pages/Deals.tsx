@@ -1,19 +1,63 @@
+import { useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import { useDeals, DEAL_STAGES } from '@/hooks/useDeals';
+import { useDeals, DEAL_STAGES, DealWithRelations } from '@/hooks/useDeals';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Loader2, Handshake } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus, Loader2, Handshake, X } from 'lucide-react';
+import { subDays, startOfDay, isBefore, isToday } from 'date-fns';
+
+const FILTER_LABELS: Record<string, string> = {
+  'actions-today': 'Actions Today',
+  'high-leverage': 'High-Leverage',
+  'stalled': 'Stalled Deals',
+};
 
 export default function Deals() {
   const navigate = useNavigate();
-  const { deals, isLoading, updateDeal } = useDeals();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { deals, isLoading } = useDeals();
+  
+  const filter = searchParams.get('filter');
+
+  const filteredDeals = useMemo(() => {
+    if (!filter) return deals;
+
+    const today = startOfDay(new Date());
+    const fourteenDaysAgo = subDays(today, 14);
+
+    switch (filter) {
+      case 'actions-today':
+        return deals.filter((d) => {
+          if (d.status !== 'open' || !d.next_action_date) return false;
+          const actionDate = startOfDay(new Date(d.next_action_date));
+          return isBefore(actionDate, today) || isToday(new Date(d.next_action_date));
+        });
+      case 'high-leverage':
+        return deals.filter(
+          (d) => d.status === 'open' && ['portfolio', 'design_led'].includes(d.deal_type || '')
+        );
+      case 'stalled':
+        return deals.filter((d) => {
+          if (d.status !== 'open') return false;
+          if (!d.last_meaningful_activity_date) return true;
+          const activityDate = startOfDay(new Date(d.last_meaningful_activity_date));
+          return isBefore(activityDate, fourteenDaysAgo);
+        });
+      default:
+        return deals;
+    }
+  }, [deals, filter]);
 
   const dealsByStage = DEAL_STAGES.map((stage) => ({
     ...stage,
-    deals: deals.filter((d) => d.stage === stage.value),
+    deals: filteredDeals.filter((d) => d.stage === stage.value),
   }));
+
+  const clearFilter = () => {
+    setSearchParams({});
+  };
 
   if (isLoading) {
     return (
@@ -30,8 +74,21 @@ export default function Deals() {
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
-            <p className="text-muted-foreground">{deals.length} deals in pipeline</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
+              {filter && FILTER_LABELS[filter] && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  {FILTER_LABELS[filter]}
+                  <button onClick={clearFilter} className="ml-1 hover:bg-muted rounded-full p-0.5">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+            <p className="text-muted-foreground">
+              {filteredDeals.length} deal{filteredDeals.length !== 1 ? 's' : ''} 
+              {filter ? ' matching filter' : ' in pipeline'}
+            </p>
           </div>
           <Button onClick={() => navigate('/deals/new')}>
             <Plus className="mr-2 h-4 w-4" />
@@ -39,16 +96,27 @@ export default function Deals() {
           </Button>
         </div>
 
-        {deals.length === 0 ? (
+        {filteredDeals.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Handshake className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-lg font-medium text-foreground">No deals yet</p>
-              <p className="mb-4 text-muted-foreground">Create your first deal to get started</p>
-              <Button onClick={() => navigate('/deals/new')}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Deal
-              </Button>
+              <p className="text-lg font-medium text-foreground">
+                {filter ? 'No deals match this filter' : 'No deals yet'}
+              </p>
+              <p className="mb-4 text-muted-foreground">
+                {filter ? 'Try clearing the filter or create a new deal' : 'Create your first deal to get started'}
+              </p>
+              <div className="flex gap-2">
+                {filter && (
+                  <Button variant="outline" onClick={clearFilter}>
+                    Clear Filter
+                  </Button>
+                )}
+                <Button onClick={() => navigate('/deals/new')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Deal
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
