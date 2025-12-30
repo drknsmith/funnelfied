@@ -142,14 +142,17 @@ export function useDeals(filters?: { stage?: string; status?: string }) {
     deals: dealsQuery.data ?? [],
     isLoading: dealsQuery.isLoading,
     error: dealsQuery.error,
-    createDeal,
-    updateDeal,
-    deleteDeal,
+    createDeal: createDeal.mutate,
+    updateDeal: updateDeal.mutate,
+    deleteDeal: deleteDeal.mutate,
+    isCreating: createDeal.isPending,
+    isUpdating: updateDeal.isPending,
+    isDeleting: deleteDeal.isPending,
   };
 }
 
 export function useDeal(id: string | undefined) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['deals', id],
     queryFn: async () => {
       if (!id) return null;
@@ -164,4 +167,10 @@ export function useDeal(id: string | undefined) {
     },
     enabled: !!id,
   });
+
+  return {
+    deal: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+  };
 }
