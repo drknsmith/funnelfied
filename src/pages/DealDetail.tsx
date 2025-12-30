@@ -8,9 +8,13 @@ import StageTimeline from '@/components/deals/StageTimeline';
 import InteractionList from '@/components/deals/InteractionList';
 import InteractionFormDialog from '@/components/deals/InteractionFormDialog';
 import DealFormDialog from '@/components/deals/DealFormDialog';
+import { PlaybookPanel } from '@/components/deals/PlaybookPanel';
+import { MessagesTab } from '@/components/deals/MessagesTab';
+import { PlaybookRequiredModal } from '@/components/deals/PlaybookRequiredModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +35,8 @@ import {
   User,
   Calendar,
   TrendingUp,
+  MessageSquare,
+  FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -45,6 +51,8 @@ export default function DealDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [playbookModalOpen, setPlaybookModalOpen] = useState(false);
+  const [pendingStageChange, setPendingStageChange] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -78,12 +86,36 @@ export default function DealDetail() {
   const dealContacts = contacts.filter((c) => c.account_id === deal.account_id);
 
   const handleStageChange = (newStage: string) => {
+    // Check if moving from signal_target and no playbook assigned
+    if (deal.stage === 'signal_target' && newStage !== 'signal_target' && !deal.playbook_id) {
+      setPendingStageChange(newStage);
+      setPlaybookModalOpen(true);
+      return;
+    }
+    
     updateDeal({ id: deal.id, stage: newStage, last_meaningful_activity_date: new Date().toISOString().split('T')[0] });
+  };
+
+  const handlePlaybookConfirm = (playbookId: string) => {
+    if (pendingStageChange) {
+      updateDeal({
+        id: deal.id,
+        playbook_id: playbookId,
+        stage: pendingStageChange,
+        last_meaningful_activity_date: new Date().toISOString().split('T')[0],
+      });
+      setPendingStageChange(null);
+      setPlaybookModalOpen(false);
+    }
   };
 
   const handleUpdateDeal = (data: any) => {
     updateDeal({ id: deal.id, ...data });
     setEditDialogOpen(false);
+  };
+
+  const handlePlaybookPanelUpdate = (updates: any) => {
+    updateDeal({ id: deal.id, ...updates });
   };
 
   const handleDeleteDeal = () => {
@@ -121,6 +153,11 @@ export default function DealDetail() {
                   {deal.accounts?.name || 'No Account'}
                 </h1>
                 {getStatusBadge()}
+                {deal.playbooks && (
+                  <Badge variant="outline" className="bg-primary/10">
+                    {deal.playbooks.name}
+                  </Badge>
+                )}
               </div>
               <p className="text-muted-foreground">{stageLabel}</p>
             </div>
@@ -147,95 +184,130 @@ export default function DealDetail() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Deal Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Deal Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Account</p>
-                  <Link to={`/accounts/${deal.account_id}`} className="text-sm font-medium text-primary hover:underline">
-                    {deal.accounts?.name}
-                  </Link>
-                </div>
-              </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left Column - Deal Info & Interactions Tabs */}
+          <div className="lg:col-span-2 space-y-6">
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList>
+                <TabsTrigger value="details" className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Details
+                </TabsTrigger>
+                <TabsTrigger value="interactions" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Interactions
+                </TabsTrigger>
+                <TabsTrigger value="messages" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Messages
+                </TabsTrigger>
+              </TabsList>
 
-              {deal.contacts && (
-                <div className="flex items-center gap-3">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Primary Contact</p>
-                    <Link to={`/contacts/${deal.primary_contact_id}`} className="text-sm font-medium text-primary hover:underline">
-                      {deal.contacts.name}
-                    </Link>
-                  </div>
-                </div>
-              )}
+              <TabsContent value="details" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Deal Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Account</p>
+                        <Link to={`/accounts/${deal.account_id}`} className="text-sm font-medium text-primary hover:underline">
+                          {deal.accounts?.name}
+                        </Link>
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Deal Type</p>
-                  <p className="text-sm font-medium">{typeLabel || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Deal Size</p>
-                  <p className="text-sm font-medium">{sizeLabel || '-'}</p>
-                </div>
-              </div>
+                    {deal.contacts && (
+                      <div className="flex items-center gap-3">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Primary Contact</p>
+                          <Link to={`/contacts/${deal.primary_contact_id}`} className="text-sm font-medium text-primary hover:underline">
+                            {deal.contacts.name}
+                          </Link>
+                        </div>
+                      </div>
+                    )}
 
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Probability</p>
-                  <p className="text-sm font-medium">{deal.probability || 0}%</p>
-                </div>
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Deal Type</p>
+                        <p className="text-sm font-medium">{typeLabel || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Deal Size</p>
+                        <p className="text-sm font-medium">{sizeLabel || '-'}</p>
+                      </div>
+                    </div>
 
-              {deal.next_action && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Next Action</p>
-                  <p className="text-sm font-medium">{deal.next_action}</p>
-                  {deal.next_action_date && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      <Calendar className="inline h-3 w-3 mr-1" />
-                      {format(new Date(deal.next_action_date), 'MMM d, yyyy')}
-                    </p>
-                  )}
-                </div>
-              )}
+                    <div className="flex items-center gap-3">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Probability</p>
+                        <p className="text-sm font-medium">{deal.probability || 0}%</p>
+                      </div>
+                    </div>
 
-              {deal.last_meaningful_activity_date && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Last Activity</p>
-                  <p className="text-sm font-medium">
-                    {format(new Date(deal.last_meaningful_activity_date), 'MMM d, yyyy')}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    {deal.next_action && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Next Action</p>
+                        <p className="text-sm font-medium">{deal.next_action}</p>
+                        {deal.next_action_date && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <Calendar className="inline h-3 w-3 mr-1" />
+                            {format(new Date(deal.next_action_date), 'MMM d, yyyy')}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-          {/* Interactions */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium">Interactions</CardTitle>
-              <Button size="sm" onClick={() => setInteractionDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Log Interaction
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <InteractionList
-                interactions={interactions}
-                onDelete={deleteInteraction}
-                isDeleting={isDeletingInteraction}
-              />
-            </CardContent>
-          </Card>
+                    {deal.last_meaningful_activity_date && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Last Activity</p>
+                        <p className="text-sm font-medium">
+                          {format(new Date(deal.last_meaningful_activity_date), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="interactions" className="mt-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-medium">Interactions</CardTitle>
+                    <Button size="sm" onClick={() => setInteractionDialogOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Log Interaction
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <InteractionList
+                      interactions={interactions}
+                      onDelete={deleteInteraction}
+                      isDeleting={isDeletingInteraction}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="messages" className="mt-4">
+                <MessagesTab deal={deal} />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Right Column - Playbook Panel */}
+          <div>
+            <PlaybookPanel
+              deal={deal}
+              onUpdate={handlePlaybookPanelUpdate}
+              isUpdating={isUpdating}
+            />
+          </div>
         </div>
       </div>
 
@@ -255,6 +327,16 @@ export default function DealDetail() {
         contacts={dealContacts}
         onSubmit={handleLogInteraction}
         isLoading={isCreating}
+      />
+
+      <PlaybookRequiredModal
+        open={playbookModalOpen}
+        onClose={() => {
+          setPlaybookModalOpen(false);
+          setPendingStageChange(null);
+        }}
+        onConfirm={handlePlaybookConfirm}
+        targetStage={pendingStageChange || ''}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

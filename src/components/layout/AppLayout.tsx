@@ -1,10 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
   Building2,
@@ -16,15 +17,20 @@ import {
   Shield,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   Sun,
   Moon,
   User,
   UserCog,
   HelpCircle,
+  RefreshCw,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
+import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -34,33 +40,50 @@ interface NavItemProps {
   to: string;
   icon: ReactNode;
   label: string;
+  collapsed?: boolean;
 }
 
-function NavItem({ to, icon, label }: NavItemProps) {
+function NavItem({ to, icon, label, collapsed }: NavItemProps) {
   const location = useLocation();
   const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
 
-  return (
+  const content = (
     <NavLink to={to}>
       <div
         className={cn(
           'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
           isActive
             ? 'bg-primary text-primary-foreground'
-            : 'text-sidebar-foreground hover:bg-sidebar-accent'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent',
+          collapsed && 'justify-center px-2'
         )}
       >
         {icon}
-        <span>{label}</span>
-        <ChevronRight
-          className={cn(
-            'ml-auto h-4 w-4 opacity-0 transition-opacity',
-            isActive && 'opacity-100'
-          )}
-        />
+        {!collapsed && (
+          <>
+            <span>{label}</span>
+            <ChevronRight
+              className={cn(
+                'ml-auto h-4 w-4 opacity-0 transition-opacity',
+                isActive && 'opacity-100'
+              )}
+            />
+          </>
+        )}
       </div>
     </NavLink>
   );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
 }
 
 function getRoleIcon(role: string | null) {
@@ -85,7 +108,6 @@ function getRoleDisplayName(role: string | null, userName: string | null | undef
     case 'moderator':
       return 'Moderator';
     default:
-      // For "user" role, show their actual name
       return userName || 'User';
   }
 }
@@ -94,10 +116,33 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { profile, role, signOut } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  
+  // Sidebar collapse state with localStorage persistence
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved === 'true';
+  });
+
+  // Check if running as standalone PWA
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches 
+      || (window.navigator as any).standalone === true;
+    setIsStandalone(standalone);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', String(isCollapsed));
+  }, [isCollapsed]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth', { replace: true });
+  };
+
+  const handleRefresh = () => {
+    window.location.reload();
   };
 
   const canSeeAdmin = role === 'admin' || role === 'super_admin' || role === 'moderator';
@@ -107,113 +152,197 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const toggleCollapsed = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="flex w-64 flex-col border-r border-sidebar-border bg-sidebar">
-        {/* Logo */}
-        <div className="flex h-16 items-center px-6">
-          <img
-            src={theme === 'dark' ? logoInverse : logoPrimary}
-            alt="Funnelfied"
-            className="h-8 w-auto"
-          />
-        </div>
-
-        <Separator className="bg-sidebar-border" />
-
-        {/* Navigation */}
-        <ScrollArea className="flex-1 px-3 py-4">
-          <nav className="space-y-1">
-            <NavItem to="/" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" />
-            <NavItem to="/deals" icon={<Handshake className="h-4 w-4" />} label="Deals" />
-            <NavItem to="/accounts" icon={<Building2 className="h-4 w-4" />} label="Accounts" />
-            <NavItem to="/contacts" icon={<Users className="h-4 w-4" />} label="Contacts" />
-            <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" />
-            <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" />
-          </nav>
-
-          {canSeeAdmin && (
-            <>
-              <Separator className="my-4 bg-sidebar-border" />
-              <div className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Admin
-              </div>
-              <nav className="space-y-1">
-                <NavItem to="/admin" icon={<Settings className="h-4 w-4" />} label="Workspace Admin" />
-                {isSuperAdmin && (
-                  <NavItem to="/super-admin" icon={<Shield className="h-4 w-4" />} label="Super Admin" />
-                )}
-              </nav>
-            </>
+    <div className="flex flex-col h-screen bg-background">
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
+      
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside 
+          className={cn(
+            'flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
+            isCollapsed ? 'w-16' : 'w-64'
           )}
-        </ScrollArea>
-
-        <Separator className="bg-sidebar-border" />
-
-        {/* User Info & Logout */}
-        <div className="p-4">
-          <div className="mb-3 rounded-lg bg-sidebar-accent p-3">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-sidebar-foreground">
-                {profile?.full_name || 'User'}
-              </p>
-              {getRoleIcon(role)}
-            </div>
-            <p className="text-xs text-muted-foreground">{profile?.email}</p>
-            {role && (
-              <span className="mt-1 inline-block rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                {getRoleDisplayName(role, profile?.full_name)}
-              </span>
+        >
+          {/* Logo & Collapse Toggle */}
+          <div className="flex h-16 items-center justify-between px-4">
+            {!isCollapsed && (
+              <img
+                src={theme === 'dark' ? logoInverse : logoPrimary}
+                alt="Funnelfied"
+                className="h-8 w-auto"
+              />
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleCollapsed}
+              className="h-8 w-8 shrink-0"
+            >
+              {isCollapsed ? (
+                <PanelLeft className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </Button>
           </div>
 
-          {/* Help Center Link */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-2 w-full justify-start gap-2 text-muted-foreground"
-            onClick={() => navigate('/help')}
-          >
-            <HelpCircle className="h-4 w-4" />
-            Help Center
-          </Button>
+          <Separator className="bg-sidebar-border" />
 
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-2 w-full justify-start gap-2 text-muted-foreground"
-            onClick={toggleTheme}
-          >
-            {theme === 'dark' ? (
+          {/* Navigation */}
+          <ScrollArea className="flex-1 px-3 py-4">
+            <nav className="space-y-1">
+              <NavItem to="/" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" collapsed={isCollapsed} />
+              <NavItem to="/deals" icon={<Handshake className="h-4 w-4" />} label="Deals" collapsed={isCollapsed} />
+              <NavItem to="/accounts" icon={<Building2 className="h-4 w-4" />} label="Accounts" collapsed={isCollapsed} />
+              <NavItem to="/contacts" icon={<Users className="h-4 w-4" />} label="Contacts" collapsed={isCollapsed} />
+              <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" collapsed={isCollapsed} />
+              <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
+            </nav>
+
+            {canSeeAdmin && (
               <>
-                <Sun className="h-4 w-4" />
-                Light Mode
-              </>
-            ) : (
-              <>
-                <Moon className="h-4 w-4" />
-                Dark Mode
+                <Separator className="my-4 bg-sidebar-border" />
+                {!isCollapsed && (
+                  <div className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Admin
+                  </div>
+                )}
+                <nav className="space-y-1">
+                  <NavItem to="/admin" icon={<Settings className="h-4 w-4" />} label="Workspace Admin" collapsed={isCollapsed} />
+                  {isSuperAdmin && (
+                    <NavItem to="/super-admin" icon={<Shield className="h-4 w-4" />} label="Super Admin" collapsed={isCollapsed} />
+                  )}
+                </nav>
               </>
             )}
-          </Button>
+          </ScrollArea>
 
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
-        </div>
-      </aside>
+          <Separator className="bg-sidebar-border" />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+          {/* User Info & Logout */}
+          <div className={cn('p-4', isCollapsed && 'p-2')}>
+            {!isCollapsed ? (
+              <>
+                <div className="mb-3 rounded-lg bg-sidebar-accent p-3">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-sidebar-foreground">
+                      {profile?.full_name || 'User'}
+                    </p>
+                    {getRoleIcon(role)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                  {role && (
+                    <span className="mt-1 inline-block rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                      {getRoleDisplayName(role, profile?.full_name)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Refresh Button (visible in PWA mode) */}
+                {isStandalone && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mb-2 w-full justify-start gap-2 text-muted-foreground"
+                    onClick={handleRefresh}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh
+                  </Button>
+                )}
+
+                {/* Help Center Link */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mb-2 w-full justify-start gap-2 text-muted-foreground"
+                  onClick={() => navigate('/help')}
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  Help Center
+                </Button>
+
+                {/* Theme Toggle */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mb-2 w-full justify-start gap-2 text-muted-foreground"
+                  onClick={toggleTheme}
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="h-4 w-4" />
+                      Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-4 w-4" />
+                      Dark Mode
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-2 flex flex-col items-center">
+                {isStandalone && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={handleRefresh}>
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Refresh</TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => navigate('/help')}>
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Help Center</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleSignOut} className="hover:text-destructive">
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Sign Out</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

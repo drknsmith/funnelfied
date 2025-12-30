@@ -17,6 +17,8 @@ import Deals from "./pages/Deals";
 import DealDetail from "./pages/DealDetail";
 import Interactions from "./pages/Interactions";
 import Playbooks from "./pages/Playbooks";
+import PlaybookForm from "./pages/PlaybookForm";
+import PlaybookDetail from "./pages/PlaybookDetail";
 import Admin from "./pages/Admin";
 import SuperAdmin from "./pages/SuperAdmin";
 import HelpCenter from "./pages/HelpCenter";
@@ -33,19 +35,22 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
-            <Route path="/accounts/:id" element={<ProtectedRoute><AccountDetail /></ProtectedRoute>} />
-            <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
-            <Route path="/contacts/:id" element={<ProtectedRoute><ContactDetail /></ProtectedRoute>} />
-            <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
-            <Route path="/deals/:id" element={<ProtectedRoute><DealDetail /></ProtectedRoute>} />
-            <Route path="/interactions" element={<ProtectedRoute><Interactions /></ProtectedRoute>} />
-            <Route path="/playbooks" element={<ProtectedRoute><Playbooks /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            <Route path="/super-admin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
-            <Route path="/help" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
+              <Route path="/accounts/:id" element={<ProtectedRoute><AccountDetail /></ProtectedRoute>} />
+              <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
+              <Route path="/contacts/:id" element={<ProtectedRoute><ContactDetail /></ProtectedRoute>} />
+              <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
+              <Route path="/deals/:id" element={<ProtectedRoute><DealDetail /></ProtectedRoute>} />
+              <Route path="/interactions" element={<ProtectedRoute><Interactions /></ProtectedRoute>} />
+              <Route path="/playbooks" element={<ProtectedRoute><Playbooks /></ProtectedRoute>} />
+              <Route path="/playbooks/new" element={<ProtectedRoute><PlaybookForm /></ProtectedRoute>} />
+              <Route path="/playbooks/:id" element={<ProtectedRoute><PlaybookDetail /></ProtectedRoute>} />
+              <Route path="/playbooks/:id/edit" element={<ProtectedRoute><PlaybookForm /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              <Route path="/super-admin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
+              <Route path="/help" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
