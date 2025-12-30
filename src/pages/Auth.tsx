@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Briefcase } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import logoPrimary from '@/assets/logo-primary.png';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -114,7 +115,7 @@ export default function Auth() {
         } else {
           toast({
             title: 'Account created!',
-            description: 'Your workspace is ready. Welcome to Karl\'s CRM!',
+            description: 'Your workspace is ready. Welcome to Funnelfied!',
           });
           navigate('/', { replace: true });
         }
@@ -134,9 +135,8 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary/30 px-4">
-      <div className="mb-8 flex items-center gap-2 text-primary">
-        <Briefcase className="h-10 w-10" />
-        <span className="text-3xl font-bold tracking-tight">Karl's CRM</span>
+      <div className="mb-8">
+        <img src={logoPrimary} alt="Funnelfied" className="h-12 w-auto" />
       </div>
 
       <Card className="w-full max-w-md border-border shadow-lg">
