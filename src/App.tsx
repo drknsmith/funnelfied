@@ -19,6 +19,7 @@ import Interactions from "./pages/Interactions";
 import Playbooks from "./pages/Playbooks";
 import Admin from "./pages/Admin";
 import SuperAdmin from "./pages/SuperAdmin";
+import HelpCenter from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/playbooks" element={<ProtectedRoute><Playbooks /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/super-admin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
+            <Route path="/help" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

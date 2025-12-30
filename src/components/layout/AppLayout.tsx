@@ -20,6 +20,7 @@ import {
   Moon,
   User,
   UserCog,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logoPrimary from '@/assets/logo-primary.png';
@@ -72,6 +73,20 @@ function getRoleIcon(role: string | null) {
       return <UserCog className="h-3.5 w-3.5 text-warning" />;
     default:
       return <User className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+}
+
+function getRoleDisplayName(role: string | null, userName: string | null | undefined): string {
+  switch (role) {
+    case 'super_admin':
+      return 'Super Admin';
+    case 'admin':
+      return 'Admin';
+    case 'moderator':
+      return 'Moderator';
+    default:
+      // For "user" role, show their actual name
+      return userName || 'User';
   }
 }
 
@@ -148,10 +163,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <p className="text-xs text-muted-foreground">{profile?.email}</p>
             {role && (
               <span className="mt-1 inline-block rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                {role.replace('_', ' ')}
+                {getRoleDisplayName(role, profile?.full_name)}
               </span>
             )}
           </div>
+
+          {/* Help Center Link */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-2 w-full justify-start gap-2 text-muted-foreground"
+            onClick={() => navigate('/help')}
+          >
+            <HelpCircle className="h-4 w-4" />
+            Help Center
+          </Button>
 
           {/* Theme Toggle */}
           <Button

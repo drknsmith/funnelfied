@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { canDeleteRole } from '@/lib/permissions';
 
 type AppRole = 'super_admin' | 'admin' | 'moderator' | 'user';
 
@@ -16,7 +17,7 @@ export interface WorkspaceUser {
 }
 
 export function useWorkspaceUsers() {
-  const { profile } = useAuth();
+  const { profile, role: currentUserRole } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,11 +145,56 @@ export function useWorkspaceUsers() {
     }
   };
 
+  const deleteUser = async (userId: string, targetRole: AppRole | null) => {
+    // Check if current user can delete the target user
+    if (!canDeleteRole(currentUserRole, targetRole)) {
+      toast({
+        title: 'Permission denied',
+        description: 'You do not have permission to delete this user',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // First delete user role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (roleError) throw roleError;
+
+      // Then deactivate the profile (we keep the profile for audit)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+
+      if (profileError) throw profileError;
+
+      await fetchUsers();
+
+      toast({
+        title: 'User removed',
+        description: 'User has been removed from the workspace',
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove user',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return {
     users,
     loading,
     refetch: fetchUsers,
     updateUserRole,
     toggleUserActive,
+    deleteUser,
   };
 }
