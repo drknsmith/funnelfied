@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAccounts, Account } from '@/hooks/useAccounts';
 import AccountFormDialog from '@/components/accounts/AccountFormDialog';
@@ -9,19 +9,40 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Loader2 } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Loader2, X } from 'lucide-react';
 
 export default function Accounts() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { accounts, isLoading, deleteAccount } = useAccounts();
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const filteredAccounts = accounts.filter((a) =>
-    a.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filter = searchParams.get('filter');
+
+  const filteredAccounts = useMemo(() => {
+    let result = accounts;
+    
+    // Apply expansion filter
+    if (filter === 'expansion') {
+      result = result.filter((a) => parseInt(a.portfolio_size) > 1);
+    }
+    
+    // Apply search filter
+    if (search) {
+      result = result.filter((a) =>
+        a.name.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    return result;
+  }, [accounts, filter, search]);
+
+  const clearFilter = () => {
+    setSearchParams({});
+  };
 
   const handleEdit = (account: Account) => {
     setEditAccount(account);
@@ -49,8 +70,21 @@ export default function Accounts() {
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Accounts</h1>
-            <p className="text-muted-foreground">Manage your customer accounts</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground">Accounts</h1>
+              {filter === 'expansion' && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Expansion Watch
+                  <button onClick={clearFilter} className="ml-1 hover:bg-muted rounded-full p-0.5">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+            <p className="text-muted-foreground">
+              {filteredAccounts.length} account{filteredAccounts.length !== 1 ? 's' : ''}
+              {filter === 'expansion' ? ' with multi-site opportunities' : ''}
+            </p>
           </div>
           <Button onClick={() => { setEditAccount(null); setFormOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
