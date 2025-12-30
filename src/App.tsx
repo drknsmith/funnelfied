@@ -14,6 +14,7 @@ import ContactDetail from "./pages/ContactDetail";
 import Deals from "./pages/Deals";
 import Interactions from "./pages/Interactions";
 import Playbooks from "./pages/Playbooks";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
             <Route path="/interactions" element={<ProtectedRoute><Interactions /></ProtectedRoute>} />
             <Route path="/playbooks" element={<ProtectedRoute><Playbooks /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
