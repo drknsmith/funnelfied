@@ -82,6 +82,7 @@ export interface Deal {
   primary_buyer_role: string | null;
   primary_objection: string | null;
   objection_notes: string | null;
+  proposal_link: string | null;
   proposal_requested_date: string | null;
   proposal_submitted_date: string | null;
   site_notes: string | null;

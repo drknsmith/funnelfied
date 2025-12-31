@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { format } from 'date-fns';
 import AppLayout from '@/components/layout/AppLayout';
 import { useDeal, useDeals, DEAL_STAGES, DEAL_SIZES, DEAL_TYPES } from '@/hooks/useDeals';
 import { useInteractions } from '@/hooks/useInteractions';
 import { useContacts } from '@/hooks/useContacts';
+import { useDealFiles } from '@/hooks/useDealFiles';
 import StageTimeline from '@/components/deals/StageTimeline';
 import InteractionList from '@/components/deals/InteractionList';
 import InteractionFormDialog from '@/components/deals/InteractionFormDialog';
@@ -11,10 +13,15 @@ import DealFormDialog from '@/components/deals/DealFormDialog';
 import { PlaybookPanel } from '@/components/deals/PlaybookPanel';
 import { MessagesTab } from '@/components/deals/MessagesTab';
 import { PlaybookRequiredModal } from '@/components/deals/PlaybookRequiredModal';
+import { DealFileUpload } from '@/components/deals/DealFileUpload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,12 +40,14 @@ import {
   Plus,
   Building2,
   User,
-  Calendar,
+  Calendar as CalendarIcon,
   TrendingUp,
   MessageSquare,
   FileText,
+  Link2,
+  ExternalLink,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -47,12 +56,25 @@ export default function DealDetail() {
   const { updateDeal, deleteDeal, isUpdating, isDeleting } = useDeals();
   const { interactions, createInteraction, deleteInteraction, isCreating, isDeleting: isDeletingInteraction } = useInteractions(id);
   const { contacts } = useContacts();
+  const { proposalFiles, uploadFile, deleteFile, getFileUrl, isUploading, isDeleting: isDeletingFile } = useDealFiles(id);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [playbookModalOpen, setPlaybookModalOpen] = useState(false);
   const [pendingStageChange, setPendingStageChange] = useState<string | null>(null);
+  
+  // Proposal tab state
+  const [proposalLink, setProposalLink] = useState('');
+  const [proposalRequestedOpen, setProposalRequestedOpen] = useState(false);
+  const [proposalSubmittedOpen, setProposalSubmittedOpen] = useState(false);
+
+  // Sync proposal link when deal loads
+  useEffect(() => {
+    if (deal?.proposal_link) {
+      setProposalLink(deal.proposal_link);
+    }
+  }, [deal?.proposal_link]);
 
   if (isLoading) {
     return (
@@ -125,6 +147,10 @@ export default function DealDetail() {
 
   const handleLogInteraction = (data: any) => {
     createInteraction(data);
+  };
+
+  const handleProposalFieldUpdate = (field: string, value: any) => {
+    updateDeal({ id: deal.id, [field]: value });
   };
 
   const getStatusBadge = () => {
@@ -200,6 +226,10 @@ export default function DealDetail() {
                 <TabsTrigger value="messages" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Messages
+                </TabsTrigger>
+                <TabsTrigger value="proposal" className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Proposal
                 </TabsTrigger>
               </TabsList>
 
@@ -296,6 +326,129 @@ export default function DealDetail() {
 
               <TabsContent value="messages" className="mt-4">
                 <MessagesTab deal={deal} />
+              </TabsContent>
+
+              <TabsContent value="proposal" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Proposal Management</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Proposal Link */}
+                    <div className="space-y-2">
+                      <Label htmlFor="proposal-link">Proposal Link</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="proposal-link"
+                          type="url"
+                          placeholder="https://..."
+                          value={proposalLink}
+                          onChange={(e) => setProposalLink(e.target.value)}
+                          className="flex-1"
+                        />
+                        {proposalLink && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => window.open(proposalLink, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          onClick={() => handleProposalFieldUpdate('proposal_link', proposalLink)}
+                          disabled={isUpdating}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Date Fields */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Proposal Requested Date */}
+                      <div className="space-y-2">
+                        <Label>Proposal Requested Date</Label>
+                        <Popover open={proposalRequestedOpen} onOpenChange={setProposalRequestedOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !deal.proposal_requested_date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {deal.proposal_requested_date
+                                ? format(new Date(deal.proposal_requested_date), 'PPP')
+                                : 'Pick a date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={deal.proposal_requested_date ? new Date(deal.proposal_requested_date) : undefined}
+                              onSelect={(date) => {
+                                handleProposalFieldUpdate('proposal_requested_date', date ? format(date, 'yyyy-MM-dd') : null);
+                                setProposalRequestedOpen(false);
+                              }}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      {/* Proposal Submitted Date */}
+                      <div className="space-y-2">
+                        <Label>Proposal Submitted Date</Label>
+                        <Popover open={proposalSubmittedOpen} onOpenChange={setProposalSubmittedOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !deal.proposal_submitted_date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {deal.proposal_submitted_date
+                                ? format(new Date(deal.proposal_submitted_date), 'PPP')
+                                : 'Pick a date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={deal.proposal_submitted_date ? new Date(deal.proposal_submitted_date) : undefined}
+                              onSelect={(date) => {
+                                handleProposalFieldUpdate('proposal_submitted_date', date ? format(date, 'yyyy-MM-dd') : null);
+                                setProposalSubmittedOpen(false);
+                              }}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    {/* Proposal Documents */}
+                    <DealFileUpload
+                      files={proposalFiles}
+                      fileType="proposal"
+                      onUpload={(file) => uploadFile({ dealId: deal.id, file, fileType: 'proposal' })}
+                      onDelete={(file) => deleteFile(file)}
+                      getFileUrl={getFileUrl}
+                      isUploading={isUploading}
+                      isDeleting={isDeletingFile}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      label="Proposal Documents"
+                    />
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
