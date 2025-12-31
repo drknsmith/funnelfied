@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ArrowLeft, Loader2, ChevronDown, ChevronUp, CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, ChevronDown, ChevronUp, CalendarIcon, ExternalLink, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -63,6 +63,7 @@ export default function DealForm() {
     primary_buyer_role: '',
     primary_objection: '',
     objection_notes: '',
+    proposal_link: '',
     proposal_requested_date: null as Date | null,
     proposal_submitted_date: null as Date | null,
     site_notes: '',
@@ -104,6 +105,7 @@ export default function DealForm() {
         primary_buyer_role: deal.primary_buyer_role || '',
         primary_objection: deal.primary_objection || '',
         objection_notes: deal.objection_notes || '',
+        proposal_link: (deal as any).proposal_link || '',
         proposal_requested_date: deal.proposal_requested_date ? new Date(deal.proposal_requested_date) : null,
         proposal_submitted_date: deal.proposal_submitted_date ? new Date(deal.proposal_submitted_date) : null,
         site_notes: deal.site_notes || '',
@@ -140,7 +142,7 @@ export default function DealForm() {
       }
     }
 
-    const dealData: Partial<Deal> = {
+    const dealData = {
       account_id: formData.account_id,
       deal_type: formData.deal_type || null,
       stage: formData.stage,
@@ -155,11 +157,13 @@ export default function DealForm() {
       primary_buyer_role: formData.primary_buyer_role || null,
       primary_objection: formData.primary_objection || null,
       objection_notes: formData.objection_notes || null,
+      proposal_link: formData.proposal_link || null,
       proposal_requested_date: formData.proposal_requested_date?.toISOString().split('T')[0] || null,
       proposal_submitted_date: formData.proposal_submitted_date?.toISOString().split('T')[0] || null,
       site_notes: formData.site_notes || null,
       internal_notes: formData.internal_notes || null,
       status: formData.stage === 'won' ? 'won' : formData.stage === 'lost_archived' ? 'lost' : 'open',
+      last_meaningful_activity_date: undefined as string | undefined,
     };
 
     // Auto-update stage when proposal is submitted
@@ -169,9 +173,9 @@ export default function DealForm() {
     }
 
     if (isEdit && deal) {
-      updateDeal({ id: deal.id, ...dealData } as Partial<Deal> & { id: string });
+      updateDeal({ id: deal.id, ...dealData } as any);
     } else {
-      createDeal(dealData as Omit<Deal, 'id' | 'workspace_id' | 'created_at' | 'updated_at' | 'owner_user_id'>);
+      createDeal(dealData as any);
     }
 
     navigate('/deals');
@@ -499,6 +503,28 @@ export default function DealForm() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent className="space-y-4">
+                  {/* Proposal Link */}
+                  <div className="space-y-2">
+                    <Label>Proposal Link</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={formData.proposal_link}
+                        onChange={(e) => setFormData({ ...formData, proposal_link: e.target.value })}
+                        placeholder="https://..."
+                        type="url"
+                        className="flex-1"
+                      />
+                      {formData.proposal_link && (
+                        <Button type="button" variant="outline" size="icon" asChild>
+                          <a href={formData.proposal_link} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Date pickers */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Proposal Requested Date</Label>
@@ -558,7 +584,8 @@ export default function DealForm() {
                     </div>
                   </div>
 
-                  {isEdit && (
+                  {/* Proposal Files */}
+                  {isEdit ? (
                     <DealFileUpload
                       files={proposalFiles}
                       fileType="proposal"
@@ -569,6 +596,14 @@ export default function DealForm() {
                       isDeleting={isDeleting}
                       label="Proposal Documents"
                     />
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Proposal Documents</Label>
+                      <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+                        <Upload className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Save the deal first to upload proposal files</p>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </CollapsibleContent>

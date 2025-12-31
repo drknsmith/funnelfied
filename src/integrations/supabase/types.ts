@@ -291,6 +291,7 @@ export type Database = {
           primary_contact_id: string | null
           primary_objection: string | null
           probability: number | null
+          proposal_link: string | null
           proposal_requested_date: string | null
           proposal_submitted_date: string | null
           site_notes: string | null
@@ -320,6 +321,7 @@ export type Database = {
           primary_contact_id?: string | null
           primary_objection?: string | null
           probability?: number | null
+          proposal_link?: string | null
           proposal_requested_date?: string | null
           proposal_submitted_date?: string | null
           site_notes?: string | null
@@ -349,6 +351,7 @@ export type Database = {
           primary_contact_id?: string | null
           primary_objection?: string | null
           probability?: number | null
+          proposal_link?: string | null
           proposal_requested_date?: string | null
           proposal_submitted_date?: string | null
           site_notes?: string | null
