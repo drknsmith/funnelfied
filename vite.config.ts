@@ -28,17 +28,12 @@ export default defineConfig(({ mode }) => ({
         icons: [
           {
             src: "/logo-primary.png",
-            sizes: "192x192",
+            sizes: "any",
             type: "image/png",
           },
           {
             src: "/logo-primary.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "/logo-primary.png",
-            sizes: "512x512",
+            sizes: "any",
             type: "image/png",
             purpose: "maskable",
           },
