@@ -89,7 +89,7 @@ export function useDeals(filters?: { stage?: string; status?: string }) {
 
       const { data, error } = await supabase
         .from('deals')
-        .insert({ ...input, workspace_id: profile.workspace_id, owner_user_id: user?.user?.id || null })
+        .insert({ ...input, workspace_id: profile.workspace_id, owner_user_id: user?.id || null })
         .select()
         .single();
 
