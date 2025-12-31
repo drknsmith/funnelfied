@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Monitor, Smartphone, Share, MoreVertical, PlusSquare, Check, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Monitor, Smartphone, Share, MoreVertical, PlusSquare, Check, RefreshCw, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import logoPrimary from '@/assets/logo-primary.png';
@@ -87,8 +88,15 @@ const Install = () => {
     return (
       <div className="min-h-screen bg-secondary/30">
         <div className="border-b border-border bg-background/80 backdrop-blur-sm">
-          <div className="container mx-auto py-4 px-4 flex justify-center">
+          <div className="container mx-auto py-4 px-4 flex items-center justify-between">
+            <Link to="/auth">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Login
+              </Button>
+            </Link>
             <img src={logoPrimary} alt="Funnelfied" className="h-8 w-auto" />
+            <div className="w-[120px]" />
           </div>
         </div>
         {children}
