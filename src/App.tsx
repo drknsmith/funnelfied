@@ -14,6 +14,7 @@ import AccountDetail from "./pages/AccountDetail";
 import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
 import Deals from "./pages/Deals";
+import DealForm from "./pages/DealForm";
 import DealDetail from "./pages/DealDetail";
 import Interactions from "./pages/Interactions";
 import Playbooks from "./pages/Playbooks";
@@ -46,6 +47,8 @@ const App = () => (
               <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
               <Route path="/contacts/:id" element={<ProtectedRoute><ContactDetail /></ProtectedRoute>} />
               <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
+              <Route path="/deals/new" element={<ProtectedRoute><DealForm /></ProtectedRoute>} />
+              <Route path="/deals/:id/edit" element={<ProtectedRoute><DealForm /></ProtectedRoute>} />
               <Route path="/deals/:id" element={<ProtectedRoute><DealDetail /></ProtectedRoute>} />
               <Route path="/interactions" element={<ProtectedRoute><Interactions /></ProtectedRoute>} />
               <Route path="/playbooks" element={<ProtectedRoute><Playbooks /></ProtectedRoute>} />
