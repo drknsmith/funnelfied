@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useViewMode } from '@/contexts/ViewModeContext';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Account {
@@ -21,18 +22,25 @@ export interface Account {
 export type AccountInput = Omit<Account, 'id' | 'created_at' | 'updated_at'>;
 
 export function useAccounts() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { viewMode } = useViewMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const accountsQuery = useQuery({
-    queryKey: ['accounts', profile?.workspace_id],
+    queryKey: ['accounts', profile?.workspace_id, viewMode, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('accounts')
         .select('*')
         .order('name');
 
+      // Filter by owner when in 'my' mode
+      if (viewMode === 'my' && user?.id) {
+        query = query.eq('owner_user_id', user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Account[];
     },

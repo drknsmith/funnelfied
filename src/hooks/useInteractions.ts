@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useViewMode } from '@/contexts/ViewModeContext';
 import { useToast } from '@/hooks/use-toast';
 
 export const INTERACTION_TYPES = [
@@ -29,19 +30,21 @@ export interface Interaction {
 
 export interface InteractionWithRelations extends Interaction {
   contacts: { id: string; name: string } | null;
+  deals?: { owner_user_id: string | null } | null;
 }
 
 export function useInteractions(dealId?: string) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { viewMode } = useViewMode();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: interactions = [], isLoading, error } = useQuery({
-    queryKey: ['interactions', dealId],
+    queryKey: ['interactions', dealId, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('interactions')
-        .select('*, contacts(id, name)')
+        .select('*, contacts(id, name), deals(owner_user_id)')
         .order('occurred_at', { ascending: false });
 
       if (dealId) {
@@ -50,6 +53,14 @@ export function useInteractions(dealId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
+
+      // Filter by deal owner when in 'my' mode (interactions belong to deals)
+      if (viewMode === 'my' && user?.id && !dealId) {
+        return (data as InteractionWithRelations[]).filter(
+          (interaction) => interaction.deals?.owner_user_id === user.id
+        );
+      }
+
       return data as InteractionWithRelations[];
     },
     enabled: !!profile?.workspace_id,

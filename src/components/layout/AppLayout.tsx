@@ -2,10 +2,13 @@ import { ReactNode, useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
+import { useViewMode } from '@/contexts/ViewModeContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   LayoutDashboard,
   Building2,
@@ -116,6 +119,7 @@ function getRoleDisplayName(role: string | null, userName: string | null | undef
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const { profile, role, signOut } = useAuth();
+  const { viewMode, setViewMode, canToggleViewMode } = useViewMode();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   
@@ -207,6 +211,60 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
               <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
             </nav>
+
+            {/* View Mode Toggle - Only visible for admin/super_admin */}
+            {canToggleViewMode && (
+              <>
+                <Separator className="my-4 bg-sidebar-border" />
+                {!isCollapsed ? (
+                  <div className="rounded-lg bg-sidebar-accent p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {viewMode === 'my' ? (
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Users className="h-4 w-4 text-primary" />
+                        )}
+                        <Label htmlFor="view-mode-toggle" className="text-sm font-medium cursor-pointer">
+                          {viewMode === 'my' ? 'My Data' : 'Team Data'}
+                        </Label>
+                      </div>
+                      <Switch
+                        id="view-mode-toggle"
+                        checked={viewMode === 'team'}
+                        onCheckedChange={(checked) => setViewMode(checked ? 'team' : 'my')}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {viewMode === 'my' ? 'Viewing your records only' : 'Viewing all team records'}
+                    </p>
+                  </div>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setViewMode(viewMode === 'my' ? 'team' : 'my')}
+                        className={cn(
+                          'mx-auto',
+                          viewMode === 'team' && 'text-primary'
+                        )}
+                      >
+                        {viewMode === 'my' ? (
+                          <User className="h-4 w-4" />
+                        ) : (
+                          <Users className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {viewMode === 'my' ? 'My Data' : 'Team Data'}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </>
+            )}
 
             {canSeeAdmin && (
               <>
