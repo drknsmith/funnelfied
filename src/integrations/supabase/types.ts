@@ -22,6 +22,7 @@ export type Database = {
           expansion_notes: string | null
           id: string
           name: string
+          owner_user_id: string | null
           portfolio_size: string
           segment: string | null
           status: string
@@ -35,6 +36,7 @@ export type Database = {
           expansion_notes?: string | null
           id?: string
           name: string
+          owner_user_id?: string | null
           portfolio_size?: string
           segment?: string | null
           status?: string
@@ -48,6 +50,7 @@ export type Database = {
           expansion_notes?: string | null
           id?: string
           name?: string
+          owner_user_id?: string | null
           portfolio_size?: string
           segment?: string | null
           status?: string
@@ -64,6 +67,98 @@ export type Database = {
           },
         ]
       }
+      asset_playbooks: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          playbook_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          playbook_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          playbook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_playbooks_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_playbooks_playbook_id_fkey"
+            columns: ["playbook_id"]
+            isOneToOne: false
+            referencedRelation: "playbooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          asset_file_ref: string | null
+          asset_type: string
+          asset_url: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string
+          storage_method: string
+          updated_at: string
+          updated_by_user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_file_ref?: string | null
+          asset_type: string
+          asset_url?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          storage_method?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_file_ref?: string | null
+          asset_type?: string
+          asset_url?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          storage_method?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           account_id: string
@@ -73,6 +168,7 @@ export type Database = {
           linkedin_url: string | null
           name: string
           notes: string | null
+          owner_user_id: string | null
           phone: string | null
           role_type: string | null
           title: string | null
@@ -87,6 +183,7 @@ export type Database = {
           linkedin_url?: string | null
           name: string
           notes?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           role_type?: string | null
           title?: string | null
@@ -101,6 +198,7 @@ export type Database = {
           linkedin_url?: string | null
           name?: string
           notes?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           role_type?: string | null
           title?: string | null
@@ -134,6 +232,7 @@ export type Database = {
           last_meaningful_activity_date: string | null
           next_action: string | null
           next_action_date: string | null
+          owner_user_id: string | null
           playbook_assigned_at: string | null
           playbook_assigned_by: string | null
           playbook_id: string | null
@@ -153,6 +252,7 @@ export type Database = {
           last_meaningful_activity_date?: string | null
           next_action?: string | null
           next_action_date?: string | null
+          owner_user_id?: string | null
           playbook_assigned_at?: string | null
           playbook_assigned_by?: string | null
           playbook_id?: string | null
@@ -172,6 +272,7 @@ export type Database = {
           last_meaningful_activity_date?: string | null
           next_action?: string | null
           next_action_date?: string | null
+          owner_user_id?: string | null
           playbook_assigned_at?: string | null
           playbook_assigned_by?: string | null
           playbook_id?: string | null
@@ -369,9 +470,11 @@ export type Database = {
           name: string
           objective: string | null
           proof_asset_file_ref: string | null
+          proof_asset_id: string | null
           proof_asset_label: string | null
           proof_asset_type: string | null
           proof_asset_url: string | null
+          secondary_proof_asset_id: string | null
           status: string
           trigger: string | null
           updated_at: string
@@ -395,9 +498,11 @@ export type Database = {
           name: string
           objective?: string | null
           proof_asset_file_ref?: string | null
+          proof_asset_id?: string | null
           proof_asset_label?: string | null
           proof_asset_type?: string | null
           proof_asset_url?: string | null
+          secondary_proof_asset_id?: string | null
           status?: string
           trigger?: string | null
           updated_at?: string
@@ -421,9 +526,11 @@ export type Database = {
           name?: string
           objective?: string | null
           proof_asset_file_ref?: string | null
+          proof_asset_id?: string | null
           proof_asset_label?: string | null
           proof_asset_type?: string | null
           proof_asset_url?: string | null
+          secondary_proof_asset_id?: string | null
           status?: string
           trigger?: string | null
           updated_at?: string
@@ -431,6 +538,20 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "playbooks_proof_asset_id_fkey"
+            columns: ["proof_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playbooks_secondary_proof_asset_id_fkey"
+            columns: ["secondary_proof_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "playbooks_workspace_id_fkey"
             columns: ["workspace_id"]
