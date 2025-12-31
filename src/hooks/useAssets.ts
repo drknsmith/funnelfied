@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useViewMode } from '@/contexts/ViewModeContext';
 import { toast } from '@/hooks/use-toast';
 
 export interface Asset {
@@ -36,19 +37,27 @@ export const ASSET_TYPES = [
 
 export function useAssets() {
   const { profile, user } = useAuth();
+  const { viewMode } = useViewMode();
   const queryClient = useQueryClient();
 
   const { data: assets = [], isLoading, error } = useQuery({
-    queryKey: ['assets', profile?.workspace_id],
+    queryKey: ['assets', profile?.workspace_id, viewMode, user?.id],
     queryFn: async () => {
       if (!profile?.workspace_id) return [];
 
       // Get assets
-      const { data: assetsData, error: assetsError } = await supabase
+      let query = supabase
         .from('assets')
         .select('*')
         .eq('workspace_id', profile.workspace_id)
         .order('created_at', { ascending: false });
+
+      // Filter by creator when in 'my' mode
+      if (viewMode === 'my' && user?.id) {
+        query = query.eq('created_by_user_id', user.id);
+      }
+
+      const { data: assetsData, error: assetsError } = await query;
 
       if (assetsError) throw assetsError;
 

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useViewMode } from '@/contexts/ViewModeContext';
 import { useToast } from '@/hooks/use-toast';
 
 export const DEAL_STAGES = [
@@ -100,12 +101,13 @@ export interface DealWithRelations extends Deal {
 }
 
 export function useDeals(filters?: { stage?: string; status?: string }) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { viewMode } = useViewMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const dealsQuery = useQuery({
-    queryKey: ['deals', profile?.workspace_id, filters],
+    queryKey: ['deals', profile?.workspace_id, filters, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('deals')
@@ -117,6 +119,11 @@ export function useDeals(filters?: { stage?: string; status?: string }) {
       }
       if (filters?.status) {
         query = query.eq('status', filters.status);
+      }
+
+      // Filter by owner when in 'my' mode
+      if (viewMode === 'my' && user?.id) {
+        query = query.eq('owner_user_id', user.id);
       }
 
       const { data, error } = await query;

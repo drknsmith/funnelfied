@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useViewMode } from '@/contexts/ViewModeContext';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Contact {
@@ -24,12 +25,13 @@ export interface ContactWithAccount extends Contact {
 }
 
 export function useContacts(accountId?: string) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { viewMode } = useViewMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const contactsQuery = useQuery({
-    queryKey: ['contacts', profile?.workspace_id, accountId],
+    queryKey: ['contacts', profile?.workspace_id, accountId, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('contacts')
@@ -38,6 +40,11 @@ export function useContacts(accountId?: string) {
 
       if (accountId) {
         query = query.eq('account_id', accountId);
+      }
+
+      // Filter by owner when in 'my' mode
+      if (viewMode === 'my' && user?.id) {
+        query = query.eq('owner_user_id', user.id);
       }
 
       const { data, error } = await query;
