@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Monitor, Smartphone, Share, MoreVertical, PlusSquare, Check } from 'lucide-react';
+import { Download, Monitor, Smartphone, Share, MoreVertical, PlusSquare, Check, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
+import logoPrimary from '@/assets/logo-primary.png';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -15,6 +17,10 @@ const Install = () => {
   const [isIOS, setIsIOS] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [serviceWorkerStatus, setServiceWorkerStatus] = useState<string>('checking...');
+  
+  const { user } = useAuth();
 
   useEffect(() => {
     // Check if running as standalone PWA
@@ -29,6 +35,21 @@ const Install = () => {
     // Detect mobile
     const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     setIsMobile(mobile);
+
+    // Check service worker status
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((registration) => {
+        if (registration) {
+          setServiceWorkerStatus('registered');
+        } else {
+          setServiceWorkerStatus('not registered');
+        }
+      }).catch(() => {
+        setServiceWorkerStatus('error');
+      });
+    } else {
+      setServiceWorkerStatus('not supported');
+    }
 
     // Listen for the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -54,9 +75,30 @@ const Install = () => {
     }
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  // Wrapper component that conditionally uses AppLayout
+  const PageWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (user) {
+      return <AppLayout>{children}</AppLayout>;
+    }
+    return (
+      <div className="min-h-screen bg-secondary/30">
+        <div className="border-b border-border bg-background/80 backdrop-blur-sm">
+          <div className="container mx-auto py-4 px-4 flex justify-center">
+            <img src={logoPrimary} alt="Funnelfied" className="h-8 w-auto" />
+          </div>
+        </div>
+        {children}
+      </div>
+    );
+  };
+
   if (isStandalone) {
     return (
-      <AppLayout>
+      <PageWrapper>
         <div className="container mx-auto py-8 px-4 max-w-3xl">
           <Card className="text-center">
             <CardHeader>
@@ -70,12 +112,12 @@ const Install = () => {
             </CardHeader>
           </Card>
         </div>
-      </AppLayout>
+      </PageWrapper>
     );
   }
 
   return (
-    <AppLayout>
+    <PageWrapper>
       <div className="container mx-auto py-8 px-4 max-w-3xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Get the Funnelfied App</h1>
@@ -240,8 +282,70 @@ const Install = () => {
             </ul>
           </CardContent>
         </Card>
+
+        {/* Troubleshooting Section */}
+        <Card className="mt-8">
+          <CardHeader 
+            className="cursor-pointer" 
+            onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Troubleshooting</CardTitle>
+              {showTroubleshooting ? (
+                <ChevronUp className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+          {showTroubleshooting && (
+            <CardContent className="space-y-4">
+              <div className="text-sm space-y-2">
+                <p className="text-muted-foreground">
+                  If you don't see the install button, try the following:
+                </p>
+                <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                  <li>Make sure you're using a supported browser (Chrome, Edge, or Safari)</li>
+                  <li>Clear your browser cache and reload the page</li>
+                  <li>Wait a few seconds for the install prompt to appear</li>
+                </ul>
+              </div>
+
+              <Button 
+                variant="outline" 
+                onClick={handleRefresh} 
+                className="w-full gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh Page
+              </Button>
+
+              <div className="border-t border-border pt-4">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Status:</p>
+                <div className="grid gap-1 text-xs text-muted-foreground">
+                  <div className="flex justify-between">
+                    <span>Service Worker:</span>
+                    <span className={serviceWorkerStatus === 'registered' ? 'text-green-500' : 'text-amber-500'}>
+                      {serviceWorkerStatus}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Install Prompt:</span>
+                    <span className={deferredPrompt ? 'text-green-500' : 'text-amber-500'}>
+                      {deferredPrompt ? 'available' : 'not available'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Display Mode:</span>
+                    <span>{isStandalone ? 'standalone' : 'browser'}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          )}
+        </Card>
       </div>
-    </AppLayout>
+    </PageWrapper>
   );
 };
 

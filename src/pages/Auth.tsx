@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import logoPrimary from '@/assets/logo-primary.png';
 
 const loginSchema = z.object({
@@ -267,6 +268,14 @@ export default function Auth() {
           </CardFooter>
         </form>
       </Card>
+
+      <Link 
+        to="/install" 
+        className="mt-6 flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+      >
+        <Download className="h-4 w-4" />
+        Get the App
+      </Link>
     </div>
   );
 }
