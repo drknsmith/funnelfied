@@ -222,64 +222,139 @@ export type Database = {
           },
         ]
       }
+      deal_files: {
+        Row: {
+          deal_id: string
+          file_name: string
+          file_ref: string
+          file_type: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          deal_id: string
+          file_name: string
+          file_ref: string
+          file_type: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          deal_id?: string
+          file_name?: string
+          file_ref?: string
+          file_type?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_files_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_files_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           account_id: string
+          buying_motive: string | null
           created_at: string
           deal_size_range: string | null
           deal_type: string | null
           id: string
+          internal_notes: string | null
           last_meaningful_activity_date: string | null
           next_action: string | null
           next_action_date: string | null
+          objection_notes: string | null
           owner_user_id: string | null
           playbook_assigned_at: string | null
           playbook_assigned_by: string | null
           playbook_id: string | null
+          primary_buyer_role: string | null
           primary_contact_id: string | null
+          primary_objection: string | null
           probability: number | null
+          proposal_requested_date: string | null
+          proposal_submitted_date: string | null
+          site_notes: string | null
           stage: string
           status: string
+          trigger_signal: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           account_id: string
+          buying_motive?: string | null
           created_at?: string
           deal_size_range?: string | null
           deal_type?: string | null
           id?: string
+          internal_notes?: string | null
           last_meaningful_activity_date?: string | null
           next_action?: string | null
           next_action_date?: string | null
+          objection_notes?: string | null
           owner_user_id?: string | null
           playbook_assigned_at?: string | null
           playbook_assigned_by?: string | null
           playbook_id?: string | null
+          primary_buyer_role?: string | null
           primary_contact_id?: string | null
+          primary_objection?: string | null
           probability?: number | null
+          proposal_requested_date?: string | null
+          proposal_submitted_date?: string | null
+          site_notes?: string | null
           stage?: string
           status?: string
+          trigger_signal?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           account_id?: string
+          buying_motive?: string | null
           created_at?: string
           deal_size_range?: string | null
           deal_type?: string | null
           id?: string
+          internal_notes?: string | null
           last_meaningful_activity_date?: string | null
           next_action?: string | null
           next_action_date?: string | null
+          objection_notes?: string | null
           owner_user_id?: string | null
           playbook_assigned_at?: string | null
           playbook_assigned_by?: string | null
           playbook_id?: string | null
+          primary_buyer_role?: string | null
           primary_contact_id?: string | null
+          primary_objection?: string | null
           probability?: number | null
+          proposal_requested_date?: string | null
+          proposal_submitted_date?: string | null
+          site_notes?: string | null
           stage?: string
           status?: string
+          trigger_signal?: string | null
           updated_at?: string
           workspace_id?: string
         }

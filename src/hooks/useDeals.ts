@@ -4,30 +4,62 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export const DEAL_STAGES = [
-  { value: 'signal_target', label: 'Signal Target' },
+  { value: 'signal_target', label: 'Signal / Target' },
   { value: 'contacted', label: 'Contacted' },
   { value: 'discovery_scheduled', label: 'Discovery Scheduled' },
   { value: 'discovery_done', label: 'Discovery Done' },
   { value: 'proposal_out', label: 'Proposal Out' },
-  { value: 'decision', label: 'Decision' },
+  { value: 'decision', label: 'Decision / Negotiation' },
   { value: 'won', label: 'Won' },
-  { value: 'lost_archived', label: 'Lost/Archived' },
+  { value: 'lost_archived', label: 'Lost / Archived' },
   { value: 'nurture', label: 'Nurture' },
 ] as const;
 
 export const DEAL_SIZES = [
-  { value: 'under_10k', label: 'Under $10k' },
-  { value: '10_25k', label: '$10-25k' },
-  { value: '25_50k', label: '$25-50k' },
-  { value: '50_100k', label: '$50-100k' },
-  { value: '100k_plus', label: '$100k+' },
+  { value: 'under_25k', label: '< $25k' },
+  { value: '25k_75k', label: '$25k–$75k' },
+  { value: '75k_150k', label: '$75k–$150k' },
+  { value: '150k_300k', label: '$150k–$300k' },
+  { value: '300k_plus', label: '$300k+' },
 ] as const;
 
 export const DEAL_TYPES = [
-  { value: 'portfolio', label: 'Portfolio' },
-  { value: 'design_led', label: 'Design-Led' },
-  { value: 'transactional', label: 'Transactional' },
+  { value: 'single_site', label: 'Single-Site / Fast Turn' },
+  { value: 'portfolio', label: 'Portfolio / Standardization' },
+  { value: 'design_led', label: 'Design-Led / Early Signal' },
+  { value: 'retrofit', label: 'Retrofit / Value / Distressed' },
+] as const;
+
+export const BUYING_MOTIVES = [
+  { value: 'design', label: 'Design' },
+  { value: 'roi', label: 'ROI' },
+  { value: 'speed', label: 'Speed' },
+  { value: 'compliance', label: 'Compliance' },
+  { value: 'replacement', label: 'Replacement / Failure' },
+] as const;
+
+export const BUYER_ROLES = [
+  { value: 'property_manager', label: 'Property Manager' },
+  { value: 'asset_manager', label: 'Asset Manager' },
+  { value: 'architect_designer', label: 'Architect / Designer' },
+  { value: 'procurement', label: 'Procurement' },
+  { value: 'developer', label: 'Developer' },
   { value: 'other', label: 'Other' },
+] as const;
+
+export const OBJECTION_TYPES = [
+  { value: 'price', label: 'Price' },
+  { value: 'lead_time', label: 'Lead time' },
+  { value: 'design_constraints', label: 'Design constraints' },
+  { value: 'brand_standard', label: 'Brand standard' },
+  { value: 'budget_timing', label: 'Budget timing' },
+  { value: 'service_warranty', label: 'Service / warranty' },
+] as const;
+
+export const PROBABILITY_LEVELS = [
+  { value: 'low', label: 'Low', numeric: 25 },
+  { value: 'medium', label: 'Medium', numeric: 50 },
+  { value: 'high', label: 'High', numeric: 75 },
 ] as const;
 
 export interface Deal {
@@ -45,6 +77,17 @@ export interface Deal {
   last_meaningful_activity_date: string | null;
   status: string;
   owner_user_id: string | null;
+  trigger_signal: string | null;
+  buying_motive: string | null;
+  primary_buyer_role: string | null;
+  primary_objection: string | null;
+  objection_notes: string | null;
+  proposal_requested_date: string | null;
+  proposal_submitted_date: string | null;
+  site_notes: string | null;
+  internal_notes: string | null;
+  playbook_assigned_at: string | null;
+  playbook_assigned_by: string | null;
   created_at: string;
   updated_at: string;
 }
