@@ -14,6 +14,7 @@ export interface Contact {
   role_type: string | null;
   linkedin_url: string | null;
   notes: string | null;
+  owner_user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,12 +48,13 @@ export function useContacts(accountId?: string) {
   });
 
   const createContact = useMutation({
-    mutationFn: async (input: Omit<Contact, 'id' | 'workspace_id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (input: Omit<Contact, 'id' | 'workspace_id' | 'created_at' | 'updated_at' | 'owner_user_id'>) => {
       if (!profile?.workspace_id) throw new Error('No workspace');
+      const { data: { user } } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
         .from('contacts')
-        .insert({ ...input, workspace_id: profile.workspace_id })
+        .insert({ ...input, workspace_id: profile.workspace_id, owner_user_id: user?.user?.id || null })
         .select()
         .single();
 

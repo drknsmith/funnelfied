@@ -13,6 +13,7 @@ export interface Account {
   buying_motive: string | null;
   status: string;
   expansion_notes: string | null;
+  owner_user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,12 +40,13 @@ export function useAccounts() {
   });
 
   const createAccount = useMutation({
-    mutationFn: async (input: Omit<AccountInput, 'workspace_id'>) => {
+    mutationFn: async (input: Omit<AccountInput, 'workspace_id' | 'owner_user_id'>) => {
       if (!profile?.workspace_id) throw new Error('No workspace');
+      const { data: { user } } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
         .from('accounts')
-        .insert({ ...input, workspace_id: profile.workspace_id })
+        .insert({ ...input, workspace_id: profile.workspace_id, owner_user_id: user?.user?.id || null })
         .select()
         .single();
 

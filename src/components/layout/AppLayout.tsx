@@ -13,6 +13,7 @@ import {
   Handshake,
   MessageSquare,
   BookOpen,
+  FileBox,
   Settings,
   Shield,
   LogOut,
@@ -204,6 +205,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <NavItem to="/contacts" icon={<Users className="h-4 w-4" />} label="Contacts" collapsed={isCollapsed} />
               <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" collapsed={isCollapsed} />
               <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
+              <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
             </nav>
 
             {canSeeAdmin && (

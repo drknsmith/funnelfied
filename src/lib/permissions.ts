@@ -1,4 +1,4 @@
-type Resource = 'accounts' | 'contacts' | 'deals' | 'interactions' | 'playbooks' | 'settings' | 'users';
+type Resource = 'accounts' | 'contacts' | 'deals' | 'interactions' | 'playbooks' | 'assets' | 'settings' | 'users';
 type Crud = 'can_view' | 'can_create' | 'can_edit' | 'can_delete';
 type AppRole = 'super_admin' | 'admin' | 'moderator' | 'user';
 
@@ -60,6 +60,7 @@ export const RESOURCES: Resource[] = [
   'deals',
   'interactions',
   'playbooks',
+  'assets',
   'settings',
   'users',
 ];

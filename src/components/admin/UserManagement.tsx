@@ -91,15 +91,30 @@ export default function UserManagement() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
+  const isSuperAdmin = (targetUser: WorkspaceUser): boolean => {
+    return targetUser.role === 'super_admin';
+  };
+
   const canEditRole = (targetUser: WorkspaceUser): boolean => {
     if (targetUser.user_id === user?.id) return false;
     if (!canAssignRole(currentUserRole, 'user')) return false;
+    // Super admin guard: non-super_admins cannot edit super_admin users
+    if (isSuperAdmin(targetUser) && currentUserRole !== 'super_admin') return false;
     return true;
   };
 
   const canDelete = (targetUser: WorkspaceUser): boolean => {
     if (targetUser.user_id === user?.id) return false;
+    // Super admin guard: cannot delete super_admin
+    if (isSuperAdmin(targetUser)) return false;
     return canDeleteRole(currentUserRole, targetUser.role);
+  };
+
+  const canToggleActive = (targetUser: WorkspaceUser): boolean => {
+    if (targetUser.user_id === user?.id) return false;
+    // Super admin guard: cannot deactivate super_admin
+    if (isSuperAdmin(targetUser) && currentUserRole !== 'super_admin') return false;
+    return canEditRole(targetUser);
   };
 
   const canEditName = (targetUser: WorkspaceUser): boolean => {
@@ -267,9 +282,10 @@ export default function UserManagement() {
               <TableBody>
                 {users.map((workspaceUser) => {
                   const isCurrentUser = workspaceUser.user_id === user?.id;
+                  const isTargetSuperAdmin = isSuperAdmin(workspaceUser);
                   const showRoleDropdown = canEditRole(workspaceUser);
                   const showDelete = canDelete(workspaceUser);
-                  const showActiveToggle = canEditRole(workspaceUser);
+                  const showActiveToggle = canToggleActive(workspaceUser);
                   const isEditingThisUser = editingUserId === workspaceUser.user_id;
 
                   return (

@@ -19,6 +19,9 @@ import Interactions from "./pages/Interactions";
 import Playbooks from "./pages/Playbooks";
 import PlaybookForm from "./pages/PlaybookForm";
 import PlaybookDetail from "./pages/PlaybookDetail";
+import Assets from "./pages/Assets";
+import AssetForm from "./pages/AssetForm";
+import AssetDetail from "./pages/AssetDetail";
 import Admin from "./pages/Admin";
 import SuperAdmin from "./pages/SuperAdmin";
 import HelpCenter from "./pages/HelpCenter";
@@ -49,6 +52,10 @@ const App = () => (
               <Route path="/playbooks/new" element={<ProtectedRoute><PlaybookForm /></ProtectedRoute>} />
               <Route path="/playbooks/:id" element={<ProtectedRoute><PlaybookDetail /></ProtectedRoute>} />
               <Route path="/playbooks/:id/edit" element={<ProtectedRoute><PlaybookForm /></ProtectedRoute>} />
+              <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
+              <Route path="/assets/new" element={<ProtectedRoute><AssetForm /></ProtectedRoute>} />
+              <Route path="/assets/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
+              <Route path="/assets/:id/edit" element={<ProtectedRoute><AssetForm /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/super-admin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
               <Route path="/help" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
