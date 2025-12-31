@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.png", "logo-primary.png", "logo-inverse.png"],
+      includeAssets: ["favicon.png", "logo-primary.png"],
       manifest: {
         name: "Funnelfied",
         short_name: "Funnelfied",
@@ -27,17 +27,17 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         icons: [
           {
-            src: "/favicon.png",
+            src: "/logo-primary.png",
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: "/favicon.png",
+            src: "/logo-primary.png",
             sizes: "512x512",
             type: "image/png",
           },
           {
-            src: "/favicon.png",
+            src: "/logo-primary.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
