@@ -169,7 +169,7 @@ declare global {
 export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelProps) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [snapPoint, setSnapPoint] = useState<number | string | null>(0.85);
+  const [snapPoint, setSnapPoint] = useState<number | string | null>(0.9);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -365,12 +365,12 @@ export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelPro
       <Drawer
         open={isOpen}
         onOpenChange={(open) => !open && onClose()}
-        snapPoints={[0.30, 0.85]}
+        snapPoints={[0.9]}
         activeSnapPoint={snapPoint}
         setActiveSnapPoint={setSnapPoint}
         modal={true}
       >
-        <DrawerContent className="h-[85vh] bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-t border-white/20">
+        <DrawerContent className="max-h-[90vh] bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-t border-white/20">
           <DrawerHeader className="border-b border-border/50 pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -400,7 +400,7 @@ export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelPro
               </div>
             </div>
           </DrawerHeader>
-          <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex flex-col h-[calc(90vh-80px)] overflow-hidden">
             {chatContent}
           </div>
         </DrawerContent>
@@ -408,16 +408,17 @@ export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelPro
     );
   }
 
-  // Desktop: Half-screen panel with frosted glass
+  // Desktop: Compact chat box in bottom-right corner
   return (
     <div 
       className={cn(
-        "fixed inset-y-0 right-0 z-50 w-1/2 max-w-2xl min-w-[400px]",
+        "fixed bottom-24 right-6 z-50 w-full max-w-md",
+        "h-[60vh] max-h-[600px] min-h-[400px]",
         "bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl",
-        "border-l border-white/20 shadow-2xl",
-        "flex flex-col",
-        "transform transition-transform duration-300 ease-out",
-        isOpen ? "translate-x-0" : "translate-x-full"
+        "border border-white/20 rounded-2xl shadow-2xl",
+        "flex flex-col overflow-hidden",
+        "transform transition-all duration-300 ease-out",
+        isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
       )}
     >
       {/* Header */}
