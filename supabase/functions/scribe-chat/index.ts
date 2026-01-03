@@ -1,106 +1,185 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SCRIBE_SYSTEM_PROMPT = `You are Scribe, your AI assistant and CRM Copilot embedded inside Lovable.
+const SCRIBE_SYSTEM_PROMPT = `You are Scribe, the AI CRM Copilot for Funnelfied.
 
-Your role is to help users execute deals correctly using the data already present in the CRM.
-
-You operate strictly within the current CRM context. You are not a strategist, not a web researcher, and not a pipeline generator.
+Your role is to help users understand and execute on their CRM data. You have access to real-time CRM statistics and can answer questions about contacts, deals, accounts, and pipeline health.
 
 IDENTITY
-- You identify yourself as: "I am Scribe, your AI assistant."
-- You support deal execution, hygiene, and communication.
+- You identify yourself as: "I'm Scribe, your AI CRM Copilot."
+- You support deal execution, data insights, and communication.
 - You never override human judgment.
 
-CORE RESPONSIBILITIES
+WHAT YOU CAN DO
 
-1) Deal Hygiene & Enforcement
-- Continuously evaluate the current Deal record.
-- If Deal Stage is beyond "Signal / Target", verify the following fields exist:
-  - Assigned Playbook
-  - Primary Stakeholder
-  - Deal Size Range
-  - Probability
-  - Next Action
-  - Next Action Date
-- If any required field is missing, respond with a concise checklist of what is missing and why it is required.
-- Do not allow vague responses or speculation.
+1) Answer CRM Data Questions
+- Tell users how many contacts, accounts, or deals they have
+- Identify stalled deals (no activity in 14+ days)
+- Show deals by stage or pipeline health
+- Highlight actions due today or overdue
+- Recommend which accounts to nurture
+- Provide statistics and summaries
 
-2) Playbook-Aware Drafting
-- Draft messages only using the assigned Playbook.
-- Supported outputs:
-  - First-touch email
-  - LinkedIn DM
-  - Day 3 / Day 10 / Day 21 follow-ups
-- If no Playbook is assigned, respond:
-  "I can't draft messaging until a playbook is assigned to this deal."
-- Never mix playbooks.
-- Respect operational constraints:
-  - Standard proposal turnaround is up to 14 days unless explicitly marked as expedited.
+2) Deal Hygiene & Enforcement
+- Evaluate the current Deal record when on a deal page
+- If Deal Stage is beyond "Signal / Target", check for required fields:
+  - Assigned Playbook, Primary Stakeholder, Deal Size, Probability, Next Action, Next Action Date
+- Point out what's missing and why it matters
+
+3) Playbook-Aware Drafting
+- Draft messages using the assigned Playbook
+- Supported: First-touch email, LinkedIn DM, Day 3/10/21 follow-ups
+- If no Playbook assigned: "Assign a playbook first so I can draft messaging."
 
 Tone by Playbook:
-- PB1 (Single-Site / Fast Turn): fast, pragmatic, execution-focused
-- PB2 (Portfolio / Standardization): executive, portfolio-standardization framing
-- PB3 (Design-Led / Early Signal): design-literate, spec-in focused
-- PB4 (Retrofit / Value / Distressed): ROI- and value-engineering focused
+- PB1 (Single-Site): fast, pragmatic, execution-focused
+- PB2 (Portfolio): executive, portfolio-standardization framing
+- PB3 (Design-Led): design-literate, spec-in focused
+- PB4 (Retrofit/Value): ROI and value-engineering focused
 
-3) Interaction Assistance
-- When a user pastes an email, call note, or meeting summary, you must:
-  - Summarize the interaction in 2–3 sentences
-  - Extract objections, constraints, commitments, and deadlines
-  - Recommend a Next Action and Next Action Date
-  - Suggest a stage change if appropriate
-- You do NOT auto-update CRM fields.
-- You only recommend changes and explain why.
+4) Interaction Assistance
+- When given an email/call note, summarize in 2-3 sentences
+- Extract objections, commitments, deadlines
+- Recommend Next Action and Next Action Date
+- Suggest stage changes if appropriate
 
-4) Asset Guidance
-- Recommend which existing Asset to use based on the Playbook and deal context.
-- Reference Assets only by their exact names.
-- Never invent, upload, or modify assets.
+5) Asset Guidance
+- Recommend which Asset to use based on context
+- Reference Assets by exact names only
 
-EXPLICIT NON-RESPONSIBILITIES
+WHAT YOU CANNOT DO
+- Browse the internet or access external data
+- Create, update, or delete CRM records directly
+- Access data from other workspaces or other users' private data (unless admin/super_admin viewing team)
+- Modify system settings or permissions
 
-You must NOT:
-- Browse or search the internet
-- Discover new leads or projects
-- Scrape RFPs, development news, or social media
-- Rank deals across the pipeline
-- Generate strategy beyond the current Deal
-- Create, delete, or modify CRM records
-- Modify user roles or permissions
-
-If asked to do any of the above, respond:
-"That task is handled outside the CRM."
-
-CONTEXT BOUNDARIES
-
-You may use:
-- The current Deal
-- Related Account
-- Assigned Playbook
-- Linked Assets
-- Logged Interactions
-
-You may not assume visibility into:
-- Other deals
-- Other users' pipelines
-- External systems (Outlook, LinkedIn, web)
-
-RESPONSE STYLE RULES
-
+RESPONSE STYLE
 - Be concise and directive
-- Prefer bullet points over paragraphs
-- No motivational language
-- No filler
-- No speculation
+- Use bullet points over paragraphs
+- No filler, no speculation
+- State exactly what's missing if data is incomplete`;
 
-If required information is missing, state exactly what is missing and why it matters.
+interface CRMStats {
+  total_contacts: number;
+  total_accounts: number;
+  total_deals: number;
+  open_deals: number;
+  closed_won: number;
+  closed_lost: number;
+  stalled_deals: number;
+  actions_today: number;
+  deals_by_stage: Record<string, number>;
+}
 
-Your goal is clarity, discipline, and execution.`;
+async function getCRMStats(supabase: any, workspaceId: string, userRole: string | null, userId?: string): Promise<CRMStats> {
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  
+  // Build base query filters
+  const buildFilter = (query: any) => {
+    let q = query.eq('workspace_id', workspaceId);
+    if (!isAdmin && userId) {
+      q = q.eq('owner_user_id', userId);
+    }
+    return q;
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  try {
+    // Get contacts count
+    const { count: contactCount } = await supabase
+      .from('contacts')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId);
+
+    // Get accounts count  
+    const { count: accountCount } = await supabase
+      .from('accounts')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId);
+
+    // Get all deals for detailed stats
+    let dealsQuery = supabase
+      .from('deals')
+      .select('id, stage, status, next_action_date, last_meaningful_activity_date, owner_user_id')
+      .eq('workspace_id', workspaceId);
+    
+    if (!isAdmin && userId) {
+      dealsQuery = dealsQuery.eq('owner_user_id', userId);
+    }
+
+    const { data: deals } = await dealsQuery;
+    const dealsList = deals || [];
+
+    // Calculate deal stats
+    const openDeals = dealsList.filter((d: any) => d.status === 'open');
+    const closedWon = dealsList.filter((d: any) => d.status === 'closed_won').length;
+    const closedLost = dealsList.filter((d: any) => d.status === 'closed_lost').length;
+
+    // Stalled deals: open with no activity in 14 days
+    const stalledDeals = openDeals.filter((d: any) => {
+      if (!d.last_meaningful_activity_date) return true;
+      return d.last_meaningful_activity_date < fourteenDaysAgo;
+    }).length;
+
+    // Actions today: open deals with next_action_date <= today
+    const actionsToday = openDeals.filter((d: any) => {
+      if (!d.next_action_date) return false;
+      return d.next_action_date <= today;
+    }).length;
+
+    // Deals by stage
+    const dealsByStage: Record<string, number> = {};
+    for (const deal of openDeals) {
+      const stage = deal.stage || 'unknown';
+      dealsByStage[stage] = (dealsByStage[stage] || 0) + 1;
+    }
+
+    return {
+      total_contacts: contactCount || 0,
+      total_accounts: accountCount || 0,
+      total_deals: dealsList.length,
+      open_deals: openDeals.length,
+      closed_won: closedWon,
+      closed_lost: closedLost,
+      stalled_deals: stalledDeals,
+      actions_today: actionsToday,
+      deals_by_stage: dealsByStage,
+    };
+  } catch (error) {
+    console.error('Error fetching CRM stats:', error);
+    return {
+      total_contacts: 0,
+      total_accounts: 0,
+      total_deals: 0,
+      open_deals: 0,
+      closed_won: 0,
+      closed_lost: 0,
+      stalled_deals: 0,
+      actions_today: 0,
+      deals_by_stage: {},
+    };
+  }
+}
+
+function formatStageLabel(stage: string): string {
+  const labels: Record<string, string> = {
+    'signal_target': 'Signal/Target',
+    'qualifying': 'Qualifying',
+    'proposal': 'Proposal',
+    'negotiating': 'Negotiating',
+    'closing': 'Closing',
+    'closed_won': 'Closed Won',
+    'closed_lost': 'Closed Lost',
+  };
+  return labels[stage] || stage;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -110,41 +189,68 @@ serve(async (req) => {
   try {
     const { messages, context } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY is not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Create Supabase client for data access
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
     // Build context-aware system prompt
     let systemPrompt = SCRIBE_SYSTEM_PROMPT;
     
     // Add page context
     if (context) {
-      systemPrompt += `\n\n--- CURRENT SESSION CONTEXT ---
+      systemPrompt += `\n\n--- CURRENT SESSION ---
 User: ${context.user_name || 'Unknown'}
 Role: ${context.user_role || 'User'}
-Current Page: ${context.current_page}
-Page Type: ${context.page_type}`;
+Page: ${context.current_page}`;
+
+      // Fetch and add CRM statistics if we have workspace_id
+      if (context.workspace_id) {
+        console.log("Fetching CRM stats for workspace:", context.workspace_id);
+        const stats = await getCRMStats(supabase, context.workspace_id, context.user_role);
+        
+        systemPrompt += `\n\n--- YOUR CRM STATISTICS ---
+Total Contacts: ${stats.total_contacts}
+Total Accounts: ${stats.total_accounts}
+Total Deals: ${stats.total_deals}
+  - Open: ${stats.open_deals}
+  - Closed Won: ${stats.closed_won}
+  - Closed Lost: ${stats.closed_lost}
+Stalled Deals (no activity 14+ days): ${stats.stalled_deals}
+Actions Due Today: ${stats.actions_today}`;
+
+        if (Object.keys(stats.deals_by_stage).length > 0) {
+          systemPrompt += `\nPipeline by Stage:`;
+          for (const [stage, count] of Object.entries(stats.deals_by_stage)) {
+            systemPrompt += `\n  - ${formatStageLabel(stage)}: ${count}`;
+          }
+        }
+      }
 
       // Add page-specific guidance
       if (context.page_type === 'dashboard') {
-        systemPrompt += `\n\nYou are on the Dashboard. Help with general CRM questions, suggest next actions across deals, or provide workflow guidance.`;
+        systemPrompt += `\n\nYou are on the Dashboard. Help with CRM insights, prioritization, and workflow guidance. You can answer questions about their data.`;
       } else if (context.page_type === 'calendar') {
-        systemPrompt += `\n\nYou are on the Calendar. Help with scheduling, prioritizing next actions, and time management for deals.`;
+        systemPrompt += `\n\nYou are on the Calendar. Help with scheduling, prioritizing next actions, and time management.`;
       } else if (context.page_type === 'account') {
         systemPrompt += `\n\nYou are viewing an Account. Help with account strategy, expansion opportunities, or stakeholder mapping.`;
       } else if (context.page_type === 'playbook') {
-        systemPrompt += `\n\nYou are viewing Playbooks. Help explain playbook usage, message templates, or when to apply specific playbooks.`;
+        systemPrompt += `\n\nYou are viewing Playbooks. Explain playbook usage, message templates, or when to apply specific playbooks.`;
       } else if (context.page_type !== 'deal') {
-        systemPrompt += `\n\nProvide general CRM guidance. If the user asks about a specific deal, suggest they navigate to the deal page for full context.`;
+        systemPrompt += `\n\nProvide CRM guidance and answer data questions. If asked about a specific deal, suggest navigating to it for full context.`;
       }
     }
     
     // Add deal context if available
     if (context?.deal) {
       const d = context.deal;
-      systemPrompt += `\n\n--- CURRENT DEAL CONTEXT ---
+      systemPrompt += `\n\n--- CURRENT DEAL ---
 Deal Name: ${d.deal_name || d.account_name || 'Not set'}
 Account: ${d.account_name || 'Unknown'}
 Stage: ${d.stage || 'Unknown'}
@@ -155,11 +261,10 @@ Deal Size: ${d.deal_size || 'Not set'}
 Probability: ${d.probability || 'Not set'}%
 Next Action: ${d.next_action || 'Not set'}
 Next Action Date: ${d.next_action_date || 'Not set'}
-Internal Notes: ${d.internal_notes || 'None'}
----`;
+Internal Notes: ${d.internal_notes || 'None'}`;
     }
 
-    console.log("Scribe chat - User:", context?.user_name, "Page:", context?.current_page, "Deal:", context?.deal?.deal_name || 'None');
+    console.log("Scribe chat - User:", context?.user_name, "Page:", context?.current_page, "Workspace:", context?.workspace_id);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

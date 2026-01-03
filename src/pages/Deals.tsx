@@ -135,7 +135,10 @@ export default function Deals() {
                       onClick={() => navigate(`/deals/${deal.id}`)}
                     >
                       <CardContent className="p-3">
-                        <p className="font-medium text-sm">{deal.accounts?.name || 'No account'}</p>
+                        <p className="font-medium text-sm">{deal.deal_name || deal.accounts?.name || 'Untitled Deal'}</p>
+                        {deal.deal_name && deal.accounts?.name && (
+                          <p className="text-xs text-muted-foreground">{deal.accounts.name}</p>
+                        )}
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                           <span>{deal.deal_size_range || '-'}</span>
                           <span>{deal.probability || 0}%</span>

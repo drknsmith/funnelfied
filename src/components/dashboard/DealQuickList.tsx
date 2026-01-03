@@ -41,7 +41,10 @@ export default function DealQuickList({ deals, type, maxItems = 5 }: DealQuickLi
           }}
         >
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate">{deal.accounts?.name || 'No account'}</p>
+            <p className="text-sm font-medium truncate">{deal.deal_name || deal.accounts?.name || 'Untitled Deal'}</p>
+            {deal.deal_name && deal.accounts?.name && (
+              <p className="text-[11px] text-muted-foreground truncate">{deal.accounts.name}</p>
+            )}
             <p className="text-xs text-muted-foreground">{deal.deal_size_range || '-'}</p>
           </div>
           <span className="text-xs text-muted-foreground ml-2 shrink-0">
