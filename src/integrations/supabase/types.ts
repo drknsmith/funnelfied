@@ -278,6 +278,7 @@ export type Database = {
           deal_name: string | null
           deal_size_range: string | null
           deal_type: string | null
+          external_id: string | null
           id: string
           internal_notes: string | null
           last_meaningful_activity_date: string | null
@@ -309,6 +310,7 @@ export type Database = {
           deal_name?: string | null
           deal_size_range?: string | null
           deal_type?: string | null
+          external_id?: string | null
           id?: string
           internal_notes?: string | null
           last_meaningful_activity_date?: string | null
@@ -340,6 +342,7 @@ export type Database = {
           deal_name?: string | null
           deal_size_range?: string | null
           deal_type?: string | null
+          external_id?: string | null
           id?: string
           internal_notes?: string | null
           last_meaningful_activity_date?: string | null
@@ -400,11 +403,16 @@ export type Database = {
           commitments: string | null
           contact_id: string | null
           created_at: string
+          created_by_user_id: string | null
           deal_id: string
           external_ref: string | null
           id: string
+          key_points: Json | null
+          next_action: string | null
+          next_action_date: string | null
           objections: string | null
           occurred_at: string
+          participants: Json | null
           summary: string | null
           type: string
           workspace_id: string
@@ -413,11 +421,16 @@ export type Database = {
           commitments?: string | null
           contact_id?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           deal_id: string
           external_ref?: string | null
           id?: string
+          key_points?: Json | null
+          next_action?: string | null
+          next_action_date?: string | null
           objections?: string | null
           occurred_at?: string
+          participants?: Json | null
           summary?: string | null
           type: string
           workspace_id: string
@@ -426,11 +439,16 @@ export type Database = {
           commitments?: string | null
           contact_id?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           deal_id?: string
           external_ref?: string | null
           id?: string
+          key_points?: Json | null
+          next_action?: string | null
+          next_action_date?: string | null
           objections?: string | null
           occurred_at?: string
+          participants?: Json | null
           summary?: string | null
           type?: string
           workspace_id?: string
@@ -452,6 +470,80 @@ export type Database = {
           },
           {
             foreignKeyName: "interactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          company: string
+          contact_notes: string | null
+          created_at: string
+          estimated_timeline: string | null
+          external_id: string | null
+          facility_type: string | null
+          first_touch_email: string | null
+          id: string
+          linkedin_dm: string | null
+          location: string
+          owner_user_id: string | null
+          project_name: string
+          recommended_playbook: string | null
+          signal_reason: string | null
+          source_links: Json | null
+          stakeholders_json: Json | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company: string
+          contact_notes?: string | null
+          created_at?: string
+          estimated_timeline?: string | null
+          external_id?: string | null
+          facility_type?: string | null
+          first_touch_email?: string | null
+          id?: string
+          linkedin_dm?: string | null
+          location: string
+          owner_user_id?: string | null
+          project_name: string
+          recommended_playbook?: string | null
+          signal_reason?: string | null
+          source_links?: Json | null
+          stakeholders_json?: Json | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company?: string
+          contact_notes?: string | null
+          created_at?: string
+          estimated_timeline?: string | null
+          external_id?: string | null
+          facility_type?: string | null
+          first_touch_email?: string | null
+          id?: string
+          linkedin_dm?: string | null
+          location?: string
+          owner_user_id?: string | null
+          project_name?: string
+          recommended_playbook?: string | null
+          signal_reason?: string | null
+          source_links?: Json | null
+          stakeholders_json?: Json | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
