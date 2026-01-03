@@ -1,19 +1,26 @@
 import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768;
-
+/**
+ * Detects if the user is on a mobile device using pointer/hover capabilities.
+ * This prevents narrow desktop browser windows from being treated as mobile.
+ */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+  const [isMobile, setIsMobile] = React.useState<boolean>(() => {
+    // Initial check using pointer capabilities (works on SSR as false)
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  });
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    // Use pointer/hover media query instead of width
+    const mql = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
     };
     mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    setIsMobile(mql.matches);
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  return !!isMobile;
+  return isMobile;
 }
