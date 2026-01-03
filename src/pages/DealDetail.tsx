@@ -14,6 +14,7 @@ import { PlaybookPanel } from '@/components/deals/PlaybookPanel';
 import { MessagesTab } from '@/components/deals/MessagesTab';
 import { PlaybookRequiredModal } from '@/components/deals/PlaybookRequiredModal';
 import { DealFileUpload } from '@/components/deals/DealFileUpload';
+import { ScribeChatPanel } from '@/components/chat/ScribeChatPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ import {
   FileText,
   Link2,
   ExternalLink,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -63,6 +65,7 @@ export default function DealDetail() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [playbookModalOpen, setPlaybookModalOpen] = useState(false);
   const [pendingStageChange, setPendingStageChange] = useState<string | null>(null);
+  const [scribeChatOpen, setScribeChatOpen] = useState(false);
   
   // Proposal tab state
   const [proposalLink, setProposalLink] = useState('');
@@ -176,7 +179,7 @@ export default function DealDetail() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-foreground">
-                  {deal.accounts?.name || 'No Account'}
+                  {deal.deal_name || deal.accounts?.name || 'No Account'}
                 </h1>
                 {getStatusBadge()}
                 {deal.playbooks && (
@@ -185,10 +188,16 @@ export default function DealDetail() {
                   </Badge>
                 )}
               </div>
-              <p className="text-muted-foreground">{stageLabel}</p>
+              <p className="text-muted-foreground">
+                {deal.deal_name && deal.accounts?.name ? `${deal.accounts.name} • ` : ''}{stageLabel}
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setScribeChatOpen(true)}>
+              <Bot className="mr-2 h-4 w-4" />
+              Ask Scribe
+            </Button>
             <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit
@@ -508,6 +517,13 @@ export default function DealDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Scribe Chat Panel */}
+      <ScribeChatPanel
+        deal={deal}
+        isOpen={scribeChatOpen}
+        onClose={() => setScribeChatOpen(false)}
+      />
     </AppLayout>
   );
 }

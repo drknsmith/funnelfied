@@ -275,6 +275,7 @@ export type Database = {
           account_id: string
           buying_motive: string | null
           created_at: string
+          deal_name: string | null
           deal_size_range: string | null
           deal_type: string | null
           id: string
@@ -305,6 +306,7 @@ export type Database = {
           account_id: string
           buying_motive?: string | null
           created_at?: string
+          deal_name?: string | null
           deal_size_range?: string | null
           deal_type?: string | null
           id?: string
@@ -335,6 +337,7 @@ export type Database = {
           account_id?: string
           buying_motive?: string | null
           created_at?: string
+          deal_name?: string | null
           deal_size_range?: string | null
           deal_type?: string | null
           id?: string
