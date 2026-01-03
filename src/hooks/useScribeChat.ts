@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { DealWithRelations } from '@/hooks/useDeals';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,12 +21,28 @@ interface DealContext {
   internal_notes: string | null;
 }
 
-export function useScribeChat(deal?: DealWithRelations | null) {
+interface ScribeContext {
+  userName: string | null;
+  userRole: string | null;
+  currentPage: string;
+  pageType: string;
+  deal?: DealWithRelations | null;
+}
+
+interface FullContext {
+  user_name: string | null;
+  user_role: string | null;
+  current_page: string;
+  page_type: string;
+  deal?: DealContext | null;
+}
+
+export function useScribeChat(context: ScribeContext) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const buildDealContext = useCallback((): DealContext | null => {
+  const buildDealContext = useCallback((deal?: DealWithRelations | null): DealContext | null => {
     if (!deal) return null;
     
     return {
@@ -42,7 +58,17 @@ export function useScribeChat(deal?: DealWithRelations | null) {
       next_action_date: deal.next_action_date,
       internal_notes: deal.internal_notes,
     };
-  }, [deal]);
+  }, []);
+
+  const fullContext = useMemo((): FullContext => {
+    return {
+      user_name: context.userName,
+      user_role: context.userRole,
+      current_page: context.currentPage,
+      page_type: context.pageType,
+      deal: buildDealContext(context.deal),
+    };
+  }, [context, buildDealContext]);
 
   const sendMessage = useCallback(async (content: string) => {
     const userMessage: ChatMessage = { role: 'user', content };
@@ -75,7 +101,7 @@ export function useScribeChat(deal?: DealWithRelations | null) {
           },
           body: JSON.stringify({
             messages: [...messages, userMessage],
-            dealContext: buildDealContext(),
+            context: fullContext,
           }),
         }
       );
@@ -135,7 +161,7 @@ export function useScribeChat(deal?: DealWithRelations | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, buildDealContext, toast]);
+  }, [messages, fullContext, toast]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

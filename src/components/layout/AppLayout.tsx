@@ -1,8 +1,11 @@
-import { ReactNode, useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { NavLink, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useViewMode } from '@/contexts/ViewModeContext';
+import { useDeal } from '@/hooks/useDeals';
+import { ScribeFloatingButton } from '@/components/chat/ScribeFloatingButton';
+import { ScribeChatPanel, ScribeContext } from '@/components/chat/ScribeChatPanel';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -118,11 +121,47 @@ function getRoleDisplayName(role: string | null, userName: string | null | undef
   }
 }
 
+function getPageType(pathname: string): ScribeContext['pageType'] {
+  if (pathname === '/') return 'dashboard';
+  if (pathname.startsWith('/deals/')) return 'deal';
+  if (pathname === '/deals') return 'other';
+  if (pathname.startsWith('/accounts/')) return 'account';
+  if (pathname === '/accounts') return 'other';
+  if (pathname.startsWith('/contacts/')) return 'contact';
+  if (pathname === '/contacts') return 'other';
+  if (pathname === '/calendar') return 'calendar';
+  if (pathname.startsWith('/playbooks')) return 'playbook';
+  if (pathname.startsWith('/assets')) return 'asset';
+  if (pathname === '/interactions') return 'interactions';
+  if (pathname.startsWith('/admin') || pathname.startsWith('/super-admin')) return 'admin';
+  return 'other';
+}
+
 export default function AppLayout({ children }: AppLayoutProps) {
   const { profile, role, signOut } = useAuth();
   const { viewMode, setViewMode, canToggleViewMode } = useViewMode();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
+  
+  // Scribe chat state
+  const [scribeChatOpen, setScribeChatOpen] = useState(false);
+  
+  // Extract deal ID from URL if on deal page
+  const dealIdMatch = location.pathname.match(/^\/deals\/([^/]+)/);
+  const dealId = dealIdMatch ? dealIdMatch[1] : undefined;
+  
+  // Fetch deal data if on deal page
+  const { deal } = useDeal(dealId || '');
+  
+  // Build Scribe context
+  const scribeContext: ScribeContext = useMemo(() => ({
+    userName: profile?.full_name || null,
+    userRole: role,
+    currentPage: location.pathname,
+    pageType: getPageType(location.pathname),
+    deal: dealId ? deal : undefined,
+  }), [profile?.full_name, role, location.pathname, dealId, deal]);
   
   // Sidebar collapse state with localStorage persistence
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -429,6 +468,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+      
+      {/* Global Scribe Floating Button & Chat Panel */}
+      <ScribeFloatingButton 
+        onClick={() => setScribeChatOpen(true)} 
+        isOpen={scribeChatOpen} 
+      />
+      <ScribeChatPanel
+        context={scribeContext}
+        isOpen={scribeChatOpen}
+        onClose={() => setScribeChatOpen(false)}
+      />
     </div>
   );
 }
