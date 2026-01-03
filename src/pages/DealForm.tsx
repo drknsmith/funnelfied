@@ -91,7 +91,7 @@ export default function DealForm() {
     if (deal && isEdit) {
       setFormData({
         account_id: deal.account_id,
-        deal_name: deal.accounts?.name || '',
+        deal_name: deal.deal_name || deal.accounts?.name || '',
         deal_type: deal.deal_type || '',
         stage: deal.stage,
         playbook_id: deal.playbook_id || '',
@@ -144,6 +144,7 @@ export default function DealForm() {
 
     const dealData = {
       account_id: formData.account_id,
+      deal_name: formData.deal_name || null,
       deal_type: formData.deal_type || null,
       stage: formData.stage,
       playbook_id: formData.playbook_id || null,

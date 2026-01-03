@@ -67,6 +67,7 @@ export interface Deal {
   id: string;
   workspace_id: string;
   account_id: string;
+  deal_name: string | null;
   primary_contact_id: string | null;
   playbook_id: string | null;
   deal_type: string | null;
