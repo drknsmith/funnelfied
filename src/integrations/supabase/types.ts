@@ -482,6 +482,7 @@ export type Database = {
           company: string
           contact_notes: string | null
           created_at: string
+          deal_id: string | null
           estimated_timeline: string | null
           external_id: string | null
           facility_type: string | null
@@ -503,6 +504,7 @@ export type Database = {
           company: string
           contact_notes?: string | null
           created_at?: string
+          deal_id?: string | null
           estimated_timeline?: string | null
           external_id?: string | null
           facility_type?: string | null
@@ -524,6 +526,7 @@ export type Database = {
           company?: string
           contact_notes?: string | null
           created_at?: string
+          deal_id?: string | null
           estimated_timeline?: string | null
           external_id?: string | null
           facility_type?: string | null
@@ -542,6 +545,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_workspace_id_fkey"
             columns: ["workspace_id"]
