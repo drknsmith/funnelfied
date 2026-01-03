@@ -332,28 +332,26 @@ export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelPro
             className="flex-1 min-h-[40px] max-h-[120px] resize-none bg-white/50 dark:bg-gray-800/50"
             rows={1}
           />
-          <div className="flex flex-col gap-1">
-            <Button
-              type="button"
-              size="icon"
-              variant={isRecording ? "destructive" : "outline"}
-              onClick={isRecording ? stopVoiceInput : startVoiceInput}
-              className={cn(
-                "h-9 w-9 shrink-0",
-                isRecording && "animate-pulse"
-              )}
-            >
-              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
-            <Button 
-              type="submit" 
-              size="icon" 
-              disabled={!input.trim() || isLoading}
-              className="h-9 w-9 shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button
+            type="button"
+            size="icon"
+            variant={isRecording ? "destructive" : "outline"}
+            onClick={isRecording ? stopVoiceInput : startVoiceInput}
+            className={cn(
+              "h-9 w-9 shrink-0",
+              isRecording && "animate-pulse"
+            )}
+          >
+            {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+          <Button 
+            type="submit" 
+            size="icon" 
+            disabled={!input.trim() || isLoading}
+            className="h-9 w-9 shrink-0"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
         </div>
       </form>
     </>
@@ -370,8 +368,8 @@ export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelPro
         setActiveSnapPoint={setSnapPoint}
         modal={true}
       >
-        <DrawerContent className="max-h-[90vh] bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-t border-white/20">
-          <DrawerHeader className="border-b border-border/50 pb-3">
+        <DrawerContent className="h-[90dvh] mt-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-t border-white/20">
+          <DrawerHeader className="border-b border-border/50 pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img src={scribeIcon} alt="Scribe" className="h-6 w-6 object-contain" />
@@ -400,7 +398,7 @@ export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelPro
               </div>
             </div>
           </DrawerHeader>
-          <div className="flex flex-col h-[calc(90vh-80px)] overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {chatContent}
           </div>
         </DrawerContent>
