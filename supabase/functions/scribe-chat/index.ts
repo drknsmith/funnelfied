@@ -108,7 +108,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, dealContext } = await req.json();
+    const { messages, context } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -119,23 +119,47 @@ serve(async (req) => {
     // Build context-aware system prompt
     let systemPrompt = SCRIBE_SYSTEM_PROMPT;
     
-    if (dealContext) {
+    // Add page context
+    if (context) {
+      systemPrompt += `\n\n--- CURRENT SESSION CONTEXT ---
+User: ${context.user_name || 'Unknown'}
+Role: ${context.user_role || 'User'}
+Current Page: ${context.current_page}
+Page Type: ${context.page_type}`;
+
+      // Add page-specific guidance
+      if (context.page_type === 'dashboard') {
+        systemPrompt += `\n\nYou are on the Dashboard. Help with general CRM questions, suggest next actions across deals, or provide workflow guidance.`;
+      } else if (context.page_type === 'calendar') {
+        systemPrompt += `\n\nYou are on the Calendar. Help with scheduling, prioritizing next actions, and time management for deals.`;
+      } else if (context.page_type === 'account') {
+        systemPrompt += `\n\nYou are viewing an Account. Help with account strategy, expansion opportunities, or stakeholder mapping.`;
+      } else if (context.page_type === 'playbook') {
+        systemPrompt += `\n\nYou are viewing Playbooks. Help explain playbook usage, message templates, or when to apply specific playbooks.`;
+      } else if (context.page_type !== 'deal') {
+        systemPrompt += `\n\nProvide general CRM guidance. If the user asks about a specific deal, suggest they navigate to the deal page for full context.`;
+      }
+    }
+    
+    // Add deal context if available
+    if (context?.deal) {
+      const d = context.deal;
       systemPrompt += `\n\n--- CURRENT DEAL CONTEXT ---
-Deal Name: ${dealContext.deal_name || dealContext.account_name || 'Not set'}
-Account: ${dealContext.account_name || 'Unknown'}
-Stage: ${dealContext.stage || 'Unknown'}
-Deal Type: ${dealContext.deal_type || 'Not set'}
-Playbook: ${dealContext.playbook_name || 'None assigned'}
-Primary Contact: ${dealContext.contact_name || 'Not set'}
-Deal Size: ${dealContext.deal_size || 'Not set'}
-Probability: ${dealContext.probability || 'Not set'}%
-Next Action: ${dealContext.next_action || 'Not set'}
-Next Action Date: ${dealContext.next_action_date || 'Not set'}
-Internal Notes: ${dealContext.internal_notes || 'None'}
+Deal Name: ${d.deal_name || d.account_name || 'Not set'}
+Account: ${d.account_name || 'Unknown'}
+Stage: ${d.stage || 'Unknown'}
+Deal Type: ${d.deal_type || 'Not set'}
+Playbook: ${d.playbook_name || 'None assigned'}
+Primary Contact: ${d.contact_name || 'Not set'}
+Deal Size: ${d.deal_size || 'Not set'}
+Probability: ${d.probability || 'Not set'}%
+Next Action: ${d.next_action || 'Not set'}
+Next Action Date: ${d.next_action_date || 'Not set'}
+Internal Notes: ${d.internal_notes || 'None'}
 ---`;
     }
 
-    console.log("Calling Lovable AI Gateway with deal context:", dealContext?.deal_name || 'No context');
+    console.log("Scribe chat - User:", context?.user_name, "Page:", context?.current_page, "Deal:", context?.deal?.deal_name || 'None');
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

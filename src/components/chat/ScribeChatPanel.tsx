@@ -8,8 +8,16 @@ import { Card } from '@/components/ui/card';
 import { X, Send, Bot, User, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ScribeChatPanelProps {
+export interface ScribeContext {
+  userName: string | null;
+  userRole: string | null;
+  currentPage: string;
+  pageType: 'dashboard' | 'deal' | 'account' | 'contact' | 'calendar' | 'playbook' | 'asset' | 'interactions' | 'admin' | 'other';
   deal?: DealWithRelations | null;
+}
+
+interface ScribeChatPanelProps {
+  context: ScribeContext;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -43,11 +51,26 @@ function ChatMessageBubble({ message }: { message: ChatMessage }) {
   );
 }
 
-export function ScribeChatPanel({ deal, isOpen, onClose }: ScribeChatPanelProps) {
+function getPageDisplayName(pageType: string, currentPage: string): string {
+  switch (pageType) {
+    case 'dashboard': return 'Dashboard';
+    case 'deal': return 'Deal Details';
+    case 'account': return 'Account Details';
+    case 'contact': return 'Contact Details';
+    case 'calendar': return 'Calendar';
+    case 'playbook': return 'Playbook';
+    case 'asset': return 'Asset';
+    case 'interactions': return 'Interactions';
+    case 'admin': return 'Admin';
+    default: return 'Funnelfied';
+  }
+}
+
+export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelProps) {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { messages, isLoading, sendMessage, clearMessages } = useScribeChat(deal);
+  const { messages, isLoading, sendMessage, clearMessages } = useScribeChat(context);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -70,19 +93,22 @@ export function ScribeChatPanel({ deal, isOpen, onClose }: ScribeChatPanelProps)
 
   if (!isOpen) return null;
 
+  const pageDisplay = context.deal 
+    ? (context.deal.deal_name || context.deal.accounts?.name || 'Deal')
+    : getPageDisplayName(context.pageType, context.currentPage);
+
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md border-l bg-background shadow-xl flex flex-col">
+    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md border-l bg-background/95 backdrop-blur-sm shadow-xl flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" />
           <div>
             <h3 className="font-semibold">Scribe</h3>
-            {deal && (
-              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                {deal.deal_name || deal.accounts?.name}
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+              {pageDisplay}
+              {context.userName && ` • ${context.userName}`}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -109,7 +135,9 @@ export function ScribeChatPanel({ deal, isOpen, onClose }: ScribeChatPanelProps)
               <Bot className="mx-auto mb-2 h-8 w-8 text-primary/50" />
               <p className="font-medium">I am Scribe, your AI assistant.</p>
               <p className="mt-1">
-                Ask me about this deal, draft messages, or get guidance on next steps.
+                {context.pageType === 'deal' 
+                  ? 'Ask me about this deal, draft messages, or get guidance on next steps.'
+                  : 'Ask me about deals, playbooks, or get CRM guidance.'}
               </p>
             </Card>
           )}
