@@ -161,7 +161,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     currentPage: location.pathname,
     pageType: getPageType(location.pathname),
     deal: dealId ? deal : undefined,
-  }), [profile?.full_name, role, location.pathname, dealId, deal]);
+    workspaceId: profile?.workspace_id || null,
+  }), [profile?.full_name, profile?.workspace_id, role, location.pathname, dealId, deal]);
   
   // Sidebar collapse state with localStorage persistence
   const [isCollapsed, setIsCollapsed] = useState(() => {

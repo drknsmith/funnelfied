@@ -27,6 +27,7 @@ interface ScribeContext {
   currentPage: string;
   pageType: string;
   deal?: DealWithRelations | null;
+  workspaceId?: string | null;
 }
 
 interface FullContext {
@@ -34,6 +35,7 @@ interface FullContext {
   user_role: string | null;
   current_page: string;
   page_type: string;
+  workspace_id?: string | null;
   deal?: DealContext | null;
 }
 
@@ -66,6 +68,7 @@ export function useScribeChat(context: ScribeContext) {
       user_role: context.userRole,
       current_page: context.currentPage,
       page_type: context.pageType,
+      workspace_id: context.workspaceId,
       deal: buildDealContext(context.deal),
     };
   }, [context, buildDealContext]);
@@ -172,5 +175,6 @@ export function useScribeChat(context: ScribeContext) {
     isLoading,
     sendMessage,
     clearMessages,
+    setMessages,
   };
 }

@@ -52,7 +52,12 @@ export default function DealCard({ deal, onClick, onDragStart, isDragging }: Dea
     >
       <CardContent className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-medium text-sm flex-1">{deal.accounts?.name || 'No account'}</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{deal.deal_name || deal.accounts?.name || 'Untitled Deal'}</p>
+            {deal.deal_name && deal.accounts?.name && (
+              <p className="text-xs text-muted-foreground truncate">{deal.accounts.name}</p>
+            )}
+          </div>
           {deal.playbooks && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 bg-primary/5">
               {deal.playbooks.name}
