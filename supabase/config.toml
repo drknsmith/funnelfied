@@ -2,3 +2,6 @@ project_id = "avayyqeogeekfqpmnffu"
 
 [functions.scribe-chat]
 verify_jwt = false
+
+[functions.crm-bridge]
+verify_jwt = false
