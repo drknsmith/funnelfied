@@ -35,6 +35,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Download,
+  Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logoPrimary from '@/assets/logo-primary.png';
@@ -245,6 +246,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <ScrollArea className="flex-1 px-3 py-4">
             <nav className="space-y-1">
               <NavItem to="/" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" collapsed={isCollapsed} />
+              <NavItem to="/leads" icon={<Inbox className="h-4 w-4" />} label="Leads" collapsed={isCollapsed} />
               <NavItem to="/deals" icon={<Handshake className="h-4 w-4" />} label="Deals" collapsed={isCollapsed} />
               <NavItem to="/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" collapsed={isCollapsed} />
               <NavItem to="/accounts" icon={<Building2 className="h-4 w-4" />} label="Accounts" collapsed={isCollapsed} />
