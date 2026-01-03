@@ -31,6 +31,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
 
 const formSchema = z.object({
+  deal_name: z.string().optional(),
   account_id: z.string().min(1, 'Account is required'),
   primary_contact_id: z.string().optional(),
   stage: z.string().min(1, 'Stage is required'),
@@ -65,6 +66,7 @@ export default function DealFormDialog({
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      deal_name: '',
       account_id: '',
       primary_contact_id: '',
       stage: 'signal_target',
@@ -82,6 +84,7 @@ export default function DealFormDialog({
   useEffect(() => {
     if (deal) {
       form.reset({
+        deal_name: deal.deal_name || '',
         account_id: deal.account_id,
         primary_contact_id: deal.primary_contact_id || '',
         stage: deal.stage,
@@ -93,6 +96,7 @@ export default function DealFormDialog({
       });
     } else {
       form.reset({
+        deal_name: '',
         account_id: '',
         primary_contact_id: '',
         stage: 'signal_target',
@@ -108,6 +112,7 @@ export default function DealFormDialog({
   const handleSubmit = (data: FormData) => {
     onSubmit({
       ...data,
+      deal_name: data.deal_name || null,
       primary_contact_id: data.primary_contact_id || null,
       deal_type: data.deal_type || null,
       deal_size_range: data.deal_size_range || null,
@@ -124,6 +129,20 @@ export default function DealFormDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="deal_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Deal Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter deal name (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="account_id"

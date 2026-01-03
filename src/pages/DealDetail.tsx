@@ -241,6 +241,13 @@ export default function DealDetail() {
                     <CardTitle className="text-sm font-medium">Deal Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {deal.deal_name && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Deal Name</p>
+                        <p className="text-sm font-medium">{deal.deal_name}</p>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-3">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
                       <div>
