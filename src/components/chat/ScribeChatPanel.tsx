@@ -169,7 +169,7 @@ declare global {
 export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelProps) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [snapPoint, setSnapPoint] = useState<number | string | null>(0.9);
+  // Removed snap point state - using full screen drawer
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -363,12 +363,9 @@ export function ScribeChatPanel({ context, isOpen, onClose }: ScribeChatPanelPro
       <Drawer
         open={isOpen}
         onOpenChange={(open) => !open && onClose()}
-        snapPoints={[0.9]}
-        activeSnapPoint={snapPoint}
-        setActiveSnapPoint={setSnapPoint}
         modal={true}
       >
-        <DrawerContent className="h-[90dvh] mt-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-t border-white/20">
+        <DrawerContent className="h-[100dvh] max-h-[100dvh] bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-t border-white/20">
           <DrawerHeader className="border-b border-border/50 pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
