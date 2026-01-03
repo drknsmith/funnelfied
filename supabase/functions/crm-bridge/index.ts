@@ -116,6 +116,24 @@ async function handleLeadsUpsert(body: any): Promise<Response> {
 
   const workspace_id = resolvedWorkspaceId;
 
+  // Derive default owner if not provided
+  let owner_user_id = body.owner_user_id || null;
+
+  if (!owner_user_id) {
+    // Get first user in the workspace as default owner
+    const { data: defaultProfile } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('workspace_id', workspace_id)
+      .limit(1)
+      .maybeSingle();
+    
+    if (defaultProfile) {
+      owner_user_id = defaultProfile.user_id;
+      console.log(`Assigned default owner: ${owner_user_id}`);
+    }
+  }
+
   // Validate other required fields
   const { company, project_name, location, facility_type } = body;
   
@@ -140,7 +158,7 @@ async function handleLeadsUpsert(body: any): Promise<Response> {
     linkedin_dm: body.linkedin_dm || null,
     source_links: body.source_links || null,
     status: body.status || 'new',
-    owner_user_id: body.owner_user_id || null,
+    owner_user_id: owner_user_id,
     updated_at: new Date().toISOString(),
   };
 
@@ -210,8 +228,77 @@ async function handleLeadsUpsert(body: any): Promise<Response> {
     leadId = data.id;
   }
 
+  // Handle stakeholders array - write to lead_stakeholders table
+  if (body.stakeholders && Array.isArray(body.stakeholders)) {
+    console.log(`Processing ${body.stakeholders.length} stakeholders for lead ${leadId}`);
+    
+    for (const stakeholder of body.stakeholders) {
+      const stakeholderData = {
+        workspace_id,
+        lead_id: leadId,
+        stakeholder_name: stakeholder.stakeholder_name || stakeholder.name || null,
+        stakeholder_role_type: stakeholder.stakeholder_role_type || stakeholder.role || 'Other',
+        title: stakeholder.title || null,
+        email: stakeholder.email || null,
+        phone: stakeholder.phone || null,
+        linkedin_url: stakeholder.linkedin_url || stakeholder.linkedin || null,
+        confidence: stakeholder.confidence || 'UNCONFIRMED',
+        notes: stakeholder.notes || null,
+      };
+
+      // Upsert by (lead_id + email) if email exists, else just insert
+      if (stakeholder.email) {
+        const { data: existing } = await supabase
+          .from('lead_stakeholders')
+          .select('id')
+          .eq('lead_id', leadId)
+          .eq('email', stakeholder.email)
+          .maybeSingle();
+        
+        if (existing) {
+          const { error: updateError } = await supabase
+            .from('lead_stakeholders')
+            .update(stakeholderData)
+            .eq('id', existing.id);
+          
+          if (updateError) {
+            console.error('Error updating stakeholder:', updateError);
+          } else {
+            console.log(`Updated stakeholder: ${stakeholder.email}`);
+          }
+        } else {
+          const { error: insertError } = await supabase
+            .from('lead_stakeholders')
+            .insert(stakeholderData);
+          
+          if (insertError) {
+            console.error('Error inserting stakeholder:', insertError);
+          } else {
+            console.log(`Inserted stakeholder: ${stakeholder.email}`);
+          }
+        }
+      } else {
+        // No email - just insert
+        const { error: insertError } = await supabase
+          .from('lead_stakeholders')
+          .insert(stakeholderData);
+        
+        if (insertError) {
+          console.error('Error inserting stakeholder:', insertError);
+        } else {
+          console.log(`Inserted stakeholder: ${stakeholderData.stakeholder_name}`);
+        }
+      }
+    }
+  }
+
   console.log(`Lead ${action}: ${leadId}`);
-  return jsonResponse({ lead_id: leadId, action });
+  return jsonResponse({ 
+    lead_id: leadId, 
+    action,
+    owner_assigned: !!owner_user_id,
+    stakeholders_processed: body.stakeholders?.length || 0,
+  });
 }
 
 // POST /deals/upsert

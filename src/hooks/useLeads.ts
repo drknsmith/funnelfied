@@ -31,9 +31,9 @@ export function useLeads(filters: LeadFilters = {}) {
         .eq('workspace_id', profile.workspace_id)
         .order('created_at', { ascending: false });
 
-      // Apply view mode filter
+      // Apply view mode filter - include unassigned leads in "my" view so users can claim them
       if (viewMode === 'my' && profile.user_id) {
-        query = query.eq('owner_user_id', profile.user_id);
+        query = query.or(`owner_user_id.eq.${profile.user_id},owner_user_id.is.null`);
       }
 
       // Apply filters

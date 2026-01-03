@@ -19,8 +19,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
-import { Plus, Search, Inbox } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Search, Inbox, User } from 'lucide-react';
 import { useLeads, LeadFilters } from '@/hooks/useLeads';
+import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers';
 import { LeadStatusBadge } from '@/components/leads/LeadStatusBadge';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
 import { format } from 'date-fns';
@@ -36,7 +38,14 @@ export default function Leads() {
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
 
   const { data: leads, isLoading } = useLeads(filters);
+  const { users } = useWorkspaceUsers();
 
+  // Helper to get owner name
+  const getOwnerName = (ownerId: string | null) => {
+    if (!ownerId) return null;
+    const user = users?.find((u) => u.user_id === ownerId);
+    return user?.full_name || 'Unknown';
+  };
   const handleSearch = () => {
     setFilters((prev) => ({ ...prev, search: searchInput }));
   };
@@ -167,6 +176,7 @@ export default function Leads() {
               <TableRow>
                 <TableHead>Status</TableHead>
                 <TableHead>Company</TableHead>
+                <TableHead>Owner</TableHead>
                 <TableHead>Facility Type</TableHead>
                 <TableHead>Project Name</TableHead>
                 <TableHead>Location</TableHead>
@@ -177,13 +187,13 @@ export default function Leads() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No leads found. Create your first lead to get started.
                   </TableCell>
                 </TableRow>
@@ -198,6 +208,18 @@ export default function Leads() {
                       <LeadStatusBadge status={lead.status} />
                     </TableCell>
                     <TableCell className="font-medium">{lead.company}</TableCell>
+                    <TableCell>
+                      {lead.owner_user_id ? (
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm">{getOwnerName(lead.owner_user_id)}</span>
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground text-xs">
+                          Unassigned
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell>{lead.facility_type || '—'}</TableCell>
                     <TableCell>{lead.project_name}</TableCell>
                     <TableCell>{lead.location}</TableCell>

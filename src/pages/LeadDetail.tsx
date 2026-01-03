@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Save,
@@ -25,12 +26,17 @@ import {
   Mail,
   MessageSquare,
   ExternalLink,
+  User,
+  Link2,
 } from 'lucide-react';
 import { useLead, useUpdateLead } from '@/hooks/useLeads';
+import { useLeadContacts } from '@/hooks/useLeadContacts';
+import { useAccounts } from '@/hooks/useAccounts';
 import { LeadStatusBadge } from '@/components/leads/LeadStatusBadge';
 import { StakeholdersList } from '@/components/leads/StakeholdersList';
 import { DisqualifyDialog } from '@/components/leads/DisqualifyDialog';
 import { ConvertToDealModal } from '@/components/leads/ConvertToDealModal';
+import { OwnerSelect } from '@/components/leads/OwnerSelect';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -42,6 +48,8 @@ export default function LeadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: lead, isLoading } = useLead(id || '');
+  const { data: linkedContacts } = useLeadContacts(id || '');
+  const { accounts } = useAccounts();
   const updateLead = useUpdateLead();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -56,7 +64,13 @@ export default function LeadDetail() {
     recommended_playbook: string | null;
     signal_reason: string | null;
     contact_notes: string | null;
+    owner_user_id: string | null;
   } | null>(null);
+
+  // Find matching account for stakeholder → contact creation
+  const matchingAccount = accounts?.find(
+    (a) => a.name.toLowerCase() === lead?.company?.toLowerCase()
+  );
 
   // Initialize form data when lead loads
   if (lead && !formData) {
@@ -67,6 +81,7 @@ export default function LeadDetail() {
       recommended_playbook: lead.recommended_playbook,
       signal_reason: lead.signal_reason,
       contact_notes: lead.contact_notes,
+      owner_user_id: lead.owner_user_id,
     });
   }
 
@@ -234,6 +249,32 @@ export default function LeadDetail() {
               )}
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Owner Field */}
+              <div>
+                <Label className="text-muted-foreground flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  Owner
+                </Label>
+                {isEditing && formData ? (
+                  <div className="mt-1">
+                    <OwnerSelect
+                      value={formData.owner_user_id}
+                      onValueChange={(v) =>
+                        setFormData((prev) => ({ ...prev!, owner_user_id: v }))
+                      }
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {lead.owner_user_id ? (
+                      <Badge variant="secondary">Assigned</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">Unassigned</Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Status</Label>
@@ -396,7 +437,46 @@ export default function LeadDetail() {
           </Card>
 
           {/* Stakeholders */}
-          <StakeholdersList stakeholders={lead.stakeholders_json} />
+          <StakeholdersList 
+            stakeholders={lead.stakeholders_json} 
+            leadId={lead.id}
+            accountId={matchingAccount?.id}
+          />
+
+          {/* Linked Contacts */}
+          {linkedContacts && linkedContacts.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Link2 className="h-4 w-4" />
+                  Linked Contacts
+                  <Badge variant="secondary" className="ml-auto">{linkedContacts.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {linkedContacts.map((lc) => (
+                  <div
+                    key={lc.id}
+                    className="flex items-center justify-between rounded-lg border bg-muted/30 p-3"
+                  >
+                    <div>
+                      <p className="font-medium">{lc.contact?.name}</p>
+                      {lc.contact?.email && (
+                        <p className="text-sm text-muted-foreground">{lc.contact.email}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/contacts/${lc.contact_id}`)}
+                    >
+                      View
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Contact Notes */}
           <Card>

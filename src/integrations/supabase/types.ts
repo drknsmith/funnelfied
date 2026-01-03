@@ -477,6 +477,112 @@ export type Database = {
           },
         ]
       }
+      lead_contacts: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          id: string
+          lead_id: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_contacts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_stakeholders: {
+        Row: {
+          confidence: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          lead_id: string
+          linkedin_url: string | null
+          notes: string | null
+          phone: string | null
+          stakeholder_name: string | null
+          stakeholder_role_type: string
+          title: string | null
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          lead_id: string
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          stakeholder_name?: string | null
+          stakeholder_role_type?: string
+          title?: string | null
+          workspace_id: string
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          lead_id?: string
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          stakeholder_name?: string | null
+          stakeholder_role_type?: string
+          title?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_stakeholders_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stakeholders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           company: string
