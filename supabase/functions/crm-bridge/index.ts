@@ -48,6 +48,49 @@ function normalize(str: string): string {
   return str.toLowerCase().trim();
 }
 
+// Helper: Derive workspace_id with fallback logic
+async function deriveWorkspaceId(body: any): Promise<{ workspace_id: string | null; error?: string }> {
+  // Priority 1: Explicit workspace_id in request
+  if (body.workspace_id) {
+    console.log(`Using explicit workspace_id: ${body.workspace_id}`);
+    return { workspace_id: body.workspace_id };
+  }
+
+  // Priority 2: Derive from owner_user_id via profiles table
+  if (body.owner_user_id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('workspace_id')
+      .eq('user_id', body.owner_user_id)
+      .maybeSingle();
+    
+    if (profile?.workspace_id) {
+      console.log(`Derived workspace_id from owner_user_id: ${profile.workspace_id}`);
+      return { workspace_id: profile.workspace_id };
+    }
+    // If user not found, continue to fallback
+    console.log(`No profile found for owner_user_id: ${body.owner_user_id}, falling back`);
+  }
+
+  // Priority 3: Fallback to first workspace in the system
+  const { data: workspaces } = await supabase
+    .from('workspaces')
+    .select('id')
+    .order('created_at', { ascending: true })
+    .limit(1);
+  
+  if (workspaces && workspaces.length > 0) {
+    console.log(`Derived workspace_id from default workspace: ${workspaces[0].id}`);
+    return { workspace_id: workspaces[0].id };
+  }
+
+  // No workspace could be derived
+  return { 
+    workspace_id: null, 
+    error: 'workspace_id could not be derived' 
+  };
+}
+
 // =============================================
 // ENDPOINT HANDLERS
 // =============================================
@@ -61,10 +104,21 @@ async function handleHealth(): Promise<Response> {
 async function handleLeadsUpsert(body: any): Promise<Response> {
   console.log('Processing leads/upsert:', JSON.stringify(body, null, 2));
 
-  // Validate required fields
-  const { workspace_id, company, project_name, location, facility_type } = body;
+  // Derive workspace_id with fallback logic
+  const { workspace_id: resolvedWorkspaceId, error: wsError } = await deriveWorkspaceId(body);
   
-  if (!workspace_id) return errorResponse('workspace_id is required');
+  if (!resolvedWorkspaceId) {
+    return jsonResponse({ 
+      error: 'workspace_id_missing', 
+      message: wsError || 'workspace_id could not be derived' 
+    }, 400);
+  }
+
+  const workspace_id = resolvedWorkspaceId;
+
+  // Validate other required fields
+  const { company, project_name, location, facility_type } = body;
+  
   if (!company) return errorResponse('company is required');
   if (!project_name) return errorResponse('project_name is required');
   if (!location) return errorResponse('location is required');
