@@ -25,6 +25,7 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
 
   const [formData, setFormData] = useState({
     name: '',
+    location: '',
     segment: '',
     portfolio_size: '1',
     deal_type_default: '',
@@ -37,6 +38,7 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
     if (account) {
       setFormData({
         name: account.name,
+        location: account.location || '',
         segment: account.segment || '',
         portfolio_size: account.portfolio_size,
         deal_type_default: account.deal_type_default || '',
@@ -47,6 +49,7 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
     } else {
       setFormData({
         name: '',
+        location: '',
         segment: '',
         portfolio_size: '1',
         deal_type_default: '',
@@ -62,6 +65,7 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
 
     const input = {
       name: formData.name,
+      location: formData.location || null,
       segment: formData.segment || null,
       portfolio_size: formData.portfolio_size,
       deal_type_default: formData.deal_type_default || null,
@@ -97,6 +101,16 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Acme Corp"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Location</Label>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="City, State (e.g., Atlanta, GA)"
             />
           </div>
 

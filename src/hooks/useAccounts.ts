@@ -8,18 +8,26 @@ export interface Account {
   id: string;
   workspace_id: string;
   name: string;
+  location: string | null;
+  lat: number | null;
+  lng: number | null;
   segment: string | null;
   portfolio_size: string;
   deal_type_default: string | null;
   buying_motive: string | null;
   status: string;
   expansion_notes: string | null;
+  health_score: number | null;
   owner_user_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export type AccountInput = Omit<Account, 'id' | 'created_at' | 'updated_at'>;
+export type AccountInput = Omit<Account, 'id' | 'created_at' | 'updated_at' | 'lat' | 'lng' | 'health_score'> & {
+  lat?: number | null;
+  lng?: number | null;
+  health_score?: number | null;
+};
 
 export function useAccounts() {
   const { workspaceId, user } = useAuth();

@@ -163,6 +163,7 @@ export default function LeadDetail() {
     try {
       const newAccount = await createAccount.mutateAsync({
         name: lead.company,
+        location: lead.location || null,
         portfolio_size: '1',
         status: 'active',
         segment: null,

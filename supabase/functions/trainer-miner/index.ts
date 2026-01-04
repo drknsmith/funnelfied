@@ -143,9 +143,33 @@ serve(async (req) => {
       }
     }
 
+    // Priority 3: Look for matching lead with location data
+    if (!searchLocation || !cityName) {
+      const { data: matchingLead } = await supabase
+        .from("leads")
+        .select("location, lat, lng")
+        .eq("workspace_id", account.workspace_id)
+        .ilike("company", account.name)
+        .not("location", "is", null)
+        .limit(1)
+        .maybeSingle();
+
+      if (matchingLead?.location) {
+        searchLocation = matchingLead.location;
+        const parts = matchingLead.location.split(",").map((p: string) => p.trim());
+        if (parts.length >= 2) {
+          cityName = parts[0];
+          stateName = parts[1];
+        } else {
+          cityName = matchingLead.location;
+        }
+        console.log(`Using matching lead location: ${searchLocation}`);
+      }
+    }
+
     if (!searchLocation || !cityName) {
       return new Response(
-        JSON.stringify({ error: "Could not determine account location. Please ensure the account has a valid location." }),
+        JSON.stringify({ error: "Could not determine account location. Please add a location to the account or ensure a matching lead exists." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
