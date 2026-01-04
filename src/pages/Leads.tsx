@@ -20,11 +20,13 @@ import {
 } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Inbox, User } from 'lucide-react';
+import { Plus, Search, Inbox, User, Sparkles } from 'lucide-react';
 import { useLeads, LeadFilters } from '@/hooks/useLeads';
 import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers';
+import { useAuth } from '@/contexts/AuthContext';
 import { LeadStatusBadge } from '@/components/leads/LeadStatusBadge';
 import { LeadFormDialog } from '@/components/leads/LeadFormDialog';
+import { PullLeadsDialog } from '@/components/leads/PullLeadsDialog';
 import { format } from 'date-fns';
 
 const STATUS_OPTIONS = ['New', 'Reviewing', 'Converted', 'Disqualified'];
@@ -33,12 +35,17 @@ const PLAYBOOK_OPTIONS = ['PB2', 'PB3', 'PB4'];
 
 export default function Leads() {
   const navigate = useNavigate();
+  const { role } = useAuth();
   const [filters, setFilters] = useState<LeadFilters>({});
   const [searchInput, setSearchInput] = useState('');
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+  const [showPullLeadsDialog, setShowPullLeadsDialog] = useState(false);
 
   const { data: leads, isLoading } = useLeads(filters);
   const { users } = useWorkspaceUsers();
+
+  // Only admins and super_admins can pull leads
+  const canPullLeads = role === 'super_admin' || role === 'admin';
 
   // Helper to get owner name
   const getOwnerName = (ownerId: string | null) => {
@@ -73,10 +80,18 @@ export default function Leads() {
               <p className="text-muted-foreground">Signals Inbox - Review and convert opportunities</p>
             </div>
           </div>
-          <Button onClick={() => setShowNewLeadDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Lead
-          </Button>
+          <div className="flex items-center gap-2">
+            {canPullLeads && (
+              <Button variant="outline" onClick={() => setShowPullLeadsDialog(true)}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Pull Leads
+              </Button>
+            )}
+            <Button onClick={() => setShowNewLeadDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Lead
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -239,6 +254,11 @@ export default function Leads() {
         open={showNewLeadDialog}
         onOpenChange={setShowNewLeadDialog}
         onSuccess={(id) => navigate(`/leads/${id}`)}
+      />
+
+      <PullLeadsDialog
+        open={showPullLeadsDialog}
+        onOpenChange={setShowPullLeadsDialog}
       />
     </AppLayout>
   );

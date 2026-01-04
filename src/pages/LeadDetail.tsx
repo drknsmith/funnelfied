@@ -28,10 +28,13 @@ import {
   ExternalLink,
   User,
   Link2,
+  UserPlus,
+  Building,
 } from 'lucide-react';
 import { useLead, useUpdateLead } from '@/hooks/useLeads';
 import { useLeadContacts } from '@/hooks/useLeadContacts';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useAuth } from '@/contexts/AuthContext';
 import { LeadStatusBadge } from '@/components/leads/LeadStatusBadge';
 import { StakeholdersList } from '@/components/leads/StakeholdersList';
 import { DisqualifyDialog } from '@/components/leads/DisqualifyDialog';
@@ -47,14 +50,17 @@ const PLAYBOOK_OPTIONS = ['PB2', 'PB3', 'PB4'];
 export default function LeadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { data: lead, isLoading } = useLead(id || '');
   const { data: linkedContacts } = useLeadContacts(id || '');
-  const { accounts } = useAccounts();
+  const { accounts, createAccount } = useAccounts();
   const updateLead = useUpdateLead();
 
   const [isEditing, setIsEditing] = useState(false);
   const [showDisqualifyDialog, setShowDisqualifyDialog] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [isAddingToAccounts, setIsAddingToAccounts] = useState(false);
+  const [isClaimingLead, setIsClaimingLead] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -113,6 +119,67 @@ export default function LeadDetail() {
       setShowDisqualifyDialog(false);
     } catch (error) {
       // Error handled by mutation
+    }
+  };
+
+  const handleClaimLead = async () => {
+    if (!lead || !profile?.user_id) return;
+
+    setIsClaimingLead(true);
+    try {
+      await updateLead.mutateAsync({
+        id: lead.id,
+        owner_user_id: profile.user_id,
+      });
+      toast.success('Lead claimed successfully');
+    } catch {
+      // Error handled by mutation
+    } finally {
+      setIsClaimingLead(false);
+    }
+  };
+
+  const handleAddToAccounts = async () => {
+    if (!lead) return;
+
+    // Check if account already exists
+    const existingAccount = accounts?.find(
+      (a) => a.name.toLowerCase() === lead.company.toLowerCase()
+    );
+
+    if (existingAccount) {
+      toast.info('Account already exists', {
+        description: `"${lead.company}" is already in your accounts.`,
+        action: {
+          label: 'View Account',
+          onClick: () => navigate(`/accounts/${existingAccount.id}`),
+        },
+      });
+      return;
+    }
+
+    setIsAddingToAccounts(true);
+    try {
+      const newAccount = await createAccount.mutateAsync({
+        name: lead.company,
+        portfolio_size: '1',
+        status: 'active',
+        segment: null,
+        deal_type_default: null,
+        buying_motive: null,
+        expansion_notes: null,
+      });
+      toast.success('Account created', {
+        description: `"${lead.company}" has been added to accounts.`,
+        action: {
+          label: 'View Account',
+          onClick: () => navigate(`/accounts/${newAccount.id}`),
+        },
+      });
+    } catch {
+      // Error handled by mutation
+    } finally {
+      setIsAddingToAccounts(false);
     }
   };
 
@@ -199,6 +266,30 @@ export default function LeadDetail() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Claim Lead button - show when lead is unassigned or not owned by current user */}
+            {!isConverted && !isDisqualified && lead.owner_user_id !== profile?.user_id && (
+              <Button
+                variant="outline"
+                onClick={handleClaimLead}
+                disabled={isClaimingLead}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                {isClaimingLead ? 'Claiming...' : 'Claim Lead'}
+              </Button>
+            )}
+
+            {/* Add to Accounts button */}
+            {!matchingAccount && (
+              <Button
+                variant="outline"
+                onClick={handleAddToAccounts}
+                disabled={isAddingToAccounts}
+              >
+                <Building className="h-4 w-4 mr-2" />
+                {isAddingToAccounts ? 'Adding...' : 'Add to Accounts'}
+              </Button>
+            )}
+
             {!isConverted && !isDisqualified && (
               <>
                 <Button
