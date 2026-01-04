@@ -13,6 +13,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   LayoutDashboard,
   Building2,
   Users,
@@ -139,7 +146,7 @@ function getPageType(pathname: string): ScribeContext['pageType'] {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { profile, role, signOut } = useAuth();
+  const { profile, role, signOut, workspaceName, availableWorkspaces, switchWorkspace } = useAuth();
   const { viewMode, setViewMode, canToggleViewMode } = useViewMode();
   const navigate = useNavigate();
   const location = useLocation();
@@ -314,8 +321,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <>
                 <Separator className="my-4 bg-sidebar-border" />
                 {!isCollapsed && (
-                  <div className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Admin
+                  <div className="mb-2 px-3">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Admin
+                    </div>
+                    {workspaceName && (
+                      <div className="mt-1 text-xs text-primary font-medium truncate">
+                        {workspaceName}
+                      </div>
+                    )}
                   </div>
                 )}
                 <nav className="space-y-1">
@@ -324,6 +338,27 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <NavItem to="/super-admin" icon={<Shield className="h-4 w-4" />} label="Super Admin" collapsed={isCollapsed} />
                   )}
                 </nav>
+                
+                {/* Workspace Switcher for Super Admin */}
+                {isSuperAdmin && availableWorkspaces.length > 1 && !isCollapsed && (
+                  <div className="mt-3 px-1">
+                    <Select
+                      value={availableWorkspaces.find(w => w.name === workspaceName)?.id || ''}
+                      onValueChange={switchWorkspace}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Switch workspace" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableWorkspaces.map((ws) => (
+                          <SelectItem key={ws.id} value={ws.id} className="text-xs">
+                            {ws.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </>
             )}
           </ScrollArea>

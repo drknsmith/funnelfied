@@ -11,6 +11,7 @@ interface SignalMinerRequest {
   verticals: string[];
   signalType: string;
   limit: number;
+  searchContext?: string;
 }
 
 interface StructuredLead {
@@ -79,7 +80,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { geography, verticals, signalType, limit = 5 }: SignalMinerRequest = await req.json();
+    const { geography, verticals, signalType, limit = 5, searchContext }: SignalMinerRequest = await req.json();
 
     if (!geography || !verticals?.length || !signalType) {
       return new Response(
@@ -159,8 +160,12 @@ serve(async (req) => {
       .map((r, i) => `--- Result ${i + 1} ---\nURL: ${r.url}\nTitle: ${r.title || "N/A"}\nDescription: ${r.description || "N/A"}\n\nContent:\n${r.markdown?.slice(0, 3000) || r.description || ""}`)
       .join("\n\n");
 
-    // Call Lovable AI to extract structured lead data
-    const systemPrompt = `You are a sales intelligence assistant for a premium fitness equipment company. Extract potential B2B leads from the provided search results.
+    // Build dynamic system prompt based on search context
+    const businessContext = searchContext || 'Premium fitness equipment company targeting B2B sales for commercial fitness installations';
+    
+    const systemPrompt = `You are a sales intelligence assistant. ${businessContext}
+
+Extract potential B2B leads from the provided search results.
 Focus on companies that show signs of: ${signalType}.
 Target verticals: ${verticals.join(", ")}.
 Geographic focus: ${geography}.
@@ -169,7 +174,7 @@ For each valid lead, extract:
 - company: The company name
 - project_name: Specific project or initiative name (if mentioned)
 - location: City, state or region
-- facility_type: One of Multifamily, Boutique Studio, Gym, Country Club (or null if unclear)
+- facility_type: One of ${verticals.join(", ")} (or null if unclear)
 - signal_reason: Why this appears to be a lead opportunity (2-3 sentences explaining the signal)
 - estimated_timeline: When the project/need might be addressed
 - recommended_playbook: Suggest PB2 (Portfolio/multi-site), PB3 (Design-Led/boutique), or PB4 (Retrofit/renovation) based on the signal type
@@ -177,8 +182,8 @@ For each valid lead, extract:
 - source_links: URLs where this information was found
 
 IMPORTANT - Generate personalized outreach drafts for each lead:
-- first_touch_email: Write a professional 3-4 paragraph sales email (under 200 words). Start with a hook referencing their specific project/signal. Introduce our premium fitness equipment solutions. Highlight relevant value props for their facility type (e.g., durability for high-traffic gyms, design aesthetics for boutique studios, resident experience for multifamily). End with a clear call-to-action for a discovery call.
-- linkedin_dm: Write a concise 2-3 sentence LinkedIn connection request (under 50 words). Mention their project briefly and express interest in discussing how we can support their fitness equipment needs.
+- first_touch_email: Write a professional 3-4 paragraph sales email (under 200 words). Start with a hook referencing their specific project/signal. Introduce our solutions. Highlight relevant value props for their facility type. End with a clear call-to-action for a discovery call.
+- linkedin_dm: Write a concise 2-3 sentence LinkedIn connection request (under 50 words). Mention their project briefly and express interest in discussing how we can support their needs.
 
 Be selective - only include results that genuinely match the criteria. Skip irrelevant results.`;
 

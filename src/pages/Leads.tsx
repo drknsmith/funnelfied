@@ -57,8 +57,8 @@ export default function Leads() {
   const { data: leads, isLoading } = useLeads(filters);
   const { users } = useWorkspaceUsers();
 
-  // Only admins and super_admins can pull leads
-  const canPullLeads = role === 'super_admin' || role === 'admin';
+  // Only super_admins can pull leads
+  const canPullLeads = role === 'super_admin';
 
   // Helper to get owner name
   const getOwnerName = (ownerId: string | null) => {
