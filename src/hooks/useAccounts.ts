@@ -22,13 +22,13 @@ export interface Account {
 export type AccountInput = Omit<Account, 'id' | 'created_at' | 'updated_at'>;
 
 export function useAccounts() {
-  const { profile, user } = useAuth();
+  const { workspaceId, user } = useAuth();
   const { viewMode } = useViewMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const accountsQuery = useQuery({
-    queryKey: ['accounts', profile?.workspace_id, viewMode, user?.id],
+    queryKey: ['accounts', workspaceId, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('accounts')
@@ -44,17 +44,17 @@ export function useAccounts() {
       if (error) throw error;
       return data as Account[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createAccount = useMutation({
     mutationFn: async (input: Omit<AccountInput, 'workspace_id' | 'owner_user_id'>) => {
-      if (!profile?.workspace_id) throw new Error('No workspace');
+      if (!workspaceId) throw new Error('No workspace');
       const { data: { user } } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
         .from('accounts')
-        .insert({ ...input, workspace_id: profile.workspace_id, owner_user_id: user?.id || null })
+        .insert({ ...input, workspace_id: workspaceId, owner_user_id: user?.id || null })
         .select()
         .single();
 

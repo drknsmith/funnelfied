@@ -26,6 +26,8 @@ interface AuthContextType {
   loading: boolean;
   workspaceName: string | null;
   activeWorkspaceId: string | null;
+  /** The effective workspace ID - use this for all data operations */
+  workspaceId: string | null;
   availableWorkspaces: Workspace[];
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, inviteCode: string) => Promise<{ error: Error | null }>;
@@ -289,6 +291,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAvailableWorkspaces([]);
   };
 
+  // The effective workspace ID - activeWorkspaceId for super_admin, profile.workspace_id otherwise
+  const workspaceId = activeWorkspaceId || profile?.workspace_id || null;
+
   return (
     <AuthContext.Provider
       value={{
@@ -299,6 +304,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         workspaceName,
         activeWorkspaceId,
+        workspaceId,
         availableWorkspaces,
         signIn,
         signUp,

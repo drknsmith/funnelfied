@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Building2 } from 'lucide-react';
 
 export default function WorkspaceSettings() {
-  const { profile } = useAuth();
+  const { workspaceId } = useAuth();
   const { toast } = useToast();
   const [workspaceName, setWorkspaceName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,13 +18,13 @@ export default function WorkspaceSettings() {
   // Fetch current workspace name
   useState(() => {
     const fetchWorkspace = async () => {
-      if (!profile?.workspace_id) return;
+      if (!workspaceId) return;
 
       try {
         const { data, error } = await supabase
           .from('workspaces')
           .select('name')
-          .eq('id', profile.workspace_id)
+          .eq('id', workspaceId)
           .single();
 
         if (error) throw error;
@@ -40,14 +40,14 @@ export default function WorkspaceSettings() {
   });
 
   const handleSave = async () => {
-    if (!profile?.workspace_id || !workspaceName.trim()) return;
+    if (!workspaceId || !workspaceName.trim()) return;
 
     setLoading(true);
     try {
       const { error } = await supabase
         .from('workspaces')
         .update({ name: workspaceName.trim() })
-        .eq('id', profile.workspace_id);
+        .eq('id', workspaceId);
 
       if (error) throw error;
 
@@ -101,7 +101,7 @@ export default function WorkspaceSettings() {
           <div className="space-y-2">
             <Label className="text-muted-foreground">Workspace ID</Label>
             <p className="text-sm font-mono text-muted-foreground">
-              {profile?.workspace_id}
+              {workspaceId}
             </p>
           </div>
           <Button onClick={handleSave} disabled={loading || !workspaceName.trim()}>

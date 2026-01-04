@@ -17,22 +17,21 @@ export interface LeadFilters {
 }
 
 export function useLeads(filters: LeadFilters = {}) {
-  const { profile } = useAuth();
+  const { profile, workspaceId } = useAuth();
   const { viewMode } = useViewMode();
 
   return useQuery({
-    queryKey: ['leads', filters, viewMode, profile?.user_id],
+    queryKey: ['leads', workspaceId, filters, viewMode, profile?.user_id],
     queryFn: async () => {
-      if (!profile?.workspace_id) return [];
+      if (!workspaceId) return [];
 
       let query = supabase
         .from('leads')
         .select('*')
-        .eq('workspace_id', profile.workspace_id)
         .order('created_at', { ascending: false });
 
       // Apply view mode filter - include unassigned leads in "my" view so users can claim them
-      if (viewMode === 'my' && profile.user_id) {
+      if (viewMode === 'my' && profile?.user_id) {
         query = query.or(`owner_user_id.eq.${profile.user_id},owner_user_id.is.null`);
       }
 
@@ -56,7 +55,7 @@ export function useLeads(filters: LeadFilters = {}) {
       if (error) throw error;
       return data as Lead[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 }
 
@@ -81,18 +80,18 @@ export function useLead(id: string) {
 
 export function useCreateLead() {
   const queryClient = useQueryClient();
-  const { profile } = useAuth();
+  const { workspaceId, profile } = useAuth();
 
   return useMutation({
     mutationFn: async (lead: Omit<LeadInsert, 'workspace_id'>) => {
-      if (!profile?.workspace_id) throw new Error('No workspace');
+      if (!workspaceId) throw new Error('No workspace');
 
       const { data, error } = await supabase
         .from('leads')
         .insert({
           ...lead,
-          workspace_id: profile.workspace_id,
-          owner_user_id: lead.owner_user_id || profile.user_id,
+          workspace_id: workspaceId,
+          owner_user_id: lead.owner_user_id || profile?.user_id,
         })
         .select()
         .single();

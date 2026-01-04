@@ -36,13 +36,13 @@ export interface InteractionWithRelations extends Interaction {
 }
 
 export function useInteractions(dealId?: string) {
-  const { profile, user } = useAuth();
+  const { workspaceId, user } = useAuth();
   const { viewMode } = useViewMode();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: interactions = [], isLoading, error } = useQuery({
-    queryKey: ['interactions', dealId, viewMode, user?.id],
+    queryKey: ['interactions', workspaceId, dealId, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('interactions')
@@ -65,16 +65,17 @@ export function useInteractions(dealId?: string) {
 
       return data as InteractionWithRelations[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createMutation = useMutation({
     mutationFn: async (interaction: Omit<Interaction, 'id' | 'workspace_id' | 'created_at'>) => {
+      if (!workspaceId) throw new Error('No workspace');
       const { data, error } = await supabase
         .from('interactions')
         .insert({
           ...interaction,
-          workspace_id: profile!.workspace_id,
+          workspace_id: workspaceId,
         })
         .select()
         .single();

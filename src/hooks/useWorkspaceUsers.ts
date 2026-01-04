@@ -29,14 +29,14 @@ export interface PendingInvitation {
 }
 
 export function useWorkspaceUsers() {
-  const { profile, role: currentUserRole, user } = useAuth();
+  const { workspaceId, role: currentUserRole, user } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
-    if (!profile?.workspace_id) {
+    if (!workspaceId) {
       setLoading(false);
       return;
     }
@@ -46,7 +46,7 @@ export function useWorkspaceUsers() {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('workspace_id', profile.workspace_id);
+        .eq('workspace_id', workspaceId);
 
       if (profilesError) throw profilesError;
 
@@ -87,13 +87,13 @@ export function useWorkspaceUsers() {
   };
 
   const fetchPendingInvitations = async () => {
-    if (!profile?.workspace_id) return;
+    if (!workspaceId) return;
 
     try {
       const { data, error } = await supabase
         .from('pending_invitations')
         .select('*')
-        .eq('workspace_id', profile.workspace_id)
+        .eq('workspace_id', workspaceId)
         .is('used_at', null)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
@@ -108,7 +108,7 @@ export function useWorkspaceUsers() {
   useEffect(() => {
     fetchUsers();
     fetchPendingInvitations();
-  }, [profile?.workspace_id]);
+  }, [workspaceId]);
 
   const updateUserRole = async (userId: string, newRole: AppRole) => {
     try {
@@ -252,7 +252,7 @@ export function useWorkspaceUsers() {
   };
 
   const createInvitation = async (email: string, role: AppRole) => {
-    if (!profile?.workspace_id || !user?.id) {
+    if (!workspaceId || !user?.id) {
       toast({
         title: 'Error',
         description: 'You must be logged in to invite users',
@@ -267,7 +267,7 @@ export function useWorkspaceUsers() {
       const { data, error } = await supabase
         .from('pending_invitations')
         .insert({
-          workspace_id: profile.workspace_id,
+          workspace_id: workspaceId,
           email: email.toLowerCase().trim(),
           invite_code: inviteCode,
           role,

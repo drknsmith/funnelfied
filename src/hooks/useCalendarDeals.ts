@@ -19,14 +19,14 @@ export interface CalendarDealsByDate {
 }
 
 export function useCalendarDeals(currentDate: Date) {
-  const { profile, user } = useAuth();
+  const { workspaceId, user } = useAuth();
   const { viewMode } = useViewMode();
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
 
   return useQuery({
-    queryKey: ['calendar-deals', profile?.workspace_id, format(currentDate, 'yyyy-MM'), viewMode, user?.id],
+    queryKey: ['calendar-deals', workspaceId, format(currentDate, 'yyyy-MM'), viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('deals')
@@ -65,6 +65,6 @@ export function useCalendarDeals(currentDate: Date) {
 
       return dealsByDate;
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 }
