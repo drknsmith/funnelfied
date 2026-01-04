@@ -20,7 +20,10 @@ export type Database = {
           created_at: string
           deal_type_default: string | null
           expansion_notes: string | null
+          health_score: number | null
           id: string
+          lat: number | null
+          lng: number | null
           name: string
           owner_user_id: string | null
           portfolio_size: string
@@ -34,7 +37,10 @@ export type Database = {
           created_at?: string
           deal_type_default?: string | null
           expansion_notes?: string | null
+          health_score?: number | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           name: string
           owner_user_id?: string | null
           portfolio_size?: string
@@ -48,7 +54,10 @@ export type Database = {
           created_at?: string
           deal_type_default?: string | null
           expansion_notes?: string | null
+          health_score?: number | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           name?: string
           owner_user_id?: string | null
           portfolio_size?: string
@@ -593,12 +602,16 @@ export type Database = {
           external_id: string | null
           facility_type: string | null
           first_touch_email: string | null
+          health_score: number | null
           id: string
+          lat: number | null
           linkedin_dm: string | null
+          lng: number | null
           location: string
           owner_user_id: string | null
           project_name: string
           recommended_playbook: string | null
+          signal_details: Json | null
           signal_reason: string | null
           source_links: Json | null
           stakeholders_json: Json | null
@@ -615,12 +628,16 @@ export type Database = {
           external_id?: string | null
           facility_type?: string | null
           first_touch_email?: string | null
+          health_score?: number | null
           id?: string
+          lat?: number | null
           linkedin_dm?: string | null
+          lng?: number | null
           location: string
           owner_user_id?: string | null
           project_name: string
           recommended_playbook?: string | null
+          signal_details?: Json | null
           signal_reason?: string | null
           source_links?: Json | null
           stakeholders_json?: Json | null
@@ -637,12 +654,16 @@ export type Database = {
           external_id?: string | null
           facility_type?: string | null
           first_touch_email?: string | null
+          health_score?: number | null
           id?: string
+          lat?: number | null
           linkedin_dm?: string | null
+          lng?: number | null
           location?: string
           owner_user_id?: string | null
           project_name?: string
           recommended_playbook?: string | null
+          signal_details?: Json | null
           signal_reason?: string | null
           source_links?: Json | null
           stakeholders_json?: Json | null
@@ -971,6 +992,72 @@ export type Database = {
           },
         ]
       }
+      trainers: {
+        Row: {
+          account_id: string | null
+          career_health_score: number | null
+          career_mentions: string | null
+          created_at: string
+          email: string | null
+          id: string
+          lat: number | null
+          linkedin_url: string | null
+          lng: number | null
+          name: string
+          phone: string | null
+          source_links: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          career_health_score?: number | null
+          career_mentions?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          lat?: number | null
+          linkedin_url?: string | null
+          lng?: number | null
+          name: string
+          phone?: string | null
+          source_links?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string | null
+          career_health_score?: number | null
+          career_mentions?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          lat?: number | null
+          linkedin_url?: string | null
+          lng?: number | null
+          name?: string
+          phone?: string | null
+          source_links?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1034,6 +1121,38 @@ export type Database = {
             foreignKeyName: "workspace_permissions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_pipeline_stages: {
+        Row: {
+          created_at: string
+          id: string
+          stages: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stages: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stages?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_pipeline_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
