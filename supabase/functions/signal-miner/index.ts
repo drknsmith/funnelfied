@@ -294,10 +294,18 @@ serve(async (req) => {
     const createdLeads: string[] = [];
     for (const lead of extractedLeads) {
       try {
-        // Check for existing lead
+        // Normalize company name for fuzzy duplicate check
+        const normalizedName = lead.company
+          .toLowerCase()
+          .replace(/^the\s+/i, '')
+          .replace(/\s+(llc|inc|corp|studio|gym|fitness|center)\.?$/gi, '')
+          .replace(/[^\w\s]/g, '')
+          .trim();
+        
+        // Check for exact duplicate
         const { data: existingLead } = await supabaseAdmin
           .from("leads")
-          .select("id")
+          .select("id, company")
           .eq("workspace_id", workspaceId)
           .eq("company", lead.company)
           .eq("project_name", lead.project_name)
@@ -305,8 +313,24 @@ serve(async (req) => {
           .maybeSingle();
 
         if (existingLead) {
-          console.log(`Skipping duplicate lead: ${lead.company} - ${lead.project_name}`);
+          console.log(`Skipping exact duplicate lead: ${lead.company} - ${lead.project_name}`);
           continue;
+        }
+
+        // Check for fuzzy duplicate (similar company names in same location)
+        if (normalizedName.length >= 3) {
+          const { data: similarLeads } = await supabaseAdmin
+            .from("leads")
+            .select("id, company")
+            .eq("workspace_id", workspaceId)
+            .eq("location", lead.location)
+            .ilike("company", `%${normalizedName}%`)
+            .limit(1);
+
+          if (similarLeads && similarLeads.length > 0) {
+            console.log(`Skipping similar lead: ${lead.company} (matches existing: ${similarLeads[0].company})`);
+            continue;
+          }
         }
 
         // Geocode location if Mapbox token is available

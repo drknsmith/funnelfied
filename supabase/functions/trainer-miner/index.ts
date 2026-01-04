@@ -92,10 +92,10 @@ serve(async (req) => {
       );
     }
 
-    // Get the account to find its location
+    // Get the account to find its location (now includes location field)
     const { data: account, error: accountError } = await supabase
       .from("accounts")
-      .select("id, name, workspace_id, lat, lng, segment")
+      .select("id, name, workspace_id, lat, lng, location")
       .eq("id", accountId)
       .single();
 
@@ -106,44 +106,22 @@ serve(async (req) => {
       );
     }
 
-    // Try to get the original lead location (most accurate source)
-    const { data: relatedDeal } = await supabase
-      .from("deals")
-      .select("id")
-      .eq("account_id", accountId)
-      .limit(1)
-      .maybeSingle();
-    
-    let leadLocation: string | null = null;
-    if (relatedDeal) {
-      const { data: lead } = await supabase
-        .from("leads")
-        .select("location")
-        .eq("deal_id", relatedDeal.id)
-        .maybeSingle();
-      
-      if (lead?.location) {
-        leadLocation = lead.location;
-      }
-    }
-
     // Determine the best location to use
     let searchLocation = "";
     let cityName = "";
     let stateName = "";
     
-    // Priority 1: Lead location (original source)
-    if (leadLocation) {
-      searchLocation = leadLocation;
-      // Parse city and state from location string like "Atlanta, GA" or "Atlanta, Georgia"
-      const parts = leadLocation.split(",").map(p => p.trim());
+    // Priority 1: Account location field (copied from lead during conversion)
+    if (account.location) {
+      searchLocation = account.location;
+      const parts = account.location.split(",").map((p: string) => p.trim());
       if (parts.length >= 2) {
         cityName = parts[0];
         stateName = parts[1];
       } else {
-        cityName = leadLocation;
+        cityName = account.location;
       }
-      console.log(`Using lead location: ${searchLocation}`);
+      console.log(`Using account location: ${searchLocation}`);
     }
     // Priority 2: Reverse geocode from lat/lng
     else if (account.lat && account.lng && mapboxToken) {
@@ -155,9 +133,7 @@ serve(async (req) => {
         if (reverseData.features && reverseData.features.length > 0) {
           const feature = reverseData.features[0];
           searchLocation = feature.place_name;
-          // Extract city name from the feature
           cityName = feature.text || "";
-          // Try to get state from context
           const regionContext = feature.context?.find((c: any) => c.id?.startsWith("region"));
           stateName = regionContext?.text || "";
         }
@@ -169,7 +145,7 @@ serve(async (req) => {
 
     if (!searchLocation || !cityName) {
       return new Response(
-        JSON.stringify({ error: "Could not determine account location. Please ensure the lead has a valid location." }),
+        JSON.stringify({ error: "Could not determine account location. Please ensure the account has a valid location." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -362,7 +338,13 @@ VALIDATION RULES:
     const createdTrainers: string[] = [];
     for (const trainer of extractedTrainers) {
       try {
-        // Check for duplicate by name in same account
+        // Normalize trainer name for fuzzy matching
+        const normalizedName = trainer.name
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .trim();
+
+        // Check for exact duplicate by name in same account
         const { data: existingTrainer } = await supabaseAdmin
           .from("trainers")
           .select("id")
@@ -371,8 +353,38 @@ VALIDATION RULES:
           .maybeSingle();
 
         if (existingTrainer) {
-          console.log(`Skipping duplicate trainer: ${trainer.name}`);
+          console.log(`Skipping exact duplicate trainer: ${trainer.name}`);
           continue;
+        }
+
+        // Check for fuzzy duplicate across entire workspace (same person at different accounts)
+        if (normalizedName.length >= 3) {
+          const { data: similarTrainers } = await supabaseAdmin
+            .from("trainers")
+            .select("id, name")
+            .eq("workspace_id", account.workspace_id)
+            .ilike("name", `%${normalizedName}%`)
+            .limit(1);
+
+          if (similarTrainers && similarTrainers.length > 0) {
+            console.log(`Skipping similar trainer: ${trainer.name} (matches existing: ${similarTrainers[0].name})`);
+            continue;
+          }
+        }
+
+        // Also check by email if available (strong duplicate indicator)
+        if (trainer.email) {
+          const { data: emailMatch } = await supabaseAdmin
+            .from("trainers")
+            .select("id, name")
+            .eq("workspace_id", account.workspace_id)
+            .eq("email", trainer.email)
+            .maybeSingle();
+
+          if (emailMatch) {
+            console.log(`Skipping trainer with duplicate email: ${trainer.name} (${trainer.email})`);
+            continue;
+          }
         }
 
         // Use account coordinates with slight randomization for trainer location

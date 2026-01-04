@@ -22,30 +22,59 @@ export function usePullLeads() {
 
   return useMutation({
     mutationFn: async (params: PullLeadsParams): Promise<PullLeadsResponse> => {
-      const { data, error } = await supabase.functions.invoke<PullLeadsResponse>(
-        'signal-miner',
-        { body: params }
-      );
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout
 
-      if (error) {
-        throw new Error(error.message);
+      try {
+        const { data, error } = await supabase.functions.invoke<PullLeadsResponse>(
+          'signal-miner',
+          { body: params }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        if (!data?.success && data?.error) {
+          throw new Error(data.error);
+        }
+
+        return data as PullLeadsResponse;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        
+        // If request timed out but may have created leads, force refresh
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log('Request timed out, refreshing leads list anyway');
+          queryClient.invalidateQueries({ queryKey: ['leads'] });
+          return {
+            success: true,
+            leads: [],
+            message: 'Request took too long. Leads may have been created - please refresh.',
+          };
+        }
+        throw err;
       }
-
-      if (!data?.success && data?.error) {
-        throw new Error(data.error);
-      }
-
-      return data as PullLeadsResponse;
     },
     onSuccess: (data) => {
+      // Always invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      
       if (data.leads.length > 0) {
         toast.success(data.message);
+      } else if (data.message.includes('took too long')) {
+        toast.info(data.message);
       } else {
         toast.info(data.message || 'No new leads found');
       }
     },
     onError: (error: Error) => {
+      // Force refresh in case leads were created before error
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      
       // Handle specific error types
       if (error.message.includes('Rate limit')) {
         toast.error('Too many requests. Please wait a moment and try again.');

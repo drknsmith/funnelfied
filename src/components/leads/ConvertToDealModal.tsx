@@ -174,6 +174,7 @@ export function ConvertToDealModal({ open, onOpenChange, lead }: ConvertToDealMo
             health_score: lead.health_score,
             lat: lead.lat,
             lng: lead.lng,
+            location: lead.location, // Copy location for trainer search
           })
           .select()
           .single();
