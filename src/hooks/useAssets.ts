@@ -36,20 +36,20 @@ export const ASSET_TYPES = [
 ] as const;
 
 export function useAssets() {
-  const { profile, user } = useAuth();
+  const { profile, user, workspaceId } = useAuth();
   const { viewMode } = useViewMode();
   const queryClient = useQueryClient();
 
   const { data: assets = [], isLoading, error } = useQuery({
-    queryKey: ['assets', profile?.workspace_id, viewMode, user?.id],
+    queryKey: ['assets', workspaceId, viewMode, user?.id],
     queryFn: async () => {
-      if (!profile?.workspace_id) return [];
+      if (!workspaceId) return [];
 
       // Get assets
       let query = supabase
         .from('assets')
         .select('*')
-        .eq('workspace_id', profile.workspace_id)
+        .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
       // Filter by creator when in 'my' mode
@@ -80,18 +80,18 @@ export function useAssets() {
 
       return assetsWithPlaybooks;
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createAsset = useMutation({
     mutationFn: async ({ asset, playbookIds }: { asset: AssetInput; playbookIds: string[] }) => {
-      if (!profile?.workspace_id || !user?.id) throw new Error('Not authenticated');
+      if (!workspaceId || !user?.id) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
         .from('assets')
         .insert({
           ...asset,
-          workspace_id: profile.workspace_id,
+          workspace_id: workspaceId,
           created_by_user_id: user.id,
           updated_by_user_id: user.id,
         })
