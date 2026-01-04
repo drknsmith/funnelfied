@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.crm-bridge]
 verify_jwt = false
+
+[functions.signal-miner]
+verify_jwt = false
