@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, Building2, User, RefreshCw, Crosshair, AlertCircle } from 'lucide-react';
-import { useLeadsForMap, useAccountsForMap, useTrainersForMap } from '@/hooks/useMapData';
+import { useAccountsForMap, useTrainersForMap } from '@/hooks/useMapData';
 import { getHealthHexColor } from '@/components/ui/HealthScoreDot';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
@@ -43,7 +43,6 @@ function MappingContent() {
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [isLoadingToken, setIsLoadingToken] = useState(true);
 
-  const { data: leads, isLoading: leadsLoading, refetch: refetchLeads } = useLeadsForMap();
   const { data: accounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccountsForMap();
   const { data: trainers, isLoading: trainersLoading, refetch: refetchTrainers } = useTrainersForMap();
 
@@ -159,48 +158,7 @@ function MappingContent() {
     clearMarkers();
 
     if (viewMode === 'facility') {
-      // Add leads as markers
-      leads?.forEach(lead => {
-        if (lead.lat && lead.lng) {
-          const color = lead.health_score ? getHealthHexColor(lead.health_score) : '#6b7280';
-          
-          const el = document.createElement('div');
-          el.className = 'map-marker';
-          el.style.cssText = `
-            width: 20px;
-            height: 20px;
-            background-color: ${color};
-            border: 2px solid white;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          `;
-
-          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div style="padding: 8px;">
-              <h3 style="font-weight: 600; margin-bottom: 4px;">${lead.company}</h3>
-              <p style="font-size: 12px; color: #666; margin-bottom: 4px;">${lead.project_name}</p>
-              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${lead.location}</p>
-              ${lead.health_score ? `<p style="font-size: 12px;"><strong>Health Score:</strong> ${lead.health_score}/10</p>` : ''}
-              <button 
-                onclick="window.location.href='/leads/${lead.id}'"
-                style="margin-top: 8px; padding: 4px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
-              >
-                View Lead
-              </button>
-            </div>
-          `);
-
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([lead.lng, lead.lat])
-            .setPopup(popup)
-            .addTo(map.current!);
-
-          markersRef.current.push(marker);
-        }
-      });
-
-      // Add accounts as markers (slightly different style)
+      // Add accounts as facility markers
       accounts?.forEach(account => {
         if (account.lat && account.lng) {
           const color = account.health_score ? getHealthHexColor(account.health_score) : '#6b7280';
@@ -220,7 +178,7 @@ function MappingContent() {
           const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
             <div style="padding: 8px;">
               <h3 style="font-weight: 600; margin-bottom: 4px;">${account.name}</h3>
-              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${account.segment || 'No segment'}</p>
+              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${account.location || account.segment || 'No location'}</p>
               ${account.health_score ? `<p style="font-size: 12px;"><strong>Health Score:</strong> ${account.health_score}/10</p>` : ''}
               <button 
                 onclick="window.location.href='/accounts/${account.id}'"
@@ -282,7 +240,7 @@ function MappingContent() {
       }
       hasAutoFitted.current = true;
     }
-  }, [viewMode, leads, accounts, trainers, clearMarkers, fitToMarkers, getSavedViewport]);
+  }, [viewMode, accounts, trainers, clearMarkers, fitToMarkers, getSavedViewport]);
 
   // Handle search
   const handleSearch = async () => {
@@ -311,14 +269,13 @@ function MappingContent() {
   };
 
   const handleRefresh = () => {
-    refetchLeads();
     refetchAccounts();
     refetchTrainers();
   };
 
-  const isLoading = leadsLoading || accountsLoading || trainersLoading || isLoadingToken;
+  const isLoading = accountsLoading || trainersLoading || isLoadingToken;
 
-  const facilityCount = (leads?.length || 0) + (accounts?.length || 0);
+  const facilityCount = accounts?.length || 0;
   const trainerCount = trainers?.length || 0;
   const currentCount = viewMode === 'facility' ? facilityCount : trainerCount;
 
@@ -355,7 +312,7 @@ function MappingContent() {
           <div>
             <h1 className="text-2xl font-bold">Mapping</h1>
             <p className="text-sm text-muted-foreground">
-              Visualize leads, accounts, and trainers on the map
+              Visualize accounts and trainers on the map
             </p>
           </div>
 
@@ -457,7 +414,7 @@ function MappingContent() {
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
                       {viewMode === 'facility' 
-                        ? 'Facilities appear when leads or accounts have location coordinates (lat/lng).'
+                        ? 'Facilities appear when accounts have location coordinates (lat/lng).'
                         : 'Trainers appear when they have location coordinates (lat/lng).'}
                     </p>
                   </div>
