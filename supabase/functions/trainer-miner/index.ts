@@ -80,6 +80,18 @@ serve(async (req) => {
       );
     }
 
+    // Get API keys first
+    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    const mapboxToken = Deno.env.get("MAPBOX_PUBLIC_TOKEN");
+
+    if (!firecrawlKey || !lovableKey) {
+      return new Response(
+        JSON.stringify({ error: "Required API keys not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get the account to find its location
     const { data: account, error: accountError } = await supabase
       .from("accounts")
@@ -94,48 +106,83 @@ serve(async (req) => {
       );
     }
 
-    // Get API keys
-    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    const mapboxToken = Deno.env.get("MAPBOX_PUBLIC_TOKEN");
-
-    if (!firecrawlKey || !lovableKey) {
-      return new Response(
-        JSON.stringify({ error: "Required API keys not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Try to get the original lead location (most accurate source)
+    const { data: relatedDeal } = await supabase
+      .from("deals")
+      .select("id")
+      .eq("account_id", accountId)
+      .limit(1)
+      .maybeSingle();
+    
+    let leadLocation: string | null = null;
+    if (relatedDeal) {
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("location")
+        .eq("deal_id", relatedDeal.id)
+        .maybeSingle();
+      
+      if (lead?.location) {
+        leadLocation = lead.location;
+      }
     }
 
-    // Get the account's location for the search
-    let searchLocation = account.segment || "";
+    // Determine the best location to use
+    let searchLocation = "";
+    let cityName = "";
+    let stateName = "";
     
-    // If account has lat/lng, use reverse geocoding to get city name
-    if (account.lat && account.lng && mapboxToken) {
+    // Priority 1: Lead location (original source)
+    if (leadLocation) {
+      searchLocation = leadLocation;
+      // Parse city and state from location string like "Atlanta, GA" or "Atlanta, Georgia"
+      const parts = leadLocation.split(",").map(p => p.trim());
+      if (parts.length >= 2) {
+        cityName = parts[0];
+        stateName = parts[1];
+      } else {
+        cityName = leadLocation;
+      }
+      console.log(`Using lead location: ${searchLocation}`);
+    }
+    // Priority 2: Reverse geocode from lat/lng
+    else if (account.lat && account.lng && mapboxToken) {
       try {
         const reverseResponse = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${account.lng},${account.lat}.json?access_token=${mapboxToken}&types=place&limit=1`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${account.lng},${account.lat}.json?access_token=${mapboxToken}&types=place,region&limit=1`
         );
         const reverseData = await reverseResponse.json();
         if (reverseData.features && reverseData.features.length > 0) {
-          searchLocation = reverseData.features[0].place_name;
+          const feature = reverseData.features[0];
+          searchLocation = feature.place_name;
+          // Extract city name from the feature
+          cityName = feature.text || "";
+          // Try to get state from context
+          const regionContext = feature.context?.find((c: any) => c.id?.startsWith("region"));
+          stateName = regionContext?.text || "";
         }
+        console.log(`Using reverse geocoded location: ${searchLocation}`);
       } catch (error) {
         console.error("Reverse geocoding error:", error);
       }
     }
 
-    if (!searchLocation) {
-      // Try to extract location from account name or use a default
-      searchLocation = "nearby";
+    if (!searchLocation || !cityName) {
+      return new Response(
+        JSON.stringify({ error: "Could not determine account location. Please ensure the lead has a valid location." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log(`Searching for trainers near: ${searchLocation}`);
+    console.log(`Searching for trainers in: ${cityName}, ${stateName}`);
 
-    // Build search queries for trainers
+    // Build search queries for trainers - use city name directly, no restrictive phrases
+    const locationTerm = stateName ? `${cityName} ${stateName}` : cityName;
     const searchQueries = [
-      `personal trainer "${searchLocation}" fitness professional`,
-      `certified fitness coach "${searchLocation}" independent`,
-      `personal training services "${searchLocation}"`,
+      `personal trainer ${locationTerm}`,
+      `fitness coach ${cityName}`,
+      `personal training ${cityName} ${stateName}`.trim(),
+      `independent personal trainer ${locationTerm}`,
     ];
 
     // Execute Firecrawl searches
@@ -151,7 +198,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             query,
-            limit: 5,
+            limit: 10, // Increased from 5 for better coverage
             scrapeOptions: { formats: ["markdown"] },
           }),
         });
@@ -187,12 +234,14 @@ serve(async (req) => {
 
     const systemPrompt = `You are an assistant extracting personal trainer information from search results.
 
-Extract individual personal trainers who work in or near: ${searchLocation}
+CRITICAL LOCATION REQUIREMENT:
+You MUST only extract trainers who are EXPLICITLY located in or near ${cityName}${stateName ? `, ${stateName}` : ""}.
+DO NOT include trainers from other cities or states. If a trainer's profile mentions a different location, SKIP them entirely.
 
-For each trainer found, provide:
+For each trainer found in ${cityName}, provide:
 - name: Full name of the trainer
 - email: Email address if found
-- phone: Phone number if found
+- phone: Phone number if found  
 - linkedin_url: LinkedIn profile URL if found
 - career_mentions: Any mentions about their career, experience, reviews, or sentiment (2-3 sentences)
 - career_health_score: INTEGER from 1-10 based on career stability:
@@ -201,8 +250,11 @@ For each trainer found, provide:
   * 8-10 = GREEN (Stable career - established, positive reviews, loyal clients)
 - source_links: URLs where this trainer was found
 
-Focus on finding trainers who might be looking for new opportunities or flexible arrangements.
-Only extract real individual trainers, not gyms or training companies.`;
+VALIDATION RULES:
+1. Only include trainers whose content explicitly mentions ${cityName} or the surrounding metro area
+2. Reject any trainer who works in a different city or state
+3. Focus on finding trainers who might be looking for new opportunities or flexible arrangements
+4. Only extract real individual trainers, not gyms or training companies`;
 
     const userPrompt = `Extract up to 10 personal trainers from these search results:\n\n${searchContent}`;
 
