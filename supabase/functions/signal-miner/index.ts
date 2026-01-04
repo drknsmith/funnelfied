@@ -184,7 +184,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             query,
-            limit: Math.ceil(limit / searchQueries.length) + 2,
+            limit: 10, // Increased from dynamic calculation for better coverage
             scrapeOptions: { formats: ["markdown"] },
           }),
         });
@@ -405,44 +405,36 @@ serve(async (req) => {
   }
 });
 
-// Treneur-specific search queries (no signal type, focus on trainer/staffing issues)
+// Treneur-specific search queries - BROADENED for better results
 function buildTreneurSearchQueries(verticals: string[], geography: string): string[] {
   const queries: string[] = [];
+  const isNational = geography.toLowerCase() === "national";
+  const geo = isNational ? "" : geography;
   
-  const treneurKeywords = [
-    "hiring personal trainers",
-    "fitness studio independent contractors",
-    "gym trainer turnover",
-    "boutique fitness hiring",
-    "gym expansion new location",
-  ];
-
-  const verticalMap: Record<string, string> = {
+  // Primary: Direct location-based gym searches (no restrictive phrases)
+  queries.push(geo ? `gyms in ${geo}` : "gyms fitness centers");
+  queries.push(geo ? `fitness studios ${geo}` : "fitness studios boutique");
+  queries.push(geo ? `personal training gym ${geo}` : "personal training gym");
+  
+  // Secondary: Vertical-specific searches
+  const verticalSearchTerms: Record<string, string> = {
     "Boutique Fitness Studio": "boutique fitness studio",
-    "Personal Training Studio": "personal training studio",
-    "CrossFit Box": "CrossFit gym",
-    "Yoga Studio": "yoga studio",
-    "Commercial Gym": "commercial gym fitness center",
+    "Personal Training Studio": "personal training studio", 
+    "CrossFit Box": "CrossFit gym box",
+    "Yoga Studio": "yoga studio classes",
+    "Commercial Gym": "gym fitness center",
   };
-
+  
   for (const vertical of verticals.slice(0, 2)) {
-    const verticalTerm = verticalMap[vertical] || vertical.toLowerCase();
-    const keyword = treneurKeywords[Math.floor(Math.random() * treneurKeywords.length)];
-    
-    const query = geography.toLowerCase() === "national"
-      ? `"${verticalTerm}" "${keyword}" 2025`
-      : `"${verticalTerm}" "${keyword}" ${geography} 2025`;
-    
-    queries.push(query);
+    const term = verticalSearchTerms[vertical] || vertical.toLowerCase();
+    queries.push(geo ? `${term} ${geo}` : term);
   }
-
-  // Add a general staffing query
-  const staffingQuery = geography.toLowerCase() === "national"
-    ? `gym "hiring trainers" OR "independent contractors welcome" 2025`
-    : `gym "hiring trainers" OR "independent contractors welcome" ${geography} 2025`;
-  queries.push(staffingQuery);
-
-  return queries.slice(0, 4);
+  
+  // Tertiary: Hiring/staffing signals (without exact match quotes)
+  queries.push(geo ? `gym hiring trainers ${geo}` : "gym hiring personal trainers");
+  
+  // Return up to 6 queries for better coverage
+  return queries.slice(0, 6);
 }
 
 // Standard search queries for other workspaces
