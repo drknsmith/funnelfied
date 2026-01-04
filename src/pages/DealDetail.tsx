@@ -489,6 +489,12 @@ export default function DealDetail() {
         contacts={dealContacts}
         onSubmit={handleLogInteraction}
         isLoading={isCreating}
+        dealContext={{
+          deal_name: deal.deal_name || 'Untitled Deal',
+          account_name: deal.accounts?.name || 'Unknown Account',
+          stage: deal.stage,
+          playbook_name: deal.playbooks?.name,
+        }}
       />
 
       <PlaybookRequiredModal
