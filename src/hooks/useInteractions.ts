@@ -23,6 +23,8 @@ export interface Interaction {
   summary: string | null;
   objections: string | null;
   commitments: string | null;
+  next_action: string | null;
+  next_action_date: string | null;
   external_ref: string | null;
   occurred_at: string;
   created_at: string;

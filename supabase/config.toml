@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.signal-miner]
 verify_jwt = false
+
+[functions.interaction-assist]
+verify_jwt = false

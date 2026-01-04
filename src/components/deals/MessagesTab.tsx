@@ -77,6 +77,8 @@ export function MessagesTab({ deal }: MessagesTabProps) {
       summary: `Draft generated: ${templateLabel}`,
       objections: null,
       commitments: null,
+      next_action: null,
+      next_action_date: null,
       external_ref: null,
       occurred_at: new Date().toISOString(),
     });
