@@ -7,6 +7,7 @@ export interface PullLeadsParams {
   verticals: string[];
   signalType: string;
   limit: number;
+  searchContext?: string;
 }
 
 interface PullLeadsResponse {

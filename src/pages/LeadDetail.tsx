@@ -50,7 +50,7 @@ const PLAYBOOK_OPTIONS = ['PB2', 'PB3', 'PB4'];
 export default function LeadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, role } = useAuth();
   const { data: lead, isLoading } = useLead(id || '');
   const { data: linkedContacts } = useLeadContacts(id || '');
   const { accounts, createAccount } = useAccounts();
@@ -340,13 +340,13 @@ export default function LeadDetail() {
               )}
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Owner Field */}
+              {/* Owner Field - Only super_admin can assign to others */}
               <div>
                 <Label className="text-muted-foreground flex items-center gap-1">
                   <User className="h-3 w-3" />
                   Owner
                 </Label>
-                {isEditing && formData ? (
+                {isEditing && formData && role === 'super_admin' ? (
                   <div className="mt-1">
                     <OwnerSelect
                       value={formData.owner_user_id}

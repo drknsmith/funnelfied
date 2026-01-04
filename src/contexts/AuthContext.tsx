@@ -13,15 +13,24 @@ interface Profile {
   is_active: boolean;
 }
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
+  workspaceName: string | null;
+  activeWorkspaceId: string | null;
+  availableWorkspaces: Workspace[];
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, inviteCode: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  switchWorkspace: (workspaceId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [workspaceName, setWorkspaceName] = useState<string | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [availableWorkspaces, setAvailableWorkspaces] = useState<Workspace[]>([]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -85,11 +97,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId)
         .maybeSingle();
 
-      setRole(roleData?.role as AppRole ?? null);
+      const userRole = roleData?.role as AppRole ?? null;
+      setRole(userRole);
+
+      // For super_admin, check for workspace override and fetch all workspaces
+      if (userRole === 'super_admin') {
+        const { data: overrideData } = await supabase
+          .from('super_admin_workspace_overrides')
+          .select('active_workspace_id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        const { data: allWorkspaces } = await supabase
+          .from('workspaces')
+          .select('id, name')
+          .order('name');
+
+        setAvailableWorkspaces(allWorkspaces || []);
+
+        const effectiveWorkspaceId = overrideData?.active_workspace_id || profileData?.workspace_id;
+        setActiveWorkspaceId(effectiveWorkspaceId);
+
+        // Fetch workspace name for effective workspace
+        if (effectiveWorkspaceId) {
+          const { data: wsData } = await supabase
+            .from('workspaces')
+            .select('name')
+            .eq('id', effectiveWorkspaceId)
+            .single();
+          setWorkspaceName(wsData?.name || null);
+        }
+      } else if (profileData?.workspace_id) {
+        // For non-super_admin, just fetch their workspace name
+        setActiveWorkspaceId(profileData.workspace_id);
+        const { data: wsData } = await supabase
+          .from('workspaces')
+          .select('name')
+          .eq('id', profileData.workspace_id)
+          .single();
+        setWorkspaceName(wsData?.name || null);
+        setAvailableWorkspaces([]);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const switchWorkspace = async (workspaceId: string) => {
+    if (!user || role !== 'super_admin') return;
+
+    try {
+      // Upsert the workspace override
+      const { error } = await supabase
+        .from('super_admin_workspace_overrides')
+        .upsert({
+          user_id: user.id,
+          active_workspace_id: workspaceId,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      setActiveWorkspaceId(workspaceId);
+      const workspace = availableWorkspaces.find(w => w.id === workspaceId);
+      setWorkspaceName(workspace?.name || null);
+
+      // Reload page to refresh all data with new workspace context
+      window.location.reload();
+    } catch (error) {
+      console.error('Error switching workspace:', error);
     }
   };
 
@@ -190,6 +268,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRole(null);
+    setWorkspaceName(null);
+    setActiveWorkspaceId(null);
+    setAvailableWorkspaces([]);
   };
 
   return (
@@ -200,9 +281,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         role,
         loading,
+        workspaceName,
+        activeWorkspaceId,
+        availableWorkspaces,
         signIn,
         signUp,
         signOut,
+        switchWorkspace,
       }}
     >
       {children}

@@ -891,6 +891,32 @@ export type Database = {
           },
         ]
       }
+      super_admin_workspace_overrides: {
+        Row: {
+          active_workspace_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_workspace_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_workspace_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "super_admin_workspace_overrides_active_workspace_id_fkey"
+            columns: ["active_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -1008,6 +1034,50 @@ export type Database = {
             foreignKeyName: "workspace_permissions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_pull_configs: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          search_context: string | null
+          signal_types: Json
+          updated_at: string
+          verticals: Json
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_context?: string | null
+          signal_types?: Json
+          updated_at?: string
+          verticals?: Json
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_context?: string | null
+          signal_types?: Json
+          updated_at?: string
+          verticals?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_pull_configs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },

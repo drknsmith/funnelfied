@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,20 +19,22 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Search, Sparkles } from 'lucide-react';
 import { usePullLeads } from '@/hooks/usePullLeads';
+import { usePullConfig } from '@/hooks/usePullConfig';
 
 interface PullLeadsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const VERTICALS = [
+// Fallback values if no config exists
+const DEFAULT_VERTICALS = [
   { id: 'Multifamily', label: 'Multifamily' },
   { id: 'Boutique Studio', label: 'Boutique Studio' },
   { id: 'Gym', label: 'Gym' },
   { id: 'Country Club', label: 'Country Club' },
 ];
 
-const SIGNAL_TYPES = ['New Build', 'Renovation', 'RFP', 'Expansion'];
+const DEFAULT_SIGNAL_TYPES = ['New Build', 'Renovation', 'RFP', 'Expansion'];
 
 const LIMIT_OPTIONS = [
   { value: '5', label: '5 leads' },
@@ -41,12 +43,36 @@ const LIMIT_OPTIONS = [
 ];
 
 export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
+  const { data: pullConfig, isLoading: configLoading } = usePullConfig();
+  
   const [geography, setGeography] = useState('');
-  const [selectedVerticals, setSelectedVerticals] = useState<string[]>(['Multifamily']);
-  const [signalType, setSignalType] = useState('New Build');
+  const [selectedVerticals, setSelectedVerticals] = useState<string[]>([]);
+  const [signalType, setSignalType] = useState('');
   const [limit, setLimit] = useState('5');
 
   const pullLeads = usePullLeads();
+
+  // Use config values or fallback to defaults
+  const verticals = pullConfig?.verticals?.length 
+    ? pullConfig.verticals.map(v => ({ id: v, label: v }))
+    : DEFAULT_VERTICALS;
+  
+  const signalTypes = pullConfig?.signal_types?.length 
+    ? pullConfig.signal_types 
+    : DEFAULT_SIGNAL_TYPES;
+
+  // Initialize selected values when config loads
+  useEffect(() => {
+    if (verticals.length > 0 && selectedVerticals.length === 0) {
+      setSelectedVerticals([verticals[0].id]);
+    }
+  }, [verticals, selectedVerticals.length]);
+
+  useEffect(() => {
+    if (signalTypes.length > 0 && !signalType) {
+      setSignalType(signalTypes[0]);
+    }
+  }, [signalTypes, signalType]);
 
   const handleVerticalToggle = (verticalId: string) => {
     setSelectedVerticals((prev) =>
@@ -73,12 +99,13 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
         verticals: selectedVerticals,
         signalType,
         limit: parseInt(limit, 10),
+        searchContext: pullConfig?.search_context || undefined,
       });
       onOpenChange(false);
       // Reset form
       setGeography('');
-      setSelectedVerticals(['Multifamily']);
-      setSignalType('New Build');
+      setSelectedVerticals(verticals.length > 0 ? [verticals[0].id] : []);
+      setSignalType(signalTypes[0] || 'New Build');
       setLimit('5');
     } catch {
       // Error handled by mutation
@@ -115,23 +142,27 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
 
           <div className="space-y-2">
             <Label>Verticals</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {VERTICALS.map((vertical) => (
-                <div key={vertical.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={vertical.id}
-                    checked={selectedVerticals.includes(vertical.id)}
-                    onCheckedChange={() => handleVerticalToggle(vertical.id)}
-                  />
-                  <label
-                    htmlFor={vertical.id}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {vertical.label}
-                  </label>
-                </div>
-              ))}
-            </div>
+            {configLoading ? (
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {verticals.map((vertical) => (
+                  <div key={vertical.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={vertical.id}
+                      checked={selectedVerticals.includes(vertical.id)}
+                      onCheckedChange={() => handleVerticalToggle(vertical.id)}
+                    />
+                    <label
+                      htmlFor={vertical.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {vertical.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -141,7 +172,7 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {SIGNAL_TYPES.map((type) => (
+                {signalTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
