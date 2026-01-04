@@ -40,6 +40,26 @@ export function useSuperAdminData() {
 
       if (error) throw error;
 
+      // Get super_admin users (they appear in all workspaces)
+      const { data: superAdminRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'super_admin');
+
+      const superAdminUserIds = new Set(superAdminRoles?.map(r => r.user_id) || []);
+
+      // Get all profiles to map super_admins to their home workspaces
+      const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, workspace_id');
+
+      const superAdminHomeWorkspaces = new Map<string, string>();
+      allProfiles?.forEach(p => {
+        if (superAdminUserIds.has(p.user_id)) {
+          superAdminHomeWorkspaces.set(p.user_id, p.workspace_id);
+        }
+      });
+
       // Get counts for each workspace
       const workspacesWithStats: WorkspaceWithStats[] = await Promise.all(
         workspaces.map(async (workspace) => {
@@ -48,9 +68,17 @@ export function useSuperAdminData() {
             supabase.from('deals').select('id', { count: 'exact', head: true }).eq('workspace_id', workspace.id),
           ]);
 
+          // Count super_admins from OTHER workspaces who also appear in this workspace
+          let extraSuperAdmins = 0;
+          superAdminHomeWorkspaces.forEach((homeWsId) => {
+            if (homeWsId !== workspace.id) {
+              extraSuperAdmins += 1;
+            }
+          });
+
           return {
             ...workspace,
-            user_count: profilesRes.count || 0,
+            user_count: (profilesRes.count || 0) + extraSuperAdmins,
             deal_count: dealsRes.count || 0,
           };
         })

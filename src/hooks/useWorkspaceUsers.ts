@@ -50,17 +50,48 @@ export function useWorkspaceUsers() {
 
       if (profilesError) throw profilesError;
 
+      // Get all super_admin user_ids from user_roles
+      const { data: superAdminRoles, error: superAdminError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'super_admin');
+
+      if (superAdminError) throw superAdminError;
+
+      const superAdminUserIds = superAdminRoles?.map(r => r.user_id) || [];
+      const workspaceUserIds = profiles?.map(p => p.user_id) || [];
+      
+      // Find super_admins not already in this workspace's profiles
+      const missingSuperAdminIds = superAdminUserIds.filter(
+        id => !workspaceUserIds.includes(id)
+      );
+
+      // Fetch profiles for missing super_admins (they exist in other workspaces)
+      let superAdminProfiles: typeof profiles = [];
+      if (missingSuperAdminIds.length > 0) {
+        const { data: saProfiles, error: saProfilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('user_id', missingSuperAdminIds);
+        
+        if (saProfilesError) throw saProfilesError;
+        superAdminProfiles = saProfiles || [];
+      }
+
+      // Combine all profiles
+      const allProfiles = [...(profiles || []), ...(superAdminProfiles || [])];
+      const allUserIds = allProfiles.map(p => p.user_id);
+
       // Fetch roles for all users
-      const userIds = profiles?.map(p => p.user_id) || [];
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*')
-        .in('user_id', userIds);
+        .in('user_id', allUserIds);
 
       if (rolesError) throw rolesError;
 
       // Combine profiles with roles
-      const usersWithRoles: WorkspaceUser[] = (profiles || []).map(p => {
+      const usersWithRoles: WorkspaceUser[] = allProfiles.map(p => {
         const userRole = roles?.find(r => r.user_id === p.user_id);
         return {
           id: p.id,

@@ -50,14 +50,20 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client with user's auth
+    // Initialize Supabase clients
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Client with user auth for RLS-protected operations
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    
+    // Service role client for bypassing RLS (profile/override lookups)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user's profile for workspace_id
+    // Get user info
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return new Response(
@@ -66,18 +72,31 @@ serve(async (req) => {
       );
     }
 
-    const { data: profile, error: profileError } = await supabase
+    // Get user's profile using service role (bypasses RLS)
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("workspace_id, user_id")
       .eq("user_id", user.id)
       .single();
 
     if (profileError || !profile) {
+      console.error("Profile error:", profileError);
       return new Response(
         JSON.stringify({ error: "Profile not found" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Check for super_admin workspace override
+    const { data: override } = await supabaseAdmin
+      .from("super_admin_workspace_overrides")
+      .select("active_workspace_id")
+      .eq("user_id", user.id)
+      .single();
+
+    // Use override workspace if exists, otherwise use profile's workspace
+    const workspaceId = override?.active_workspace_id || profile.workspace_id;
+    console.log("Using workspace:", workspaceId, override ? "(from override)" : "(from profile)");
 
     // Parse request body
     const { geography, verticals, signalType, limit = 5, searchContext }: SignalMinerRequest = await req.json();
@@ -305,15 +324,15 @@ Be selective - only include results that genuinely match the criteria. Skip irre
       );
     }
 
-    // Insert leads into database
+    // Insert leads into database using admin client (bypasses RLS for cross-workspace insertion)
     const createdLeads: string[] = [];
     for (const lead of extractedLeads) {
       try {
         // Check for existing lead with same company + project + location
-        const { data: existingLead } = await supabase
+        const { data: existingLead } = await supabaseAdmin
           .from("leads")
           .select("id")
-          .eq("workspace_id", profile.workspace_id)
+          .eq("workspace_id", workspaceId)
           .eq("company", lead.company)
           .eq("project_name", lead.project_name)
           .eq("location", lead.location)
@@ -324,11 +343,11 @@ Be selective - only include results that genuinely match the criteria. Skip irre
           continue;
         }
 
-        // Insert lead
-        const { data: newLead, error: leadError } = await supabase
+        // Insert lead into the active workspace
+        const { data: newLead, error: leadError } = await supabaseAdmin
           .from("leads")
           .insert({
-            workspace_id: profile.workspace_id,
+            workspace_id: workspaceId,
             owner_user_id: profile.user_id,
             company: lead.company,
             project_name: lead.project_name,
@@ -355,7 +374,7 @@ Be selective - only include results that genuinely match the criteria. Skip irre
         // Insert stakeholders
         if (lead.stakeholders?.length > 0) {
           const stakeholderInserts = lead.stakeholders.map((s) => ({
-            workspace_id: profile.workspace_id,
+            workspace_id: workspaceId,
             lead_id: newLead.id,
             stakeholder_name: s.name,
             stakeholder_role_type: s.role_type || "Other",
@@ -366,7 +385,7 @@ Be selective - only include results that genuinely match the criteria. Skip irre
             confidence: "UNCONFIRMED",
           }));
 
-          const { error: stakeholderError } = await supabase
+          const { error: stakeholderError } = await supabaseAdmin
             .from("lead_stakeholders")
             .insert(stakeholderInserts);
 
