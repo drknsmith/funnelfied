@@ -44,6 +44,7 @@ import {
   Download,
   Inbox,
   Loader2,
+  Map,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logoPrimary from '@/assets/logo-primary.png';
@@ -264,6 +265,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" collapsed={isCollapsed} />
               <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
               <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
+              <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
             </nav>
 
             {/* View Mode Toggle - Only visible for admin/super_admin */}

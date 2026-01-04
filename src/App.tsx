@@ -31,6 +31,7 @@ import SuperAdmin from "./pages/SuperAdmin";
 import HelpCenter from "./pages/HelpCenter";
 import Install from "./pages/Install";
 import Calendar from "./pages/Calendar";
+import Mapping from "./pages/Mapping";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/deals/:id/edit" element={<ProtectedRoute><DealForm /></ProtectedRoute>} />
               <Route path="/deals/:id" element={<ProtectedRoute><DealDetail /></ProtectedRoute>} />
               <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+              <Route path="/mapping" element={<ProtectedRoute><Mapping /></ProtectedRoute>} />
               <Route path="/interactions" element={<ProtectedRoute><Interactions /></ProtectedRoute>} />
               <Route path="/playbooks" element={<ProtectedRoute><Playbooks /></ProtectedRoute>} />
               <Route path="/playbooks/new" element={<ProtectedRoute><PlaybookForm /></ProtectedRoute>} />

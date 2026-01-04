@@ -4,22 +4,32 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAccount, useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
 import { useDeals } from '@/hooks/useDeals';
+import { useTrainers, usePullTrainers } from '@/hooks/useTrainers';
+import { useAuth } from '@/contexts/AuthContext';
 import AccountFormDialog from '@/components/accounts/AccountFormDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Pencil, Users, Handshake, Loader2 } from 'lucide-react';
+import { HealthScoreDot } from '@/components/ui/HealthScoreDot';
+import { ArrowLeft, Pencil, Users, Handshake, Loader2, UserSearch, Mail, Phone, Linkedin, ExternalLink } from 'lucide-react';
+
+// Treneur workspace ID
+const TRENEUR_WORKSPACE_ID = "14e69d30-13a2-45c0-bcea-0ebe6e638b47";
 
 export default function AccountDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { activeWorkspaceId } = useAuth();
   const { data: account, isLoading } = useAccount(id);
   const { contacts } = useContacts(id);
   const { deals } = useDeals();
+  const { data: trainers, isLoading: trainersLoading } = useTrainers(id);
+  const pullTrainers = usePullTrainers();
   const [editOpen, setEditOpen] = useState(false);
 
   const accountDeals = deals.filter((d) => d.account_id === id);
+  const isTreneurWorkspace = activeWorkspaceId === TRENEUR_WORKSPACE_ID;
 
   if (isLoading) {
     return (
@@ -56,6 +66,11 @@ export default function AccountDetail() {
     }
   };
 
+  const handlePullTrainers = async () => {
+    if (!id) return;
+    await pullTrainers.mutateAsync({ accountId: id });
+  };
+
   return (
     <AppLayout>
       <div className="p-6">
@@ -69,13 +84,33 @@ export default function AccountDetail() {
               <Badge variant="outline" className={getStatusColor(account.status)}>
                 {account.status}
               </Badge>
+              {(account as any).health_score && (
+                <HealthScoreDot score={(account as any).health_score} showScore size="lg" />
+              )}
             </div>
             <p className="text-muted-foreground">{account.segment || 'No segment'}</p>
           </div>
-          <Button onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Pull Trainers button - only for Treneur workspace */}
+            {isTreneurWorkspace && (
+              <Button 
+                variant="outline" 
+                onClick={handlePullTrainers}
+                disabled={pullTrainers.isPending}
+              >
+                {pullTrainers.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <UserSearch className="mr-2 h-4 w-4" />
+                )}
+                {pullTrainers.isPending ? 'Searching...' : 'Pull Trainers'}
+              </Button>
+            )}
+            <Button onClick={() => setEditOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -140,6 +175,99 @@ export default function AccountDetail() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Nearby Trainers - Only for Treneur workspace */}
+            {isTreneurWorkspace && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <UserSearch className="h-5 w-5" />
+                    Nearby Trainers ({trainers?.length || 0})
+                  </CardTitle>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handlePullTrainers}
+                    disabled={pullTrainers.isPending}
+                  >
+                    {pullTrainers.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Pull More'
+                    )}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {trainersLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !trainers || trainers.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground mb-2">No trainers found yet</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handlePullTrainers}
+                        disabled={pullTrainers.isPending}
+                      >
+                        <UserSearch className="mr-2 h-4 w-4" />
+                        Search for Trainers
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {trainers.map((trainer) => (
+                        <div key={trainer.id} className="border rounded-lg p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{trainer.name}</p>
+                              {trainer.career_health_score && (
+                                <HealthScoreDot score={trainer.career_health_score} showScore size="sm" />
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Contact info */}
+                          <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                            {trainer.email && (
+                              <a href={`mailto:${trainer.email}`} className="flex items-center gap-1 hover:text-foreground">
+                                <Mail className="h-3 w-3" />
+                                {trainer.email}
+                              </a>
+                            )}
+                            {trainer.phone && (
+                              <a href={`tel:${trainer.phone}`} className="flex items-center gap-1 hover:text-foreground">
+                                <Phone className="h-3 w-3" />
+                                {trainer.phone}
+                              </a>
+                            )}
+                            {trainer.linkedin_url && (
+                              <a 
+                                href={trainer.linkedin_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-foreground"
+                              >
+                                <Linkedin className="h-3 w-3" />
+                                LinkedIn
+                              </a>
+                            )}
+                          </div>
+
+                          {/* Career mentions */}
+                          {trainer.career_mentions && (
+                            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                              {trainer.career_mentions}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="space-y-6">

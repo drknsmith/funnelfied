@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import { useDeals, DEAL_STAGES, DealWithRelations } from '@/hooks/useDeals';
+import { useDeals, DealWithRelations } from '@/hooks/useDeals';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ export default function Deals() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { deals, isLoading } = useDeals();
+  const { stages, isLoading: stagesLoading } = usePipelineStages();
   
   const filter = searchParams.get('filter');
 
@@ -50,7 +52,8 @@ export default function Deals() {
     }
   }, [deals, filter]);
 
-  const dealsByStage = DEAL_STAGES.map((stage) => ({
+  // Use dynamic pipeline stages
+  const dealsByStage = stages.map((stage) => ({
     ...stage,
     deals: filteredDeals.filter((d) => d.stage === stage.value),
   }));
@@ -59,7 +62,7 @@ export default function Deals() {
     setSearchParams({});
   };
 
-  if (isLoading) {
+  if (isLoading || stagesLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center p-12">
