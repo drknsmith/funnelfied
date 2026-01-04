@@ -48,7 +48,8 @@ interface StructuredLead {
 }
 
 // Geocode location to lat/lng using Mapbox
-async function geocodeLocation(location: string, mapboxToken: string): Promise<{ lat: number; lng: number } | null> {
+// Returns coordinates and a flag indicating if it's likely a city-level result
+async function geocodeLocation(location: string, mapboxToken: string): Promise<{ lat: number; lng: number; placeType?: string } | null> {
   try {
     const response = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json?access_token=${mapboxToken}&country=us&limit=1`
@@ -57,11 +58,41 @@ async function geocodeLocation(location: string, mapboxToken: string): Promise<{
     
     if (data.features && data.features.length > 0) {
       const [lng, lat] = data.features[0].center;
-      return { lat, lng };
+      const placeType = data.features[0].place_type?.[0] || "unknown";
+      return { lat, lng, placeType };
     }
   } catch (error) {
     console.error("Geocoding error:", error);
   }
+  return null;
+}
+
+// Enhanced geocoding: tries company+location first for POI matching, then falls back to location only
+async function geocodeWithFallback(
+  companyName: string, 
+  location: string, 
+  mapboxToken: string
+): Promise<{ lat: number; lng: number } | null> {
+  // First try: company name + location (finds actual business POIs)
+  const poiQuery = `${companyName}, ${location}`;
+  console.log(`Geocoding POI: ${poiQuery}`);
+  const poiResult = await geocodeLocation(poiQuery, mapboxToken);
+  
+  // If we got a POI or address-level result, use it
+  if (poiResult && (poiResult.placeType === "poi" || poiResult.placeType === "address")) {
+    console.log(`Found POI/address coordinates for ${companyName}`);
+    return { lat: poiResult.lat, lng: poiResult.lng };
+  }
+  
+  // Second try: just the location (may be street address or city)
+  console.log(`Falling back to location-only geocoding: ${location}`);
+  const locationResult = await geocodeLocation(location, mapboxToken);
+  
+  if (locationResult) {
+    console.log(`Geocoded location (type: ${locationResult.placeType}): ${location}`);
+    return { lat: locationResult.lat, lng: locationResult.lng };
+  }
+  
   return null;
 }
 
@@ -333,10 +364,10 @@ serve(async (req) => {
           }
         }
 
-        // Geocode location if Mapbox token is available
+        // Geocode location using enhanced fallback strategy
         let coordinates: { lat: number; lng: number } | null = null;
         if (mapboxToken) {
-          coordinates = await geocodeLocation(lead.location, mapboxToken);
+          coordinates = await geocodeWithFallback(lead.company, lead.location, mapboxToken);
         }
 
         // Insert lead
@@ -533,9 +564,9 @@ Target verticals: ${verticals.join(", ")}.
 Geographic focus: ${geography}.
 
 For each valid lead, you MUST provide:
-- company: The facility/gym name
+- company: The facility/gym name (official business name)
 - project_name: Use the facility name or specific initiative if mentioned
-- location: City, state
+- location: MUST be the FULL STREET ADDRESS including street number, street name, city, state, and ZIP code (e.g., '1234 Peachtree St NE, Atlanta, GA 30309'). Extract from Google Maps links, contact pages, or address mentions. Only use city/state if absolutely no street address is found anywhere.
 - facility_type: One of ${verticals.join(", ")}
 - signal_reason: 2-3 sentences explaining which signals were detected
 - health_score: INTEGER from 1-10 where:
@@ -564,7 +595,7 @@ Geographic focus: ${geography}.
 For each valid lead, extract:
 - company: The company name
 - project_name: Specific project or initiative name (if mentioned)
-- location: City, state or region
+- location: MUST be the FULL STREET ADDRESS including street number, street name, city, state, and ZIP code (e.g., '1234 Peachtree St NE, Atlanta, GA 30309'). Extract from website contact pages, Google Maps links, or address mentions in content. Only use city/state if absolutely no street address is found anywhere.
 - facility_type: One of ${verticals.join(", ")} (or null if unclear)
 - signal_reason: Why this appears to be a lead opportunity (2-3 sentences explaining the signal)
 - estimated_timeline: When the project/need might be addressed
