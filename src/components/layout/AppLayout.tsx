@@ -43,11 +43,13 @@ import {
   PanelLeft,
   Download,
   Inbox,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
+import { toast } from 'sonner';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -146,11 +148,12 @@ function getPageType(pathname: string): ScribeContext['pageType'] {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { profile, role, signOut, workspaceName, availableWorkspaces, switchWorkspace } = useAuth();
+  const { profile, role, signOut, workspaceName, availableWorkspaces, switchWorkspace, activeWorkspaceId } = useAuth();
   const { viewMode, setViewMode, canToggleViewMode } = useViewMode();
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
+  const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false);
   
   // Scribe chat state
   const [scribeChatOpen, setScribeChatOpen] = useState(false);
@@ -343,11 +346,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {isSuperAdmin && availableWorkspaces.length > 1 && !isCollapsed && (
                   <div className="mt-3 px-1">
                     <Select
-                      value={availableWorkspaces.find(w => w.name === workspaceName)?.id || ''}
-                      onValueChange={switchWorkspace}
+                      value={activeWorkspaceId || ''}
+                      onValueChange={async (workspaceId) => {
+                        if (workspaceId === activeWorkspaceId) return;
+                        setIsSwitchingWorkspace(true);
+                        toast.info('Switching workspace...');
+                        const success = await switchWorkspace(workspaceId);
+                        if (!success) {
+                          setIsSwitchingWorkspace(false);
+                          toast.error('Failed to switch workspace');
+                        }
+                      }}
+                      disabled={isSwitchingWorkspace}
                     >
                       <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Switch workspace" />
+                        {isSwitchingWorkspace ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Switching...</span>
+                          </div>
+                        ) : (
+                          <SelectValue placeholder="Switch workspace" />
+                        )}
                       </SelectTrigger>
                       <SelectContent>
                         {availableWorkspaces.map((ws) => (
