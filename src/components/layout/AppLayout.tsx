@@ -47,6 +47,7 @@ import {
   Map,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { canUseMapping } from '@/lib/workspaceFeatures';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
@@ -265,7 +266,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" collapsed={isCollapsed} />
               <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
               <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
-              <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
+              {canUseMapping(activeWorkspaceId) && (
+                <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
+              )}
             </nav>
 
             {/* View Mode Toggle - Only visible for admin/super_admin */}

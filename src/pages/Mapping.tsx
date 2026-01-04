@@ -6,21 +6,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, MapPin, Building2, User, RefreshCw } from 'lucide-react';
+import { Loader2, Search, Building2, User, RefreshCw, Crosshair, AlertCircle } from 'lucide-react';
 import { useLeadsForMap, useAccountsForMap, useTrainersForMap } from '@/hooks/useMapData';
 import { getHealthHexColor } from '@/components/ui/HealthScoreDot';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { canUseMapping, TRENEUR_WORKSPACE_ID } from '@/lib/workspaceFeatures';
+import { toast } from 'sonner';
 
 type ViewMode = 'facility' | 'trainer';
 
+const STORAGE_KEY_PREFIX = 'mapping';
+
+function getStorageKey(workspaceId: string, key: string): string {
+  return `${STORAGE_KEY_PREFIX}:${key}:${workspaceId}`;
+}
+
 function MappingContent() {
   const navigate = useNavigate();
+  const { activeWorkspaceId } = useAuth();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const hasAutoFitted = useRef(false);
   
-  const [viewMode, setViewMode] = useState<ViewMode>('facility');
+  // Load persisted view mode from localStorage
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (!activeWorkspaceId) return 'facility';
+    const saved = localStorage.getItem(getStorageKey(activeWorkspaceId, 'viewMode'));
+    return (saved === 'trainer' ? 'trainer' : 'facility') as ViewMode;
+  });
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
@@ -29,6 +46,21 @@ function MappingContent() {
   const { data: leads, isLoading: leadsLoading, refetch: refetchLeads } = useLeadsForMap();
   const { data: accounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccountsForMap();
   const { data: trainers, isLoading: trainersLoading, refetch: refetchTrainers } = useTrainersForMap();
+
+  // Redirect if not in Treneur workspace
+  useEffect(() => {
+    if (activeWorkspaceId && !canUseMapping(activeWorkspaceId)) {
+      toast.error('Mapping is only available in the Treneur workspace.');
+      navigate('/deals', { replace: true });
+    }
+  }, [activeWorkspaceId, navigate]);
+
+  // Persist viewMode changes
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      localStorage.setItem(getStorageKey(activeWorkspaceId, 'viewMode'), viewMode);
+    }
+  }, [viewMode, activeWorkspaceId]);
 
   // Fetch Mapbox token from edge function
   useEffect(() => {
@@ -46,31 +78,78 @@ function MappingContent() {
     fetchToken();
   }, []);
 
+  // Load saved viewport from localStorage
+  const getSavedViewport = useCallback(() => {
+    if (!activeWorkspaceId) return null;
+    const saved = localStorage.getItem(getStorageKey(activeWorkspaceId, 'viewport'));
+    if (saved) {
+      try {
+        return JSON.parse(saved) as { center: [number, number]; zoom: number };
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [activeWorkspaceId]);
+
+  // Save viewport to localStorage
+  const saveViewport = useCallback(() => {
+    if (!map.current || !activeWorkspaceId) return;
+    const center = map.current.getCenter();
+    const zoom = map.current.getZoom();
+    const viewport = { center: [center.lng, center.lat] as [number, number], zoom };
+    localStorage.setItem(getStorageKey(activeWorkspaceId, 'viewport'), JSON.stringify(viewport));
+  }, [activeWorkspaceId]);
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || map.current) return;
 
     mapboxgl.accessToken = mapboxToken;
     
+    // Use saved viewport or default to US center
+    const savedViewport = getSavedViewport();
+    const initialCenter = savedViewport?.center || [-98.5795, 39.8283];
+    const initialZoom = savedViewport?.zoom || 3.5;
+    
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [-98.5795, 39.8283], // Center of US
-      zoom: 3.5,
+      center: initialCenter as [number, number],
+      zoom: initialZoom,
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    // Save viewport on move end
+    map.current.on('moveend', saveViewport);
 
     return () => {
       map.current?.remove();
       map.current = null;
     };
-  }, [mapboxToken]);
+  }, [mapboxToken, getSavedViewport, saveViewport]);
 
   // Clear existing markers
   const clearMarkers = useCallback(() => {
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
+  }, []);
+
+  // Fit map to markers
+  const fitToMarkers = useCallback(() => {
+    if (!map.current || markersRef.current.length === 0) return;
+    
+    const bounds = new mapboxgl.LngLatBounds();
+    markersRef.current.forEach(marker => {
+      bounds.extend(marker.getLngLat());
+    });
+    
+    map.current.fitBounds(bounds, {
+      padding: 80,
+      maxZoom: 11,
+      duration: 1000,
+    });
   }, []);
 
   // Add markers based on view mode
@@ -194,7 +273,16 @@ function MappingContent() {
         }
       });
     }
-  }, [viewMode, leads, accounts, trainers, clearMarkers]);
+
+    // Auto-fit to markers on first load if no saved viewport
+    if (!hasAutoFitted.current && markersRef.current.length > 0) {
+      const savedViewport = getSavedViewport();
+      if (!savedViewport) {
+        fitToMarkers();
+      }
+      hasAutoFitted.current = true;
+    }
+  }, [viewMode, leads, accounts, trainers, clearMarkers, fitToMarkers, getSavedViewport]);
 
   // Handle search
   const handleSearch = async () => {
@@ -232,6 +320,7 @@ function MappingContent() {
 
   const facilityCount = (leads?.length || 0) + (accounts?.length || 0);
   const trainerCount = trainers?.length || 0;
+  const currentCount = viewMode === 'facility' ? facilityCount : trainerCount;
 
   if (isLoadingToken) {
     return (
@@ -271,6 +360,16 @@ function MappingContent() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fitToMarkers}
+              disabled={isLoading || currentCount === 0}
+              className="gap-2"
+            >
+              <Crosshair className="h-4 w-4" />
+              Fit to Data
+            </Button>
             <Button
               variant="outline"
               size="icon"
@@ -342,6 +441,33 @@ function MappingContent() {
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {/* Empty state overlay */}
+        {!isLoading && currentCount === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <Card className="max-w-sm mx-4 pointer-events-auto">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center gap-3">
+                  <AlertCircle className="h-10 w-10 text-muted-foreground" />
+                  <div>
+                    <h3 className="font-semibold">
+                      No {viewMode === 'facility' ? 'facilities' : 'trainers'} on the map
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {viewMode === 'facility' 
+                        ? 'Facilities appear when leads or accounts have location coordinates (lat/lng).'
+                        : 'Trainers appear when they have location coordinates (lat/lng).'}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleRefresh} className="mt-2">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh Data
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
