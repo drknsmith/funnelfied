@@ -151,6 +151,31 @@ function MappingContent() {
     });
   }, []);
 
+  // Group items by coordinate key to handle stacking
+  const groupByCoords = useCallback(<T extends { lat: number | null; lng: number | null }>(items: T[] | undefined): Map<string, T[]> => {
+    const groups = new Map<string, T[]>();
+    items?.forEach(item => {
+      if (item.lat && item.lng) {
+        const key = `${item.lat.toFixed(6)},${item.lng.toFixed(6)}`;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key)!.push(item);
+      }
+    });
+    return groups;
+  }, []);
+
+  // Check if there are stacked facilities
+  const stackedFacilityCount = accounts ? (() => {
+    const groups = groupByCoords(accounts);
+    let stacked = 0;
+    groups.forEach(group => {
+      if (group.length > 1) stacked += group.length;
+    });
+    return stacked;
+  })() : 0;
+
   // Add markers based on view mode
   useEffect(() => {
     if (!map.current) return;
@@ -158,9 +183,15 @@ function MappingContent() {
     clearMarkers();
 
     if (viewMode === 'facility') {
-      // Add accounts as facility markers
-      accounts?.forEach(account => {
-        if (account.lat && account.lng) {
+      // Group accounts by coordinates to handle stacking
+      const accountGroups = groupByCoords(accounts);
+      
+      accountGroups.forEach((group, key) => {
+        const [lat, lng] = key.split(',').map(Number);
+        
+        if (group.length === 1) {
+          // Single account - render normal marker
+          const account = group[0];
           const color = account.health_score ? getHealthHexColor(account.health_score) : '#6b7280';
           
           const el = document.createElement('div');
@@ -190,7 +221,61 @@ function MappingContent() {
           `);
 
           const marker = new mapboxgl.Marker(el)
-            .setLngLat([account.lng, account.lat])
+            .setLngLat([lng, lat])
+            .setPopup(popup)
+            .addTo(map.current!);
+
+          markersRef.current.push(marker);
+        } else {
+          // Multiple accounts at same location - render cluster marker
+          const el = document.createElement('div');
+          el.className = 'map-marker account-cluster';
+          el.style.cssText = `
+            width: 32px;
+            height: 32px;
+            background-color: #3b82f6;
+            border: 3px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+          `;
+          el.textContent = String(group.length);
+
+          // Build popup content listing all accounts
+          const accountsList = group.map(account => `
+            <div style="padding: 6px 0; border-bottom: 1px solid #eee;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 10px; height: 10px; border-radius: 2px; background-color: ${account.health_score ? getHealthHexColor(account.health_score) : '#6b7280'};"></span>
+                <strong style="font-size: 13px;">${account.name}</strong>
+                ${account.health_score ? `<span style="font-size: 11px; color: #666;">(${account.health_score}/10)</span>` : ''}
+              </div>
+              <div style="margin-top: 4px; display: flex; gap: 4px;">
+                <button 
+                  onclick="window.location.href='/accounts/${account.id}'"
+                  style="padding: 2px 8px; background: #3b82f6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;"
+                >
+                  View
+                </button>
+              </div>
+            </div>
+          `).join('');
+
+          const popup = new mapboxgl.Popup({ offset: 25, maxWidth: '300px' }).setHTML(`
+            <div style="padding: 8px; max-height: 300px; overflow-y: auto;">
+              <h3 style="font-weight: 600; margin-bottom: 8px; color: #ef4444;">${group.length} Facilities at Same Location</h3>
+              <p style="font-size: 11px; color: #666; margin-bottom: 12px;">These facilities share city-level coordinates. Consider re-geocoding for precise locations.</p>
+              ${accountsList}
+            </div>
+          `);
+
+          const marker = new mapboxgl.Marker(el)
+            .setLngLat([lng, lat])
             .setPopup(popup)
             .addTo(map.current!);
 
@@ -198,9 +283,14 @@ function MappingContent() {
         }
       });
     } else {
-      // Trainer view
-      trainers?.forEach(trainer => {
-        if (trainer.lat && trainer.lng) {
+      // Trainer view - group by coordinates too
+      const trainerGroups = groupByCoords(trainers);
+      
+      trainerGroups.forEach((group, key) => {
+        const [lat, lng] = key.split(',').map(Number);
+        
+        if (group.length === 1) {
+          const trainer = group[0];
           const color = trainer.career_health_score ? getHealthHexColor(trainer.career_health_score) : '#6b7280';
           
           const el = document.createElement('div');
@@ -223,7 +313,51 @@ function MappingContent() {
           `);
 
           const marker = new mapboxgl.Marker(el)
-            .setLngLat([trainer.lng, trainer.lat])
+            .setLngLat([lng, lat])
+            .setPopup(popup)
+            .addTo(map.current!);
+
+          markersRef.current.push(marker);
+        } else {
+          // Multiple trainers cluster
+          const el = document.createElement('div');
+          el.className = 'map-marker trainer-cluster';
+          el.style.cssText = `
+            width: 28px;
+            height: 28px;
+            background-color: #8b5cf6;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            color: white;
+          `;
+          el.textContent = String(group.length);
+
+          const trainersList = group.map(trainer => `
+            <div style="padding: 4px 0; border-bottom: 1px solid #eee;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${trainer.career_health_score ? getHealthHexColor(trainer.career_health_score) : '#6b7280'};"></span>
+                <strong style="font-size: 12px;">${trainer.name}</strong>
+                ${trainer.career_health_score ? `<span style="font-size: 10px; color: #666;">(${trainer.career_health_score}/10)</span>` : ''}
+              </div>
+            </div>
+          `).join('');
+
+          const popup = new mapboxgl.Popup({ offset: 25, maxWidth: '280px' }).setHTML(`
+            <div style="padding: 8px; max-height: 250px; overflow-y: auto;">
+              <h3 style="font-weight: 600; margin-bottom: 8px;">${group.length} Trainers at Same Location</h3>
+              ${trainersList}
+            </div>
+          `);
+
+          const marker = new mapboxgl.Marker(el)
+            .setLngLat([lng, lat])
             .setPopup(popup)
             .addTo(map.current!);
 
@@ -240,7 +374,7 @@ function MappingContent() {
       }
       hasAutoFitted.current = true;
     }
-  }, [viewMode, accounts, trainers, clearMarkers, fitToMarkers, getSavedViewport]);
+  }, [viewMode, accounts, trainers, clearMarkers, fitToMarkers, getSavedViewport, groupByCoords]);
 
   // Handle search
   const handleSearch = async () => {
@@ -389,6 +523,17 @@ function MappingContent() {
             <span className="text-muted-foreground">Not Scored</span>
           </div>
         </div>
+
+        {/* Stacking warning */}
+        {viewMode === 'facility' && stackedFacilityCount > 0 && (
+          <div className="mt-3 flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>
+              <strong>{stackedFacilityCount} facilities</strong> share the same coordinates (city-level geocoding). 
+              Click the numbered marker to see all facilities at that location.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Map */}
