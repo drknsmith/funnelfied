@@ -25,13 +25,13 @@ export interface ContactWithAccount extends Contact {
 }
 
 export function useContacts(accountId?: string) {
-  const { profile, user } = useAuth();
+  const { workspaceId, user } = useAuth();
   const { viewMode } = useViewMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const contactsQuery = useQuery({
-    queryKey: ['contacts', profile?.workspace_id, accountId, viewMode, user?.id],
+    queryKey: ['contacts', workspaceId, accountId, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('contacts')
@@ -51,17 +51,17 @@ export function useContacts(accountId?: string) {
       if (error) throw error;
       return data as ContactWithAccount[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createContact = useMutation({
     mutationFn: async (input: Omit<Contact, 'id' | 'workspace_id' | 'created_at' | 'updated_at' | 'owner_user_id'>) => {
-      if (!profile?.workspace_id) throw new Error('No workspace');
+      if (!workspaceId) throw new Error('No workspace');
       const { data: { user } } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
         .from('contacts')
-        .insert({ ...input, workspace_id: profile.workspace_id, owner_user_id: user?.id || null })
+        .insert({ ...input, workspace_id: workspaceId, owner_user_id: user?.id || null })
         .select()
         .single();
 

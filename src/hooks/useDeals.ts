@@ -102,13 +102,13 @@ export interface DealWithRelations extends Deal {
 }
 
 export function useDeals(filters?: { stage?: string; status?: string }) {
-  const { profile, user } = useAuth();
+  const { workspaceId, user } = useAuth();
   const { viewMode } = useViewMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const dealsQuery = useQuery({
-    queryKey: ['deals', profile?.workspace_id, filters, viewMode, user?.id],
+    queryKey: ['deals', workspaceId, filters, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('deals')
@@ -131,17 +131,17 @@ export function useDeals(filters?: { stage?: string; status?: string }) {
       if (error) throw error;
       return data as DealWithRelations[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createDeal = useMutation({
     mutationFn: async (input: Omit<Deal, 'id' | 'workspace_id' | 'created_at' | 'updated_at' | 'owner_user_id'>) => {
-      if (!profile?.workspace_id) throw new Error('No workspace');
+      if (!workspaceId) throw new Error('No workspace');
       const { data: { user } } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
         .from('deals')
-        .insert({ ...input, workspace_id: profile.workspace_id, owner_user_id: user?.id || null })
+        .insert({ ...input, workspace_id: workspaceId, owner_user_id: user?.id || null })
         .select()
         .single();
 
