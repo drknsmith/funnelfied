@@ -24,6 +24,7 @@ export type Database = {
           id: string
           lat: number | null
           lng: number | null
+          location: string | null
           name: string
           owner_user_id: string | null
           portfolio_size: string
@@ -41,6 +42,7 @@ export type Database = {
           id?: string
           lat?: number | null
           lng?: number | null
+          location?: string | null
           name: string
           owner_user_id?: string | null
           portfolio_size?: string
@@ -58,6 +60,7 @@ export type Database = {
           id?: string
           lat?: number | null
           lng?: number | null
+          location?: string | null
           name?: string
           owner_user_id?: string | null
           portfolio_size?: string
