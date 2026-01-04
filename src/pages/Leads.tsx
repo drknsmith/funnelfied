@@ -18,10 +18,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Inbox, User, Sparkles } from 'lucide-react';
-import { useLeads, LeadFilters } from '@/hooks/useLeads';
+import { Plus, Search, Inbox, User, Sparkles, Trash2 } from 'lucide-react';
+import { useLeads, useDeleteLead, LeadFilters } from '@/hooks/useLeads';
 import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { LeadStatusBadge } from '@/components/leads/LeadStatusBadge';
@@ -40,6 +50,9 @@ export default function Leads() {
   const [searchInput, setSearchInput] = useState('');
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const [showPullLeadsDialog, setShowPullLeadsDialog] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<{ id: string; company: string } | null>(null);
+  
+  const deleteLead = useDeleteLead();
 
   const { data: leads, isLoading } = useLeads(filters);
   const { users } = useWorkspaceUsers();
@@ -197,18 +210,19 @@ export default function Leads() {
                 <TableHead>Location</TableHead>
                 <TableHead>Playbook</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : leads?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     No leads found. Create your first lead to get started.
                   </TableCell>
                 </TableRow>
@@ -242,6 +256,19 @@ export default function Leads() {
                     <TableCell className="text-muted-foreground">
                       {format(new Date(lead.created_at), 'MMM d, yyyy')}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLeadToDelete({ id: lead.id, company: lead.company });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -256,10 +283,35 @@ export default function Leads() {
         onSuccess={(id) => navigate(`/leads/${id}`)}
       />
 
-      <PullLeadsDialog
-        open={showPullLeadsDialog}
-        onOpenChange={setShowPullLeadsDialog}
+      <PullLeadsDialog 
+        open={showPullLeadsDialog} 
+        onOpenChange={setShowPullLeadsDialog} 
       />
+
+      <AlertDialog open={!!leadToDelete} onOpenChange={(open) => !open && setLeadToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the lead for "{leadToDelete?.company}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (leadToDelete) {
+                  deleteLead.mutate(leadToDelete.id);
+                  setLeadToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
