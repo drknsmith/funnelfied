@@ -181,6 +181,34 @@ function formatStageLabel(stage: string): string {
   return labels[stage] || stage;
 }
 
+function formatAssetType(type: string): string {
+  const labels: Record<string, string> = {
+    'brand_overview': 'Brand Overview',
+    'portfolio_standard': 'Portfolio Standard',
+    'spec_package': 'Spec Package',
+    'roi_framing': 'ROI Framing',
+    'case_narrative': 'Case Narrative',
+    'other': 'Other',
+  };
+  return labels[type] || type;
+}
+
+async function getWorkspaceAssets(supabase: any, workspaceId: string) {
+  try {
+    const { data: assets } = await supabase
+      .from('assets')
+      .select('id, name, asset_type, asset_url, asset_file_ref, description')
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'active')
+      .order('asset_type');
+    
+    return assets || [];
+  } catch (error) {
+    console.error('Error fetching assets:', error);
+    return [];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -230,6 +258,22 @@ Actions Due Today: ${stats.actions_today}`;
           for (const [stage, count] of Object.entries(stats.deals_by_stage)) {
             systemPrompt += `\n  - ${formatStageLabel(stage)}: ${count}`;
           }
+        }
+
+        // Fetch and add available assets
+        const assets = await getWorkspaceAssets(supabase, context.workspace_id);
+        if (assets.length > 0) {
+          systemPrompt += `\n\n--- AVAILABLE ASSETS ---`;
+          for (const asset of assets) {
+            const typeLabel = formatAssetType(asset.asset_type);
+            const url = asset.asset_url || asset.asset_file_ref || 'No link available';
+            systemPrompt += `\n• ${asset.name} (${typeLabel})`;
+            if (asset.description) {
+              systemPrompt += `: ${asset.description}`;
+            }
+            systemPrompt += `\n  Link: ${url}`;
+          }
+          systemPrompt += `\n\nWhen drafting messages, recommend inserting relevant asset links where they add value. Reference assets by their exact name.`;
         }
       }
 
