@@ -30,7 +30,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, inviteCode: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  switchWorkspace: (workspaceId: string) => Promise<void>;
+  switchWorkspace: (workspaceId: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -145,8 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const switchWorkspace = async (workspaceId: string) => {
-    if (!user || role !== 'super_admin') return;
+  const switchWorkspace = async (workspaceId: string): Promise<boolean> => {
+    if (!user || role !== 'super_admin') return false;
 
     try {
       // Upsert the workspace override
@@ -160,14 +160,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
+      // Verify the upsert succeeded
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('super_admin_workspace_overrides')
+        .select('active_workspace_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (verifyError || verifyData?.active_workspace_id !== workspaceId) {
+        throw new Error('Workspace switch failed to persist');
+      }
+
       setActiveWorkspaceId(workspaceId);
       const workspace = availableWorkspaces.find(w => w.id === workspaceId);
       setWorkspaceName(workspace?.name || null);
 
+      // Small delay to ensure transaction is fully committed before reload
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
       // Reload page to refresh all data with new workspace context
       window.location.reload();
+      return true;
     } catch (error) {
       console.error('Error switching workspace:', error);
+      return false;
     }
   };
 
