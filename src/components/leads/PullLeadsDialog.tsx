@@ -57,9 +57,13 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
     ? pullConfig.verticals.map(v => ({ id: v, label: v }))
     : DEFAULT_VERTICALS;
   
+  // If signal_types is empty array (like Treneur), don't show signal type selector
   const signalTypes = pullConfig?.signal_types?.length 
     ? pullConfig.signal_types 
     : DEFAULT_SIGNAL_TYPES;
+  
+  // Treneur mode: no signal types configured
+  const isTreneurMode = pullConfig?.signal_types?.length === 0;
 
   // Initialize selected values when config loads
   useEffect(() => {
@@ -69,10 +73,10 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
   }, [verticals, selectedVerticals.length]);
 
   useEffect(() => {
-    if (signalTypes.length > 0 && !signalType) {
+    if (!isTreneurMode && signalTypes.length > 0 && !signalType) {
       setSignalType(signalTypes[0]);
     }
-  }, [signalTypes, signalType]);
+  }, [signalTypes, signalType, isTreneurMode]);
 
   const handleVerticalToggle = (verticalId: string) => {
     setSelectedVerticals((prev) =>
@@ -97,7 +101,7 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
       await pullLeads.mutateAsync({
         geography: geography.trim(),
         verticals: selectedVerticals,
-        signalType,
+        signalType: isTreneurMode ? 'health_scoring' : signalType, // Treneur uses health scoring instead
         limit: parseInt(limit, 10),
         searchContext: pullConfig?.search_context || undefined,
       });
@@ -105,7 +109,9 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
       // Reset form
       setGeography('');
       setSelectedVerticals(verticals.length > 0 ? [verticals[0].id] : []);
-      setSignalType(signalTypes[0] || 'New Build');
+      if (!isTreneurMode) {
+        setSignalType(signalTypes[0] || 'New Build');
+      }
       setLimit('5');
     } catch {
       // Error handled by mutation
@@ -121,7 +127,9 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
             Pull Leads with AI
           </DialogTitle>
           <DialogDescription>
-            Search the web for potential leads using AI-powered discovery
+            {isTreneurMode 
+              ? 'Discover fitness facilities showing staffing instability or trainer supply problems'
+              : 'Search the web for potential leads using AI-powered discovery'}
           </DialogDescription>
         </DialogHeader>
 
@@ -165,21 +173,35 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="signalType">Signal Type</Label>
-            <Select value={signalType} onValueChange={setSignalType}>
-              <SelectTrigger id="signalType">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {signalTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Only show signal type for non-Treneur workspaces */}
+          {!isTreneurMode && (
+            <div className="space-y-2">
+              <Label htmlFor="signalType">Signal Type</Label>
+              <Select value={signalType} onValueChange={setSignalType}>
+                <SelectTrigger id="signalType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {signalTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Treneur mode info */}
+          {isTreneurMode && (
+            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+              <p className="font-medium text-foreground">Health Score Mode</p>
+              <p className="text-muted-foreground mt-1">
+                Leads will be analyzed for staffing instability, business model transitions, 
+                and trainer sentiment signals. Each lead receives a 1-10 health score.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="limit">Number of Leads</Label>
@@ -228,7 +250,9 @@ export function PullLeadsDialog({ open, onOpenChange }: PullLeadsDialogProps) {
         {pullLeads.isPending && (
           <div className="mt-4 p-4 bg-muted rounded-lg text-center">
             <p className="text-sm text-muted-foreground">
-              Searching the web and extracting leads...
+              {isTreneurMode 
+                ? 'Analyzing facilities for health signals...'
+                : 'Searching the web and extracting leads...'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               This may take 30-60 seconds

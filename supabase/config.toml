@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.interaction-assist]
 verify_jwt = false
+
+[functions.get-mapbox-token]
+verify_jwt = false
+
+[functions.trainer-miner]
+verify_jwt = false

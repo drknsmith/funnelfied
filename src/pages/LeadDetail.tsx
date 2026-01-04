@@ -40,6 +40,7 @@ import { StakeholdersList } from '@/components/leads/StakeholdersList';
 import { DisqualifyDialog } from '@/components/leads/DisqualifyDialog';
 import { ConvertToDealModal } from '@/components/leads/ConvertToDealModal';
 import { OwnerSelect } from '@/components/leads/OwnerSelect';
+import { HealthScoreDot } from '@/components/ui/HealthScoreDot';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -260,6 +261,9 @@ export default function LeadDetail() {
                   {lead.company} – {lead.project_name}
                 </h1>
                 <LeadStatusBadge status={lead.status} />
+                {(lead as any).health_score && (
+                  <HealthScoreDot score={(lead as any).health_score} showScore size="lg" />
+                )}
               </div>
               <p className="text-muted-foreground">{lead.location}</p>
             </div>

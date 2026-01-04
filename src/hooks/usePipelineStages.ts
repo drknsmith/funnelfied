@@ -1,0 +1,54 @@
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Default stages used by most workspaces
+export const DEFAULT_DEAL_STAGES = [
+  { value: 'signal_target', label: 'Signal / Target' },
+  { value: 'outreach', label: 'Outreach' },
+  { value: 'discovery', label: 'Discovery' },
+  { value: 'proposal', label: 'Proposal' },
+  { value: 'negotiation', label: 'Negotiation' },
+  { value: 'closed_won', label: 'Closed Won' },
+  { value: 'closed_lost', label: 'Closed Lost' },
+  { value: 'nurture', label: 'Nurture' },
+] as const;
+
+export type DealStage = {
+  value: string;
+  label: string;
+};
+
+export function usePipelineStages() {
+  const { activeWorkspaceId } = useAuth();
+
+  const { data: customStages, isLoading } = useQuery({
+    queryKey: ['pipeline-stages', activeWorkspaceId],
+    queryFn: async () => {
+      if (!activeWorkspaceId) return null;
+
+      const { data, error } = await supabase
+        .from('workspace_pipeline_stages')
+        .select('stages')
+        .eq('workspace_id', activeWorkspaceId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching pipeline stages:', error);
+        return null;
+      }
+
+      return data?.stages as DealStage[] | null;
+    },
+    enabled: !!activeWorkspaceId,
+  });
+
+  // Use custom stages if available, otherwise use defaults
+  const stages: DealStage[] = customStages || [...DEFAULT_DEAL_STAGES];
+
+  return {
+    stages,
+    isLoading,
+    hasCustomStages: !!customStages,
+  };
+}
