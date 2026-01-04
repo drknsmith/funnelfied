@@ -72,7 +72,7 @@ export default function Leads() {
     <AppLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Inbox className="h-8 w-8 text-primary" />
             <div>
@@ -80,14 +80,14 @@ export default function Leads() {
               <p className="text-muted-foreground">Signals Inbox - Review and convert opportunities</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
             {canPullLeads && (
-              <Button variant="outline" onClick={() => setShowPullLeadsDialog(true)}>
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowPullLeadsDialog(true)}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Pull Leads
               </Button>
             )}
-            <Button onClick={() => setShowNewLeadDialog(true)}>
+            <Button className="w-full sm:w-auto" onClick={() => setShowNewLeadDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Lead
             </Button>
