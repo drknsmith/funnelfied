@@ -171,6 +171,9 @@ export function ConvertToDealModal({ open, onOpenChange, lead }: ConvertToDealMo
             workspace_id: profile.workspace_id,
             owner_user_id: lead.owner_user_id || profile.user_id,
             status: 'active',
+            health_score: lead.health_score,
+            lat: lead.lat,
+            lng: lead.lng,
           })
           .select()
           .single();

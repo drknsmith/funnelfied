@@ -10,10 +10,11 @@ import { Loader2, Search, MapPin, Building2, User, RefreshCw } from 'lucide-reac
 import { useLeadsForMap, useAccountsForMap, useTrainersForMap } from '@/hooks/useMapData';
 import { getHealthHexColor } from '@/components/ui/HealthScoreDot';
 import { supabase } from '@/integrations/supabase/client';
+import AppLayout from '@/components/layout/AppLayout';
 
 type ViewMode = 'facility' | 'trainer';
 
-export default function Mapping() {
+function MappingContent() {
   const navigate = useNavigate();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -345,5 +346,13 @@ export default function Mapping() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Mapping() {
+  return (
+    <AppLayout>
+      <MappingContent />
+    </AppLayout>
   );
 }
