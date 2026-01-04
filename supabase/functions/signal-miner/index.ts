@@ -160,7 +160,7 @@ serve(async (req) => {
       .join("\n\n");
 
     // Call Lovable AI to extract structured lead data
-    const systemPrompt = `You are a sales intelligence assistant. Extract potential B2B leads from the provided search results.
+    const systemPrompt = `You are a sales intelligence assistant for a premium fitness equipment company. Extract potential B2B leads from the provided search results.
 Focus on companies that show signs of: ${signalType}.
 Target verticals: ${verticals.join(", ")}.
 Geographic focus: ${geography}.
@@ -170,11 +170,15 @@ For each valid lead, extract:
 - project_name: Specific project or initiative name (if mentioned)
 - location: City, state or region
 - facility_type: One of Multifamily, Boutique Studio, Gym, Country Club (or null if unclear)
-- signal_reason: Why this appears to be a lead opportunity
+- signal_reason: Why this appears to be a lead opportunity (2-3 sentences explaining the signal)
 - estimated_timeline: When the project/need might be addressed
-- recommended_playbook: Suggest PB2, PB3, or PB4 based on the signal
+- recommended_playbook: Suggest PB2 (Portfolio/multi-site), PB3 (Design-Led/boutique), or PB4 (Retrofit/renovation) based on the signal type
 - stakeholders: Array of people mentioned with their roles
 - source_links: URLs where this information was found
+
+IMPORTANT - Generate personalized outreach drafts for each lead:
+- first_touch_email: Write a professional 3-4 paragraph sales email (under 200 words). Start with a hook referencing their specific project/signal. Introduce our premium fitness equipment solutions. Highlight relevant value props for their facility type (e.g., durability for high-traffic gyms, design aesthetics for boutique studios, resident experience for multifamily). End with a clear call-to-action for a discovery call.
+- linkedin_dm: Write a concise 2-3 sentence LinkedIn connection request (under 50 words). Mention their project briefly and express interest in discussing how we can support their fitness equipment needs.
 
 Be selective - only include results that genuinely match the criteria. Skip irrelevant results.`;
 
@@ -234,7 +238,7 @@ Be selective - only include results that genuinely match the criteria. Skip irre
                         linkedin_dm: { type: "string" },
                         source_links: { type: "array", items: { type: "string" } },
                       },
-                      required: ["company", "project_name", "location"],
+                      required: ["company", "project_name", "location", "signal_reason", "first_touch_email", "linkedin_dm"],
                     },
                   },
                 },
