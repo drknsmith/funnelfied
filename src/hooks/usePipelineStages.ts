@@ -25,7 +25,7 @@ export function usePipelineStages() {
   const { data: customStages, isLoading } = useQuery({
     queryKey: ['pipeline-stages', activeWorkspaceId],
     queryFn: async () => {
-      if (!activeWorkspaceId) return null;
+      if (!activeWorkspaceId) return [];
 
       const { data, error } = await supabase
         .from('workspace_pipeline_stages')
@@ -35,16 +35,16 @@ export function usePipelineStages() {
 
       if (error) {
         console.error('Error fetching pipeline stages:', error);
-        return null;
+        return [];
       }
 
-      return data?.stages as DealStage[] | null;
+      return (data?.stages as DealStage[]) || [];
     },
     enabled: !!activeWorkspaceId,
   });
 
   // Use custom stages if available, otherwise use defaults
-  const stages: DealStage[] = customStages || [...DEFAULT_DEAL_STAGES];
+  const stages: DealStage[] = customStages?.length ? customStages : [...DEFAULT_DEAL_STAGES];
 
   return {
     stages,
