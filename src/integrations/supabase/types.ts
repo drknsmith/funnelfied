@@ -782,6 +782,7 @@ export type Database = {
           id: string
           name: string
           objective: string | null
+          owner_user_id: string | null
           proof_asset_file_ref: string | null
           proof_asset_id: string | null
           proof_asset_label: string | null
@@ -810,6 +811,7 @@ export type Database = {
           id?: string
           name: string
           objective?: string | null
+          owner_user_id?: string | null
           proof_asset_file_ref?: string | null
           proof_asset_id?: string | null
           proof_asset_label?: string | null
@@ -838,6 +840,7 @@ export type Database = {
           id?: string
           name?: string
           objective?: string | null
+          owner_user_id?: string | null
           proof_asset_file_ref?: string | null
           proof_asset_id?: string | null
           proof_asset_label?: string | null
@@ -1243,6 +1246,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_or_above: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_target_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
