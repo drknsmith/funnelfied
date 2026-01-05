@@ -23,6 +23,7 @@ export interface Playbook {
   exit_rule: string | null;
   default_nurture_tag: string | null;
   expedited: boolean | null;
+  owner_user_id: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -127,6 +128,7 @@ export function usePlaybooks(options: UsePlaybooksOptions = {}) {
         .insert({
           ...formData,
           workspace_id: workspaceId,
+          owner_user_id: user?.id,
           created_by: user?.id,
           updated_by: user?.id,
         })
@@ -213,12 +215,13 @@ export function usePlaybooks(options: UsePlaybooksOptions = {}) {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { id: _, created_at, updated_at, ...rest } = original;
+      const { id: _, created_at, updated_at, owner_user_id, ...rest } = original;
       const { data, error } = await supabase
         .from('playbooks')
         .insert({
           ...rest,
           name: `${original.name} (Copy)`,
+          owner_user_id: user?.id,
           created_by: user?.id,
           updated_by: user?.id,
         })
