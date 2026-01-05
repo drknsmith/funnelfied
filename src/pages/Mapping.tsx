@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Building2, User, RefreshCw, Crosshair, AlertCircle } from 'lucide-react';
-import { useAccountsForMap, useTrainersForMap } from '@/hooks/useMapData';
+import { Loader2, Search, Building2, User, RefreshCw, Crosshair, AlertCircle, MapPin } from 'lucide-react';
+import { useAccountsForMap, useTrainersForMap, useLeadsForMap, MapLead } from '@/hooks/useMapData';
 import { getHealthHexColor } from '@/components/ui/HealthScoreDot';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { canUseMapping, TRENEUR_WORKSPACE_ID } from '@/lib/workspaceFeatures';
 import { toast } from 'sonner';
 
-type ViewMode = 'facility' | 'trainer';
+type ViewMode = 'lead' | 'facility' | 'trainer';
 
 const STORAGE_KEY_PREFIX = 'mapping';
 
@@ -33,9 +33,11 @@ function MappingContent() {
   
   // Load persisted view mode from localStorage
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (!activeWorkspaceId) return 'facility';
+    if (!activeWorkspaceId) return 'lead';
     const saved = localStorage.getItem(getStorageKey(activeWorkspaceId, 'viewMode'));
-    return (saved === 'trainer' ? 'trainer' : 'facility') as ViewMode;
+    if (saved === 'trainer') return 'trainer';
+    if (saved === 'facility') return 'facility';
+    return 'lead';
   });
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +45,7 @@ function MappingContent() {
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [isLoadingToken, setIsLoadingToken] = useState(true);
 
+  const { data: leads, isLoading: leadsLoading, refetch: refetchLeads } = useLeadsForMap();
   const { data: accounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccountsForMap();
   const { data: trainers, isLoading: trainersLoading, refetch: refetchTrainers } = useTrainersForMap();
 
@@ -182,7 +185,113 @@ function MappingContent() {
 
     clearMarkers();
 
-    if (viewMode === 'facility') {
+    if (viewMode === 'lead') {
+      // Lead view - render lead markers (diamond shape)
+      const leadGroups = groupByCoords(leads);
+      
+      leadGroups.forEach((group, key) => {
+        const [lat, lng] = key.split(',').map(Number);
+        
+        if (group.length === 1) {
+          const lead = group[0];
+          const color = lead.health_score ? getHealthHexColor(lead.health_score) : '#6b7280';
+          
+          const el = document.createElement('div');
+          el.className = 'map-marker lead';
+          el.style.cssText = `
+            width: 20px;
+            height: 20px;
+            background-color: ${color};
+            border: 2px solid white;
+            border-radius: 4px;
+            transform: rotate(45deg);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          `;
+
+          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+            <div style="padding: 8px;">
+              <h3 style="font-weight: 600; margin-bottom: 4px;">${lead.project_name}</h3>
+              <p style="font-size: 12px; color: #666; margin-bottom: 4px;">${lead.company}</p>
+              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${lead.location}</p>
+              ${lead.health_score ? `<p style="font-size: 12px;"><strong>Health Score:</strong> ${lead.health_score}/10</p>` : ''}
+              ${lead.facility_type ? `<p style="font-size: 12px;"><strong>Type:</strong> ${lead.facility_type}</p>` : ''}
+              <span style="display: inline-block; margin-top: 6px; padding: 2px 8px; background: #e5e7eb; border-radius: 3px; font-size: 11px; text-transform: capitalize;">${lead.status}</span>
+              <button 
+                onclick="window.location.href='/leads/${lead.id}'"
+                style="margin-top: 8px; display: block; padding: 4px 12px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+              >
+                View Lead
+              </button>
+            </div>
+          `);
+
+          const marker = new mapboxgl.Marker(el)
+            .setLngLat([lng, lat])
+            .setPopup(popup)
+            .addTo(map.current!);
+
+          markersRef.current.push(marker);
+        } else {
+          // Multiple leads cluster
+          const el = document.createElement('div');
+          el.className = 'map-marker lead-cluster';
+          el.style.cssText = `
+            width: 28px;
+            height: 28px;
+            background-color: #8b5cf6;
+            border: 2px solid white;
+            border-radius: 4px;
+            transform: rotate(45deg);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          `;
+          
+          const innerText = document.createElement('span');
+          innerText.style.cssText = `
+            transform: rotate(-45deg);
+            font-weight: 700;
+            font-size: 12px;
+            color: white;
+          `;
+          innerText.textContent = String(group.length);
+          el.appendChild(innerText);
+
+          const leadsList = group.map(lead => `
+            <div style="padding: 4px 0; border-bottom: 1px solid #eee;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); background-color: ${lead.health_score ? getHealthHexColor(lead.health_score) : '#6b7280'};"></span>
+                <strong style="font-size: 12px;">${lead.project_name}</strong>
+              </div>
+              <p style="font-size: 11px; color: #666; margin: 2px 0;">${lead.company}</p>
+              <button 
+                onclick="window.location.href='/leads/${lead.id}'"
+                style="margin-top: 4px; padding: 2px 8px; background: #8b5cf6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;"
+              >
+                View
+              </button>
+            </div>
+          `).join('');
+
+          const popup = new mapboxgl.Popup({ offset: 25, maxWidth: '280px' }).setHTML(`
+            <div style="padding: 8px; max-height: 250px; overflow-y: auto;">
+              <h3 style="font-weight: 600; margin-bottom: 8px;">${group.length} Leads at Same Location</h3>
+              ${leadsList}
+            </div>
+          `);
+
+          const marker = new mapboxgl.Marker(el)
+            .setLngLat([lng, lat])
+            .setPopup(popup)
+            .addTo(map.current!);
+
+          markersRef.current.push(marker);
+        }
+      });
+    } else if (viewMode === 'facility') {
       // Group accounts by coordinates to handle stacking
       const accountGroups = groupByCoords(accounts);
       
@@ -374,7 +483,7 @@ function MappingContent() {
       }
       hasAutoFitted.current = true;
     }
-  }, [viewMode, accounts, trainers, clearMarkers, fitToMarkers, getSavedViewport, groupByCoords]);
+  }, [viewMode, leads, accounts, trainers, clearMarkers, fitToMarkers, getSavedViewport, groupByCoords]);
 
   // Handle search
   const handleSearch = async () => {
@@ -403,15 +512,17 @@ function MappingContent() {
   };
 
   const handleRefresh = () => {
+    refetchLeads();
     refetchAccounts();
     refetchTrainers();
   };
 
-  const isLoading = accountsLoading || trainersLoading || isLoadingToken;
+  const isLoading = leadsLoading || accountsLoading || trainersLoading || isLoadingToken;
 
+  const leadCount = leads?.length || 0;
   const facilityCount = accounts?.length || 0;
   const trainerCount = trainers?.length || 0;
-  const currentCount = viewMode === 'facility' ? facilityCount : trainerCount;
+  const currentCount = viewMode === 'lead' ? leadCount : viewMode === 'facility' ? facilityCount : trainerCount;
 
   if (isLoadingToken) {
     return (
@@ -492,6 +603,10 @@ function MappingContent() {
           {/* View Mode Toggle */}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
             <TabsList>
+              <TabsTrigger value="lead" className="gap-2">
+                <MapPin className="h-4 w-4" />
+                Lead ({leadCount})
+              </TabsTrigger>
               <TabsTrigger value="facility" className="gap-2">
                 <Building2 className="h-4 w-4" />
                 Facility ({facilityCount})
@@ -555,12 +670,14 @@ function MappingContent() {
                   <AlertCircle className="h-10 w-10 text-muted-foreground" />
                   <div>
                     <h3 className="font-semibold">
-                      No {viewMode === 'facility' ? 'facilities' : 'trainers'} on the map
+                      No {viewMode === 'lead' ? 'leads' : viewMode === 'facility' ? 'facilities' : 'trainers'} on the map
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {viewMode === 'facility' 
-                        ? 'Facilities appear when accounts have location coordinates (lat/lng).'
-                        : 'Trainers appear when they have location coordinates (lat/lng).'}
+                      {viewMode === 'lead'
+                        ? 'Leads appear when they have location coordinates. Pull new leads to see them on the map.'
+                        : viewMode === 'facility' 
+                          ? 'Facilities appear when accounts have location coordinates (lat/lng).'
+                          : 'Trainers appear when they have location coordinates (lat/lng).'}
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={handleRefresh} className="mt-2">
