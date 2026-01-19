@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import { useDeals, useDeal, DEAL_STAGES, DEAL_SIZES, DEAL_TYPES, BUYING_MOTIVES, BUYER_ROLES, OBJECTION_TYPES, PROBABILITY_LEVELS, Deal } from '@/hooks/useDeals';
+import { useDeals, useDeal, DEAL_STAGES, DEAL_SIZES, OBJECTION_TYPES, PROBABILITY_LEVELS, Deal } from '@/hooks/useDeals';
+import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { useDealFiles } from '@/hooks/useDealFiles';
 import { usePlaybooks } from '@/hooks/usePlaybooks';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -37,6 +38,7 @@ export default function DealForm() {
   const { playbooks } = usePlaybooks();
   const { accounts } = useAccounts();
   const { proposalFiles, sitePhotos, uploadFile, deleteFile, isUploading, isDeleting, getFileUrl } = useDealFiles(id);
+  const { dealTypes, showDealSizeRange, motiveLabel, motives, roleLabel, roles } = useDealFieldConfig();
 
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [missingFields, setMissingFields] = useState<MissingField[]>([]);
@@ -72,7 +74,7 @@ export default function DealForm() {
 
   // Auto-generate deal name
   const selectedAccount = accounts.find((a) => a.id === formData.account_id);
-  const selectedDealType = DEAL_TYPES.find((t) => t.value === formData.deal_type);
+  const selectedDealType = dealTypes.find((t) => t.value === formData.deal_type);
   const autoDealName = useMemo(() => {
     if (selectedAccount && selectedDealType) {
       return `${selectedAccount.name} – ${selectedDealType.label}`;
@@ -120,7 +122,10 @@ export default function DealForm() {
     if (formData.stage !== 'signal_target') {
       if (!formData.playbook_id) missing.push({ field: 'playbook_id', label: 'Assigned Playbook' });
       if (!formData.primary_contact_id) missing.push({ field: 'primary_contact_id', label: 'Primary Stakeholder' });
-      if (!formData.deal_size_range) missing.push({ field: 'deal_size_range', label: 'Deal Size Range' });
+      // Only validate deal_size_range if shown (not for Treneur)
+      if (showDealSizeRange && !formData.deal_size_range) {
+        missing.push({ field: 'deal_size_range', label: 'Deal Size Range' });
+      }
       if (formData.probability === null) missing.push({ field: 'probability', label: 'Probability' });
       if (!formData.next_action) missing.push({ field: 'next_action', label: 'Next Action' });
       if (!formData.next_action_date) missing.push({ field: 'next_action_date', label: 'Next Action Date' });
@@ -234,7 +239,7 @@ export default function DealForm() {
                       <SelectValue placeholder="Select deal type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEAL_TYPES.map((type) => (
+                      {dealTypes.map((type) => (
                         <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                       ))}
                     </SelectContent>
@@ -317,24 +322,26 @@ export default function DealForm() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>
-                    Deal Size Range {formData.stage !== 'signal_target' && '*'}
-                  </Label>
-                  <Select
-                    value={formData.deal_size_range}
-                    onValueChange={(value) => setFormData({ ...formData, deal_size_range: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEAL_SIZES.map((size) => (
-                        <SelectItem key={size.value} value={size.value}>{size.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {showDealSizeRange && (
+                  <div className="space-y-2">
+                    <Label>
+                      Deal Size Range {formData.stage !== 'signal_target' && '*'}
+                    </Label>
+                    <Select
+                      value={formData.deal_size_range}
+                      onValueChange={(value) => setFormData({ ...formData, deal_size_range: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEAL_SIZES.map((size) => (
+                          <SelectItem key={size.value} value={size.value}>{size.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>
@@ -424,7 +431,7 @@ export default function DealForm() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Buying Motive</Label>
+                      <Label>{motiveLabel}</Label>
                       <Select
                         value={formData.buying_motive}
                         onValueChange={(value) => setFormData({ ...formData, buying_motive: value })}
@@ -433,7 +440,7 @@ export default function DealForm() {
                           <SelectValue placeholder="Select motive" />
                         </SelectTrigger>
                         <SelectContent>
-                          {BUYING_MOTIVES.map((m) => (
+                          {motives.map((m) => (
                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                           ))}
                         </SelectContent>
@@ -443,7 +450,7 @@ export default function DealForm() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Primary Buyer Role</Label>
+                      <Label>{roleLabel}</Label>
                       <Select
                         value={formData.primary_buyer_role}
                         onValueChange={(value) => setFormData({ ...formData, primary_buyer_role: value })}
@@ -452,7 +459,7 @@ export default function DealForm() {
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          {BUYER_ROLES.map((r) => (
+                          {roles.map((r) => (
                             <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                           ))}
                         </SelectContent>
