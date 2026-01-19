@@ -15,13 +15,13 @@ import {
   isBefore,
 } from 'date-fns';
 import AppLayout from '@/components/layout/AppLayout';
-import { useCalendarDeals, CalendarDeal } from '@/hooks/useCalendarDeals';
-import { DEAL_STAGES } from '@/hooks/useDeals';
+import { useCalendarItems, CalendarItem } from '@/hooks/useCalendarItems';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ExternalLink, User, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const MAX_VISIBLE_EVENTS = 3;
@@ -29,9 +29,10 @@ const MAX_VISIBLE_EVENTS = 3;
 export default function CalendarPage() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDeal, setSelectedDeal] = useState<CalendarDeal | null>(null);
+  const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
 
-  const { data: dealsByDate, isLoading } = useCalendarDeals(currentDate);
+  const { data: itemsByDate, isLoading } = useCalendarItems(currentDate);
+  const { stages } = usePipelineStages();
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -58,20 +59,32 @@ export default function CalendarPage() {
     weeks.push(days.slice(i, i + 7));
   }
 
-  const getDealsForDate = (date: Date): CalendarDeal[] => {
+  const getItemsForDate = (date: Date): CalendarItem[] => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return dealsByDate?.[dateStr] || [];
+    return itemsByDate?.[dateStr] || [];
   };
 
-  const getEventClassName = (deal: CalendarDeal, date: Date) => {
+  const getEventClassName = (item: CalendarItem, date: Date) => {
     const isPast = isBefore(date, new Date()) && !isToday(date);
-    if (isPast) return 'bg-destructive/20 text-destructive border-destructive/30';
-    if (isToday(date)) return 'bg-warning/20 text-warning-foreground border-warning/30';
-    return 'bg-primary/10 text-primary border-primary/20';
+    const isContact = item.type === 'contact';
+
+    if (isContact) {
+      // Purple for contacts
+      if (isPast) return 'bg-purple-700/20 text-purple-900 border-purple-700/30';
+      if (isToday(date)) return 'bg-purple-300/30 text-purple-800 border-purple-400/30';
+      return 'bg-purple-500/10 text-purple-700 border-purple-500/20';
+    } else {
+      // Blue/primary for deals
+      if (isPast) return 'bg-destructive/20 text-destructive border-destructive/30';
+      if (isToday(date)) return 'bg-warning/20 text-warning-foreground border-warning/30';
+      return 'bg-primary/10 text-primary border-primary/20';
+    }
   };
 
-  const stageLabel = (stage: string) => 
-    DEAL_STAGES.find((s) => s.value === stage)?.label || stage;
+  const stageLabel = (stage?: string) => {
+    if (!stage) return 'N/A';
+    return stages.find((s) => s.value === stage)?.label || stage;
+  };
 
   return (
     <AppLayout>
@@ -95,6 +108,18 @@ export default function CalendarPage() {
             <Button variant="outline" size="icon" onClick={goToNextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded bg-primary/50" />
+            <span className="text-muted-foreground">Deal Follow-up</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded bg-purple-500/50" />
+            <span className="text-muted-foreground">Contact Follow-up</span>
           </div>
         </div>
 
@@ -122,9 +147,9 @@ export default function CalendarPage() {
               weeks.map((week, weekIndex) => (
                 <div key={weekIndex} className="grid grid-cols-7 border-b last:border-b-0">
                   {week.map((date, dayIndex) => {
-                    const deals = getDealsForDate(date);
-                    const visibleDeals = deals.slice(0, MAX_VISIBLE_EVENTS);
-                    const hiddenCount = deals.length - MAX_VISIBLE_EVENTS;
+                    const items = getItemsForDate(date);
+                    const visibleItems = items.slice(0, MAX_VISIBLE_EVENTS);
+                    const hiddenCount = items.length - MAX_VISIBLE_EVENTS;
                     const isCurrentMonth = isSameMonth(date, currentDate);
 
                     return (
@@ -149,17 +174,22 @@ export default function CalendarPage() {
 
                         {/* Events */}
                         <div className="mt-1 space-y-1">
-                          {visibleDeals.map((deal) => (
+                          {visibleItems.map((item) => (
                             <button
-                              key={deal.id}
-                              onClick={() => setSelectedDeal(deal)}
+                              key={`${item.type}-${item.id}`}
+                              onClick={() => setSelectedItem(item)}
                               className={cn(
-                                'w-full truncate rounded border px-1.5 py-0.5 text-left text-xs font-medium transition-colors hover:opacity-80',
-                                getEventClassName(deal, date),
-                                selectedDeal?.id === deal.id && 'ring-2 ring-primary ring-offset-1'
+                                'w-full truncate rounded border px-1.5 py-0.5 text-left text-xs font-medium transition-colors hover:opacity-80 flex items-center gap-1',
+                                getEventClassName(item, date),
+                                selectedItem?.id === item.id && selectedItem?.type === item.type && 'ring-2 ring-primary ring-offset-1'
                               )}
                             >
-                              {deal.deal_name || deal.account_name}
+                              {item.type === 'contact' ? (
+                                <User className="h-3 w-3 shrink-0" />
+                              ) : (
+                                <Briefcase className="h-3 w-3 shrink-0" />
+                              )}
+                              <span className="truncate">{item.name}</span>
                             </button>
                           ))}
                           {hiddenCount > 0 && (
@@ -177,16 +207,23 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        {/* Selected Deal Panel */}
-        {selectedDeal && (
+        {/* Selected Item Panel */}
+        {selectedItem && (
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Selected Action</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {selectedItem.type === 'contact' ? (
+                    <User className="h-5 w-5 text-purple-500" />
+                  ) : (
+                    <Briefcase className="h-5 w-5 text-primary" />
+                  )}
+                  Selected {selectedItem.type === 'contact' ? 'Contact' : 'Deal'} Action
+                </CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedDeal(null)}
+                  onClick={() => setSelectedItem(null)}
                 >
                   Close
                 </Button>
@@ -196,35 +233,41 @@ export default function CalendarPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
                   <div>
-                    <p className="text-sm text-muted-foreground">Deal</p>
-                    <p className="font-medium">
-                      {selectedDeal.deal_name || selectedDeal.account_name}
+                    <p className="text-sm text-muted-foreground">
+                      {selectedItem.type === 'contact' ? 'Contact' : 'Deal'}
                     </p>
+                    <p className="font-medium">{selectedItem.name}</p>
                   </div>
-                  {selectedDeal.deal_name && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Account</p>
+                    <p className="font-medium">{selectedItem.account_name}</p>
+                  </div>
+                  {selectedItem.type === 'deal' && selectedItem.stage && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Account</p>
-                      <p className="font-medium">{selectedDeal.account_name}</p>
+                      <p className="text-sm text-muted-foreground">Stage</p>
+                      <Badge variant="outline">{stageLabel(selectedItem.stage)}</Badge>
                     </div>
                   )}
                   <div>
-                    <p className="text-sm text-muted-foreground">Stage</p>
-                    <Badge variant="outline">{stageLabel(selectedDeal.stage)}</Badge>
-                  </div>
-                  <div>
                     <p className="text-sm text-muted-foreground">Next Action</p>
-                    <p className="font-medium">{selectedDeal.next_action || 'No action set'}</p>
+                    <p className="font-medium">{selectedItem.next_action || 'No action set'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Date</p>
                     <p className="font-medium">
-                      {format(new Date(selectedDeal.next_action_date), 'MMMM d, yyyy')}
+                      {format(new Date(selectedItem.next_action_date), 'MMMM d, yyyy')}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Type</p>
+                    <Badge variant={selectedItem.type === 'contact' ? 'secondary' : 'default'}>
+                      {selectedItem.type === 'contact' ? 'Contact' : 'Deal'}
+                    </Badge>
+                  </div>
                 </div>
-                <Button onClick={() => navigate(`/deals/${selectedDeal.id}`)}>
+                <Button onClick={() => navigate(selectedItem.type === 'contact' ? `/contacts/${selectedItem.id}` : `/deals/${selectedItem.id}`)}>
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  View Deal
+                  View {selectedItem.type === 'contact' ? 'Contact' : 'Deal'}
                 </Button>
               </div>
             </CardContent>

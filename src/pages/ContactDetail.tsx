@@ -2,17 +2,61 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useContact, useContacts } from '@/hooks/useContacts';
+import { useInteractions } from '@/hooks/useInteractions';
 import ContactFormDialog from '@/components/contacts/ContactFormDialog';
+import ContactInteractionFormDialog from '@/components/contacts/ContactInteractionFormDialog';
+import InteractionList from '@/components/deals/InteractionList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Pencil, Mail, Phone, Linkedin, Building2, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, Pencil, Mail, Phone, Linkedin, Building2, Loader2, Plus, Calendar, MessageSquare } from 'lucide-react';
+import { format } from 'date-fns';
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id);
+  const { updateContact } = useContacts();
+  const { interactions, createInteraction, deleteInteraction, isCreating, isDeleting } = useInteractions(undefined, id);
   const [editOpen, setEditOpen] = useState(false);
+  const [interactionFormOpen, setInteractionFormOpen] = useState(false);
+  const [nextAction, setNextAction] = useState('');
+  const [nextActionDate, setNextActionDate] = useState('');
+
+  // Sync follow-up fields with contact data
+  useState(() => {
+    if (contact) {
+      setNextAction(contact.next_action || '');
+      setNextActionDate(contact.next_action_date || '');
+    }
+  });
+
+  const handleFollowUpSave = async () => {
+    if (!contact) return;
+    await updateContact.mutateAsync({
+      id: contact.id,
+      next_action: nextAction || null,
+      next_action_date: nextActionDate || null,
+    });
+  };
+
+  const handleLogInteraction = (data: any) => {
+    createInteraction({
+      contact_id: data.contact_id,
+      deal_id: null,
+      type: data.type,
+      occurred_at: data.occurred_at,
+      summary: data.summary || null,
+      objections: data.objections || null,
+      commitments: data.commitments || null,
+      next_action: data.next_action || null,
+      next_action_date: data.next_action_date || null,
+      external_ref: null,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -63,7 +107,7 @@ export default function ContactDetail() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Contact Information</CardTitle>
@@ -133,9 +177,75 @@ export default function ContactDetail() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Interactions Tab */}
+            <Tabs defaultValue="interactions" className="w-full">
+              <TabsList>
+                <TabsTrigger value="interactions" className="gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Interactions
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="interactions">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <CardTitle className="text-lg">Interaction History</CardTitle>
+                    <Button size="sm" onClick={() => setInteractionFormOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Log Interaction
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <InteractionList
+                      interactions={interactions}
+                      onDelete={deleteInteraction}
+                      isDeleting={isDeleting}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
 
-          <div>
+          <div className="space-y-6">
+            {/* Follow-up Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-purple-500" />
+                  Follow-up
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="next_action">Next Action</Label>
+                  <Input
+                    id="next_action"
+                    placeholder="e.g., Send proposal"
+                    value={nextAction}
+                    onChange={(e) => setNextAction(e.target.value)}
+                    onBlur={handleFollowUpSave}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="next_action_date">Date</Label>
+                  <Input
+                    id="next_action_date"
+                    type="date"
+                    value={nextActionDate}
+                    onChange={(e) => setNextActionDate(e.target.value)}
+                    onBlur={handleFollowUpSave}
+                  />
+                </div>
+                {contact.next_action_date && (
+                  <p className="text-xs text-muted-foreground">
+                    Scheduled for {format(new Date(contact.next_action_date), 'MMMM d, yyyy')}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Details Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Details</CardTitle>
@@ -155,6 +265,19 @@ export default function ContactDetail() {
         </div>
 
         <ContactFormDialog open={editOpen} onOpenChange={setEditOpen} contact={contact} />
+        
+        <ContactInteractionFormDialog
+          open={interactionFormOpen}
+          onOpenChange={setInteractionFormOpen}
+          contactId={id || ''}
+          onSubmit={handleLogInteraction}
+          isLoading={isCreating}
+          contactContext={{
+            contact_name: contact.name,
+            account_name: contact.accounts?.name || 'Unknown',
+            title: contact.title || undefined,
+          }}
+        />
       </div>
     </AppLayout>
   );
