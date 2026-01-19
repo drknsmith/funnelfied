@@ -17,7 +17,7 @@ export const INTERACTION_TYPES = [
 export interface Interaction {
   id: string;
   workspace_id: string;
-  deal_id: string;
+  deal_id: string | null;
   contact_id: string | null;
   type: string;
   summary: string | null;
@@ -31,35 +31,41 @@ export interface Interaction {
 }
 
 export interface InteractionWithRelations extends Interaction {
-  contacts: { id: string; name: string } | null;
+  contacts: { id: string; name: string; owner_user_id: string | null } | null;
   deals?: { owner_user_id: string | null } | null;
 }
 
-export function useInteractions(dealId?: string) {
+export function useInteractions(dealId?: string, contactId?: string) {
   const { workspaceId, user } = useAuth();
   const { viewMode } = useViewMode();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: interactions = [], isLoading, error } = useQuery({
-    queryKey: ['interactions', workspaceId, dealId, viewMode, user?.id],
+    queryKey: ['interactions', workspaceId, dealId, contactId, viewMode, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('interactions')
-        .select('*, contacts(id, name), deals(owner_user_id)')
+        .select('*, contacts(id, name, owner_user_id), deals(owner_user_id)')
         .order('occurred_at', { ascending: false });
 
       if (dealId) {
         query = query.eq('deal_id', dealId);
       }
 
+      if (contactId) {
+        query = query.eq('contact_id', contactId);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
 
-      // Filter by deal owner when in 'my' mode (interactions belong to deals)
-      if (viewMode === 'my' && user?.id && !dealId) {
+      // Filter by deal/contact owner when in 'my' mode
+      if (viewMode === 'my' && user?.id && !dealId && !contactId) {
         return (data as InteractionWithRelations[]).filter(
-          (interaction) => interaction.deals?.owner_user_id === user.id
+          (interaction) => 
+            interaction.deals?.owner_user_id === user.id ||
+            interaction.contacts?.owner_user_id === user.id
         );
       }
 

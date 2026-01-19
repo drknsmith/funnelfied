@@ -6,6 +6,7 @@ import { Loader2, Calendar, TrendingUp, Clock, Building2 } from 'lucide-react';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 import MetricCard from '@/components/dashboard/MetricCard';
 import DealQuickList from '@/components/dashboard/DealQuickList';
+import ActionsQuickList from '@/components/dashboard/ActionsQuickList';
 import AccountQuickList from '@/components/dashboard/AccountQuickList';
 
 type ExpandedCard = 'actions' | 'high-leverage' | 'stalled' | 'expansion' | null;
@@ -46,7 +47,7 @@ export default function Index() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Actions Today"
-              description="Deals needing attention"
+              description="Deals & contacts needing attention"
               count={metrics.actionsToday.count}
               icon={Calendar}
               variant="warning"
@@ -54,7 +55,7 @@ export default function Index() {
               onToggle={() => toggleCard('actions')}
               onViewAll={() => navigate('/deals?filter=actions-today')}
             >
-              <DealQuickList deals={metrics.actionsToday.deals} type="actions" />
+              <ActionsQuickList items={metrics.actionsToday.items} />
             </MetricCard>
 
             <MetricCard

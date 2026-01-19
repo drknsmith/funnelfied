@@ -1,12 +1,21 @@
 import { useMemo } from 'react';
 import { useDeals, DealWithRelations } from './useDeals';
 import { useAccounts, Account } from './useAccounts';
+import { useContacts, ContactWithAccount } from './useContacts';
 import { subDays, isToday, isBefore, startOfDay } from 'date-fns';
+
+export type ActionItem = {
+  id: string;
+  name: string;
+  account_name: string | null;
+  next_action_date: string;
+  type: 'deal' | 'contact';
+};
 
 export interface DashboardMetrics {
   actionsToday: {
     count: number;
-    deals: DealWithRelations[];
+    items: ActionItem[];
   };
   highLeverage: {
     count: number;
@@ -26,6 +35,7 @@ export interface DashboardMetrics {
 export function useDashboardMetrics(): DashboardMetrics {
   const { deals, isLoading: dealsLoading } = useDeals();
   const { accounts, isLoading: accountsLoading } = useAccounts();
+  const { contacts, isLoading: contactsLoading } = useContacts();
 
   const metrics = useMemo(() => {
     const today = startOfDay(new Date());
@@ -37,6 +47,31 @@ export function useDashboardMetrics(): DashboardMetrics {
       const actionDate = startOfDay(new Date(d.next_action_date));
       return isBefore(actionDate, today) || isToday(new Date(d.next_action_date));
     });
+
+    // Contact follow-ups due today
+    const actionsTodayContacts = contacts.filter((c) => {
+      if (!c.next_action_date) return false;
+      const actionDate = startOfDay(new Date(c.next_action_date));
+      return isBefore(actionDate, today) || isToday(new Date(c.next_action_date));
+    });
+
+    // Combine into action items
+    const actionItems: ActionItem[] = [
+      ...actionsTodayDeals.map((d) => ({
+        id: d.id,
+        name: d.deal_name || d.accounts?.name || 'Untitled Deal',
+        account_name: d.accounts?.name || null,
+        next_action_date: d.next_action_date!,
+        type: 'deal' as const,
+      })),
+      ...actionsTodayContacts.map((c) => ({
+        id: c.id,
+        name: c.name,
+        account_name: c.accounts?.name || null,
+        next_action_date: c.next_action_date!,
+        type: 'contact' as const,
+      })),
+    ];
 
     // High-Leverage: open deals with deal_type in ['portfolio', 'design_led']
     const highLeverageDeals = deals.filter(
@@ -71,15 +106,15 @@ export function useDashboardMetrics(): DashboardMetrics {
       }));
 
     return {
-      actionsToday: { count: actionsTodayDeals.length, deals: actionsTodayDeals },
+      actionsToday: { count: actionItems.length, items: actionItems },
       highLeverage: { count: highLeverageDeals.length, deals: highLeverageDeals },
       stalled: { count: stalledDeals.length, deals: stalledDeals },
       expansionWatch: { count: expansionAccounts.length, accounts: expansionAccounts },
     };
-  }, [deals, accounts]);
+  }, [deals, accounts, contacts]);
 
   return {
     ...metrics,
-    isLoading: dealsLoading || accountsLoading,
+    isLoading: dealsLoading || accountsLoading || contactsLoading,
   };
 }

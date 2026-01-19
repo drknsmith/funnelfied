@@ -179,6 +179,8 @@ export type Database = {
           id: string
           linkedin_url: string | null
           name: string
+          next_action: string | null
+          next_action_date: string | null
           notes: string | null
           owner_user_id: string | null
           phone: string | null
@@ -194,6 +196,8 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           name: string
+          next_action?: string | null
+          next_action_date?: string | null
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
@@ -209,6 +213,8 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           name?: string
+          next_action?: string | null
+          next_action_date?: string | null
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
@@ -416,7 +422,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           created_by_user_id: string | null
-          deal_id: string
+          deal_id: string | null
           external_ref: string | null
           id: string
           key_points: Json | null
@@ -434,7 +440,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
-          deal_id: string
+          deal_id?: string | null
           external_ref?: string | null
           id?: string
           key_points?: Json | null
@@ -452,7 +458,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
-          deal_id?: string
+          deal_id?: string | null
           external_ref?: string | null
           id?: string
           key_points?: Json | null
