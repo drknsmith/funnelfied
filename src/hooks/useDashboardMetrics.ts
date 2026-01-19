@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useDeals, DealWithRelations } from './useDeals';
 import { useAccounts, Account } from './useAccounts';
-import { useContacts, ContactWithAccount } from './useContacts';
+import { useAuth } from '@/contexts/AuthContext';
+import { useViewMode } from '@/contexts/ViewModeContext';
 import { subDays, isToday, isBefore, startOfDay } from 'date-fns';
 
 export type ActionItem = {
@@ -33,9 +36,30 @@ export interface DashboardMetrics {
 }
 
 export function useDashboardMetrics(): DashboardMetrics {
+  const { workspaceId, user } = useAuth();
+  const { viewMode } = useViewMode();
   const { deals, isLoading: dealsLoading } = useDeals();
   const { accounts, isLoading: accountsLoading } = useAccounts();
-  const { contacts, isLoading: contactsLoading } = useContacts();
+
+  // Query contacts directly instead of using useContacts hook (avoids hooks complexity)
+  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
+    queryKey: ['dashboard-contacts', workspaceId, viewMode, user?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from('contacts')
+        .select('id, name, next_action, next_action_date, owner_user_id, accounts(name)')
+        .not('next_action_date', 'is', null);
+
+      if (viewMode === 'my' && user?.id) {
+        query = query.eq('owner_user_id', user.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!workspaceId,
+  });
 
   const metrics = useMemo(() => {
     const today = startOfDay(new Date());
@@ -64,7 +88,7 @@ export function useDashboardMetrics(): DashboardMetrics {
         next_action_date: d.next_action_date!,
         type: 'deal' as const,
       })),
-      ...actionsTodayContacts.map((c) => ({
+      ...actionsTodayContacts.map((c: any) => ({
         id: c.id,
         name: c.name,
         account_name: c.accounts?.name || null,
