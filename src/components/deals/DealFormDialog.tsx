@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DEAL_STAGES, DEAL_SIZES, DEAL_TYPES, DealWithRelations } from '@/hooks/useDeals';
+import { DEAL_STAGES, DEAL_SIZES, DealWithRelations } from '@/hooks/useDeals';
+import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
 
@@ -61,6 +62,7 @@ export default function DealFormDialog({
 }: DealFormDialogProps) {
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
+  const { dealTypes, showDealSizeRange } = useDealFieldConfig();
   const isEditing = !!deal;
 
   const form = useForm<FormData>({
@@ -232,7 +234,7 @@ export default function DealFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {DEAL_TYPES.map((type) => (
+                        {dealTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
                           </SelectItem>
@@ -246,30 +248,32 @@ export default function DealFormDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="deal_size_range"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Deal Size</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select size" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {DEAL_SIZES.map((size) => (
-                          <SelectItem key={size.value} value={size.value}>
-                            {size.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {showDealSizeRange && (
+                <FormField
+                  control={form.control}
+                  name="deal_size_range"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deal Size</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select size" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {DEAL_SIZES.map((size) => (
+                            <SelectItem key={size.value} value={size.value}>
+                              {size.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}

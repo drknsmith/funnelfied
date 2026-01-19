@@ -48,6 +48,33 @@ export const BUYER_ROLES = [
   { value: 'other', label: 'Other' },
 ] as const;
 
+// Treneur-specific options
+export const TRENEUR_DEAL_TYPES = [
+  { value: 'college_university', label: 'College/University' },
+  { value: 'career_services', label: 'Career Services' },
+  { value: 'lecture', label: 'Lecture' },
+  { value: 'facility_signup', label: 'Facility Sign-up' },
+  { value: 'trainer_signup', label: 'Trainer Sign-up' },
+] as const;
+
+export const TRENEUR_PARTNERSHIP_MOTIVES = [
+  { value: 'maximize_revenue', label: 'Maximize revenue' },
+  { value: 'new_revenue_opportunity', label: 'New revenue opportunity' },
+  { value: 'space_capacity', label: 'Space capacity' },
+  { value: 'ai', label: 'AI' },
+  { value: 'crm', label: 'CRM' },
+  { value: 'marketplace', label: 'Marketplace' },
+] as const;
+
+export const TRENEUR_PARTNER_ROLES = [
+  { value: 'college_professor', label: 'College Professor' },
+  { value: 'college_student', label: 'College Student' },
+  { value: 'college_career_services', label: 'College Career Services' },
+  { value: 'trainer', label: 'Trainer' },
+  { value: 'facility_owner', label: 'Facility Owner' },
+  { value: 'facility_manager', label: 'Facility Manager' },
+] as const;
+
 export const OBJECTION_TYPES = [
   { value: 'price', label: 'Price' },
   { value: 'lead_time', label: 'Lead time' },

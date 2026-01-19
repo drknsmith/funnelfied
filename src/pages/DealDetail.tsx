@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import AppLayout from '@/components/layout/AppLayout';
-import { useDeal, useDeals, DEAL_STAGES, DEAL_SIZES, DEAL_TYPES } from '@/hooks/useDeals';
+import { useDeal, useDeals, DEAL_STAGES, DEAL_SIZES } from '@/hooks/useDeals';
+import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { useInteractions } from '@/hooks/useInteractions';
 import { useContacts } from '@/hooks/useContacts';
 import { useDealFiles } from '@/hooks/useDealFiles';
@@ -57,6 +58,7 @@ export default function DealDetail() {
   const { interactions, createInteraction, deleteInteraction, isCreating, isDeleting: isDeletingInteraction } = useInteractions(id);
   const { contacts } = useContacts();
   const { proposalFiles, uploadFile, deleteFile, getFileUrl, isUploading, isDeleting: isDeletingFile } = useDealFiles(id);
+  const { dealTypes, showDealSizeRange, motiveLabel, roleLabel } = useDealFieldConfig();
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
@@ -104,7 +106,7 @@ export default function DealDetail() {
 
   const stageLabel = DEAL_STAGES.find((s) => s.value === deal.stage)?.label || deal.stage;
   const sizeLabel = DEAL_SIZES.find((s) => s.value === deal.deal_size_range)?.label || deal.deal_size_range;
-  const typeLabel = DEAL_TYPES.find((t) => t.value === deal.deal_type)?.label || deal.deal_type;
+  const typeLabel = dealTypes.find((t) => t.value === deal.deal_type)?.label || deal.deal_type;
   const dealContacts = contacts.filter((c) => c.account_id === deal.account_id);
 
   const handleStageChange = (newStage: string) => {
@@ -275,10 +277,12 @@ export default function DealDetail() {
                         <p className="text-xs text-muted-foreground">Deal Type</p>
                         <p className="text-sm font-medium">{typeLabel || '-'}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Deal Size</p>
-                        <p className="text-sm font-medium">{sizeLabel || '-'}</p>
-                      </div>
+                      {showDealSizeRange && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Deal Size</p>
+                          <p className="text-sm font-medium">{sizeLabel || '-'}</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3">
