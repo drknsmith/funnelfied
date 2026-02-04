@@ -45,9 +45,10 @@ import {
   Inbox,
   Loader2,
   Map,
+  FileBarChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { canUseMapping } from '@/lib/workspaceFeatures';
+import { canUseMapping, canUseProposalCreator } from '@/lib/workspaceFeatures';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
@@ -268,6 +269,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
               {canUseMapping(activeWorkspaceId) && (
                 <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
+              )}
+              {canUseProposalCreator(activeWorkspaceId) && (
+                <NavItem to="/proposal-creator" icon={<FileBarChart className="h-4 w-4" />} label="Proposal Creator" collapsed={isCollapsed} />
               )}
             </nav>
 

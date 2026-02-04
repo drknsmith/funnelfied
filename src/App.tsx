@@ -32,6 +32,8 @@ import HelpCenter from "./pages/HelpCenter";
 import Install from "./pages/Install";
 import Calendar from "./pages/Calendar";
 import Mapping from "./pages/Mapping";
+import ProposalCreator from "./pages/ProposalCreator";
+import SuperiorReport from "./pages/SuperiorReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +74,8 @@ const App = () => (
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/super-admin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
               <Route path="/help" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
+              <Route path="/proposal-creator" element={<ProtectedRoute><ProposalCreator /></ProtectedRoute>} />
+              <Route path="/superior/reports/:token" element={<SuperiorReport />} />
               <Route path="/install" element={<Install />} />
               <Route path="*" element={<NotFound />} />
               </Routes>

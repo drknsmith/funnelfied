@@ -1,0 +1,228 @@
+import { forwardRef } from 'react';
+import { Badge } from '@/components/ui/badge';
+import type { ProposalOutputs } from '@/lib/superiorProposalAlgorithm';
+import { formatCurrency, formatNumber } from '@/lib/superiorProposalAlgorithm';
+import type { MultifamilyComp, FitnessComp } from '@/hooks/useProposalComps';
+
+interface ProposalPrintViewProps {
+  communityName: string;
+  communityAddress: string;
+  outputs: ProposalOutputs;
+  multifamilyComps: MultifamilyComp[];
+  fitnessComps: FitnessComp[];
+  mapCenter?: { lat: number; lng: number };
+  mapboxToken?: string;
+}
+
+export const ProposalPrintView = forwardRef<HTMLDivElement, ProposalPrintViewProps>(
+  ({ communityName, communityAddress, outputs, multifamilyComps, fitnessComps, mapCenter, mapboxToken }, ref) => {
+    const { section1_budget, section2_squareFootage, section3_equipmentFocus } = outputs;
+
+    // Generate static map URL
+    const getStaticMapUrl = () => {
+      if (!mapCenter || !mapboxToken) return null;
+
+      const markers: string[] = [];
+      
+      // Community marker
+      markers.push(`pin-l-star+fbbf24(${mapCenter.lng},${mapCenter.lat})`);
+
+      // Multifamily comps (red)
+      multifamilyComps.slice(0, 20).forEach(comp => {
+        if (comp.lat && comp.lng) {
+          markers.push(`pin-s+ef4444(${comp.lng},${comp.lat})`);
+        }
+      });
+
+      // Fitness comps (blue)
+      fitnessComps.slice(0, 20).forEach(comp => {
+        if (comp.lat && comp.lng) {
+          markers.push(`pin-s+3b82f6(${comp.lng},${comp.lat})`);
+        }
+      });
+
+      const overlays = markers.join(',');
+      return `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/${overlays}/auto/800x400@2x?access_token=${mapboxToken}`;
+    };
+
+    const staticMapUrl = getStaticMapUrl();
+
+    return (
+      <div ref={ref} className="p-8 bg-white text-black min-h-screen">
+        {/* Header */}
+        <div className="mb-8 border-b pb-4">
+          <h1 className="text-3xl font-bold text-gray-900">{communityName || 'Fitness Center Proposal'}</h1>
+          {communityAddress && (
+            <p className="text-lg text-gray-600 mt-1">{communityAddress}</p>
+          )}
+          <p className="text-sm text-gray-400 mt-2">
+            Generated on {new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
+        </div>
+
+        {/* Section 1: Budget */}
+        {section1_budget.ok && (
+          <div className="mb-8 page-break-inside-avoid">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Recommended Budget</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg text-center">
+                <p className="text-sm text-gray-600">Total Budget</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(section1_budget.budget || 0)}
+                </p>
+              </div>
+              <div className="p-4 bg-gray-100 rounded-lg text-center">
+                <p className="text-sm text-gray-600">Cost per SF</p>
+                <p className="text-xl font-semibold">
+                  {formatCurrency(section1_budget.costPerSF || 0)}
+                </p>
+              </div>
+              <div className="p-4 bg-gray-100 rounded-lg text-center">
+                <p className="text-sm text-gray-600">Property Class</p>
+                <p className="text-xl font-semibold">Class {section1_budget.propertyClass}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section 2: Square Footage */}
+        {section2_squareFootage.ok && (
+          <div className="mb-8 page-break-inside-avoid">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Recommended Square Footage</h2>
+            <div className="p-4 bg-green-50 rounded-lg text-center mb-4">
+              <p className="text-sm text-gray-600">Recommended SF</p>
+              <p className="text-2xl font-bold text-green-600">
+                {formatNumber(section2_squareFootage.squareFootage || 0)} sq ft
+              </p>
+            </div>
+            {section2_squareFootage.source === 'calculated' && (
+              <div className="grid grid-cols-4 gap-2 text-sm">
+                <div className="p-2 bg-gray-100 rounded text-center">
+                  <p className="text-gray-600">Total Adults</p>
+                  <p className="font-medium">{formatNumber(section2_squareFootage.totalAdults || 0)}</p>
+                </div>
+                <div className="p-2 bg-gray-100 rounded text-center">
+                  <p className="text-gray-600">Gym Users</p>
+                  <p className="font-medium">{formatNumber(section2_squareFootage.totalGymUsers || 0)}</p>
+                </div>
+                <div className="p-2 bg-gray-100 rounded text-center">
+                  <p className="text-gray-600">Peak Users</p>
+                  <p className="font-medium">{formatNumber(section2_squareFootage.peakGymUsers || 0)}</p>
+                </div>
+                <div className="p-2 bg-gray-100 rounded text-center">
+                  <p className="text-gray-600">Daily Peak</p>
+                  <p className="font-medium">{formatNumber(section2_squareFootage.dailyPeakUsers || 0)}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Section 3: Equipment Focus */}
+        <div className="mb-8 page-break-inside-avoid">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Equipment Focus</h2>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {section3_equipmentFocus.topPriorities.map((priority, index) => (
+              <span 
+                key={priority.type}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  index === 0 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {priority.type}
+              </span>
+            ))}
+          </div>
+          <p className="text-sm mb-3">
+            <strong>Activity Profile:</strong> {section3_equipmentFocus.activityLevel}
+          </p>
+          <ul className="text-sm text-gray-700 space-y-1">
+            {section3_equipmentFocus.guidance.map((item, index) => (
+              <li key={index}>• {item}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Section 4 & 5: Comps Summary */}
+        {(multifamilyComps.length > 0 || fitnessComps.length > 0) && (
+          <div className="mb-8 page-break-before">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Competitive Analysis</h2>
+            
+            {multifamilyComps.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-red-600">
+                  Multifamily Communities ({multifamilyComps.length})
+                </h3>
+                <div className="grid gap-2">
+                  {multifamilyComps.slice(0, 8).map((comp, index) => (
+                    <div key={index} className="p-2 border rounded text-sm">
+                      <strong>{comp.name}</strong> - {comp.distance.toFixed(1)} mi
+                      <br />
+                      <span className="text-gray-600">{comp.address}</span>
+                      <span className="ml-2 text-gray-500">({comp.inferredClass})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {fitnessComps.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-blue-600">
+                  Fitness Facilities ({fitnessComps.length})
+                </h3>
+                <div className="grid gap-2">
+                  {fitnessComps.slice(0, 8).map((comp, index) => (
+                    <div key={index} className="p-2 border rounded text-sm">
+                      <strong>{comp.name}</strong> - {comp.distance.toFixed(1)} mi
+                      <br />
+                      <span className="text-gray-600">{comp.address}</span>
+                      <span className="ml-2 text-gray-500">({comp.type})</span>
+                      <br />
+                      <span className="text-xs text-gray-500">{comp.focusTags.join(', ')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Map */}
+        {staticMapUrl && (
+          <div className="page-break-before">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Market Map</h2>
+            <div className="flex gap-4 mb-4 text-sm">
+              <span>⭐ Subject Property</span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 bg-red-500 rounded-sm inline-block"></span>
+                Multifamily
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>
+                Fitness
+              </span>
+            </div>
+            <img 
+              src={staticMapUrl} 
+              alt="Market Map" 
+              className="w-full rounded-lg border"
+              style={{ maxHeight: '400px', objectFit: 'contain' }}
+            />
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-12 pt-4 border-t text-center text-sm text-gray-400">
+          <p>Generated by Superior Fitness Equipment</p>
+        </div>
+      </div>
+    );
+  }
+);
+
+ProposalPrintView.displayName = 'ProposalPrintView';
