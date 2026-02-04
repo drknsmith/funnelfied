@@ -1,22 +1,23 @@
 
-# Fix SPA Routing, Add Save Button, and Improve Comp Results
+# Fix SPA Routing, Add Save Button, and Improve Comp Results (No New API Key Required)
 
 ## Overview
 
-This plan addresses three issues:
+This plan addresses three issues using **only your existing Mapbox token** - no new API keys needed:
+
 1. **404 errors on published site** - Add SPA routing configuration
-2. **Save button on standalone Research** - Only show when a deal is attached
-3. **Poor comp results** - Replace Firecrawl with Google Places API for reliable, deduplicated data
+2. **Save button on standalone Research** - Only show when a deal is selected
+3. **Poor comp results** - Switch from Firecrawl to Mapbox Search Box API for verified POI data
 
 ---
 
 ## Part 1: Fix Published Site 404 Errors
 
 ### Problem
-Direct navigation to `/research` (or any route) on the published site returns a 404 error because the hosting server doesn't know how to handle client-side routes.
+Direct navigation to `/research` on the published site returns a 404 because the hosting server doesn't handle client-side routes.
 
 ### Solution
-Create a `_redirects` file in the `public` folder:
+Create a `_redirects` file in the `public` folder.
 
 | File | Action |
 |------|--------|
@@ -27,20 +28,18 @@ Create a `_redirects` file in the `public` folder:
 /*    /index.html   200
 ```
 
-This tells the server to serve `index.html` for all paths, letting React Router handle routing.
-
 ---
 
-## Part 2: Save Button for Standalone Research
+## Part 2: Add "Save to Deal" Button
 
 ### Current Behavior
-- Standalone Research page (`/research`) has "Print PDF" and "Share Research" buttons
-- No explicit "Save" button that links research to a deal
+- Standalone Research page has "Print PDF" and "Share Research" buttons
+- No way to explicitly save and link research to a deal
 
 ### New Behavior
-- Add a **"Save to Deal"** button that only appears when a deal is selected
-- When clicked, it saves the research and links it to the selected deal
-- After saving, show a success message and optionally navigate to the deal's Research tab
+- Add a **"Save to Deal"** button that only appears when a deal is selected from the dropdown
+- When clicked, saves the research and links it to the selected deal
+- Shows success toast with option to navigate to the deal
 
 ### Files to Modify
 
@@ -50,45 +49,37 @@ This tells the server to serve `index.html` for all paths, letting React Router 
 
 ### UI Changes
 ```text
-Header buttons (when no deal selected):
+Header buttons (no deal selected):
 [Print PDF] [Share Research]
 
-Header buttons (when deal selected):
-[Print PDF] [Share Research] [Save to Deal]
+Header buttons (deal selected):
+[Save to Deal] [Print PDF] [Share Research]
 ```
 
 The "Save to Deal" button will:
 1. Call `saveReport()` with the `dealId`
 2. Show success toast: "Research saved to deal"
-3. Optionally offer to navigate to the deal page
+3. Offer toast action to navigate to the deal page
 
 ---
 
-## Part 3: Improve Comp Results with Google Places API
+## Part 3: Improve Comp Results with Mapbox Search Box API
 
 ### Current Problems
-The current Firecrawl-based approach has issues:
-- Pulls duplicate locations (same place appearing multiple times)
-- Returns unreliable/fake addresses ("Address not available")
-- Uses generic web search results instead of actual business data
-- Falls back to mock data that clutters real results
+The Firecrawl-based approach has issues:
+- Pulls duplicate locations
+- Returns unreliable addresses ("Address not available")
+- Uses web search results instead of verified business data
+- Falls back to mock data with fake addresses
 - No deduplication logic
 
-### Solution: Switch to Google Places API
+### Solution: Use Mapbox Search Box API (Already Have the Token!)
 
-Replace Firecrawl web search with Google Places API (Text Search), which provides:
-- Accurate, verified business locations
-- Precise coordinates
-- Business types and categories
-- Real addresses
-
-### API Requirements
-
-A new secret will be needed:
-
-| Secret | Purpose |
-|--------|---------|
-| `GOOGLE_PLACES_API_KEY` | Access to Google Places Text Search API |
+Replace Firecrawl with **Mapbox Search Box API**, which:
+- Uses your existing `MAPBOX_PUBLIC_TOKEN`
+- Provides verified POI (Point of Interest) data
+- Returns precise coordinates and real addresses
+- Supports category filtering for apartments and fitness centers
 
 ### Changes to Edge Function
 
@@ -96,71 +87,57 @@ A new secret will be needed:
 
 **Key Improvements:**
 
-1. **Use Google Places Text Search API**
-   - Query: `"apartments multifamily" near {address}` for communities
-   - Query: `"gym OR fitness center" near {address}` for fitness
+1. **Use Mapbox Search Box API**
+   - Search for "apartment" POIs within radius
+   - Search for "gym" / "fitness" POIs within radius
 
 2. **Add Deduplication Logic**
    - Normalize names (lowercase, remove common suffixes)
-   - Track seen place IDs to prevent duplicates
-   - Use coordinate proximity check (within 50m = same location)
+   - Check coordinate proximity (within 50m = same location)
+   - Track seen place IDs
 
 3. **Remove Mock Data Fallback**
    - Only return real, verified data
-   - Empty results are better than fake data
+   - Empty results are honest and don't confuse users
 
-4. **Better Distance Filtering**
-   - Use actual haversine distance calculation
+4. **Proper Distance Filtering**
+   - Use haversine distance calculation
    - Strict radius enforcement
 
 ### New Edge Function Flow
 
 ```text
-1. Geocode input address (Mapbox)
-2. Search Google Places for apartments/multifamily
-   - Text Search: "apartments multifamily near {address}"
+1. Geocode input address (Mapbox Geocoding v5)
+2. Search Mapbox Search Box for apartments
+   - Category: "apartment", "residential"
    - Filter by radius
    - Deduplicate by name + coordinates
-3. Search Google Places for fitness facilities
-   - Text Search: "gym fitness center near {address}"  
+3. Search Mapbox Search Box for fitness
+   - Category: "gym", "fitness"
    - Filter by radius
    - Deduplicate by name + coordinates
 4. Enrich results with:
    - Distance calculation
-   - Property class inference (from name/types)
-   - Amenity signals (from types)
+   - Property class inference (from name/properties)
+   - Amenity signals
    - Facility type classification
 5. Return sorted, deduplicated results
 ```
 
-### Google Places API Response Mapping
+### Mapbox Search Box API Request
 
-**Multifamily:**
 ```typescript
-{
-  name: place.displayName.text,
-  address: place.formattedAddress,
-  distance: calculateDistance(...),
-  lat: place.location.latitude,
-  lng: place.location.longitude,
-  inferredClass: inferFromTypes(place.types),
-  classConfidence: 'high',
-  amenitySignals: extractFromTypes(place.types)
-}
-```
+// Example for apartments
+const response = await fetch(
+  `https://api.mapbox.com/search/searchbox/v1/category/${category}?` +
+  `access_token=${mapboxToken}` +
+  `&proximity=${lng},${lat}` +
+  `&limit=25`
+);
 
-**Fitness:**
-```typescript
-{
-  name: place.displayName.text,
-  address: place.formattedAddress,
-  distance: calculateDistance(...),
-  lat: place.location.latitude,
-  lng: place.location.longitude,
-  type: classifyFacility(place.displayName.text, place.types),
-  focusTags: extractFocusTags(place.types),
-  complementGuidance: generateGuidance(type)
-}
+// Categories to use:
+// Apartments: "apartment", "residential_area" 
+// Fitness: "gym", "fitness_center", "sports_center"
 ```
 
 ### Deduplication Strategy
@@ -171,67 +148,23 @@ function deduplicateResults(results) {
   const seenCoords = []; // [{lat, lng}]
   
   return results.filter(place => {
-    const normName = normalize(place.name);
+    const normName = normalizeName(place.name);
     
-    // Check name similarity
+    // Check if we've seen this name
     if (seen.has(normName)) return false;
     
-    // Check coordinate proximity (within 50m)
-    const isDuplicate = seenCoords.some(coord => 
-      haversineDistance(coord, place) < 0.05 // 50 meters
+    // Check if coordinates are within 50m of an existing result
+    const tooClose = seenCoords.some(coord => 
+      haversineDistance(coord, place) < 0.031 // ~50 meters
     );
-    if (isDuplicate) return false;
+    if (tooClose) return false;
     
     seen.set(normName, true);
     seenCoords.push({lat: place.lat, lng: place.lng});
     return true;
   });
 }
-```
 
----
-
-## Files Summary
-
-| File | Action | Description |
-|------|--------|-------------|
-| `public/_redirects` | Create | SPA routing for published site |
-| `src/pages/Research.tsx` | Modify | Add conditional "Save to Deal" button |
-| `supabase/functions/proposal-comps/index.ts` | Rewrite | Replace Firecrawl with Google Places API, add deduplication |
-
----
-
-## Technical Details
-
-### Google Places Text Search Request
-
-```typescript
-const response = await fetch(
-  'https://places.googleapis.com/v1/places:searchText',
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-      'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.types'
-    },
-    body: JSON.stringify({
-      textQuery: `apartments multifamily near ${address}`,
-      locationBias: {
-        circle: {
-          center: { latitude: lat, longitude: lng },
-          radius: radiusMiles * 1609.34 // meters
-        }
-      },
-      maxResultCount: 20
-    })
-  }
-);
-```
-
-### Name Normalization for Deduplication
-
-```typescript
 function normalizeName(name: string): string {
   return name
     .toLowerCase()
@@ -243,23 +176,33 @@ function normalizeName(name: string): string {
 
 ---
 
+## Files Summary
+
+| File | Action | Description |
+|------|--------|-------------|
+| `public/_redirects` | Create | SPA routing for published site |
+| `src/pages/Research.tsx` | Modify | Add conditional "Save to Deal" button |
+| `supabase/functions/proposal-comps/index.ts` | Rewrite | Replace Firecrawl with Mapbox Search Box API, add deduplication |
+
+---
+
 ## Before/After Comparison
 
-| Aspect | Before (Firecrawl) | After (Google Places) |
-|--------|-------------------|----------------------|
-| Data Source | Web search results | Verified business database |
-| Addresses | Often "Address not available" | Real, formatted addresses |
+| Aspect | Before (Firecrawl) | After (Mapbox Search Box) |
+|--------|-------------------|---------------------------|
+| API Key | Firecrawl key | Existing Mapbox token |
+| Data Source | Web search results | Verified POI database |
+| Addresses | Often missing | Real, formatted addresses |
 | Duplicates | Common | Eliminated via deduplication |
 | Coordinates | Unreliable/missing | Precise lat/lng |
 | Mock Data | Falls back to fake data | Only real results |
-| Cost | Firecrawl credits | Google Places API credits |
+| Cost | Firecrawl credits | Included with Mapbox |
 
 ---
 
 ## Implementation Order
 
-1. Create `public/_redirects` (1 line)
+1. Create `public/_redirects` (fixes 404 on publish)
 2. Add "Save to Deal" button to Research.tsx
-3. Request Google Places API key from user
-4. Rewrite proposal-comps edge function
-5. Test end-to-end with real addresses
+3. Rewrite proposal-comps edge function to use Mapbox Search Box
+4. Test end-to-end with real addresses
