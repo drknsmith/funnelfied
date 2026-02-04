@@ -86,52 +86,71 @@ function isWithinProximity(coord1: { lat: number; lng: number }, coord2: { lat: 
   return calculateDistance(coord1.lat, coord1.lng, coord2.lat, coord2.lng) < thresholdMiles;
 }
 
-// Search Mapbox for POIs using category search
-async function searchMapboxCategory(
-  query: string,
+// Search Mapbox for POIs using Search Box API v1 forward search endpoint
+async function searchMapboxPOI(
+  query: string,  // Text query like "apartments" or "gym"
   center: { lat: number; lng: number },
   radiusMiles: number,
   mapboxToken: string,
-  limit: number = 25
+  limit: number = 10  // Max 10 for Search Box API
 ): Promise<MapboxFeature[]> {
   try {
-    // Use Mapbox Search Box API (v1) for POI search
-    const bbox = getBoundingBox(center.lat, center.lng, radiusMiles);
     const encoded = encodeURIComponent(query);
+    const bbox = getBoundingBox(center.lat, center.lng, radiusMiles);
+    const actualLimit = Math.min(limit, 10); // API max is 10
     
+    // Use Search Box API forward search with POI types
     const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?` +
-      `access_token=${mapboxToken}` +
+      `https://api.mapbox.com/search/searchbox/v1/forward?` +
+      `q=${encoded}` +
+      `&access_token=${mapboxToken}` +
       `&proximity=${center.lng},${center.lat}` +
       `&bbox=${bbox.join(',')}` +
       `&types=poi` +
-      `&limit=${limit}`
+      `&limit=${actualLimit}` +
+      `&language=en`
     );
 
     if (!response.ok) {
-      console.error('Mapbox search failed:', response.status, await response.text());
+      const errorText = await response.text();
+      console.error(`Search "${query}" failed:`, response.status, errorText);
       return [];
     }
 
     const data = await response.json();
     
-    if (!data.features) {
+    if (!data.features || data.features.length === 0) {
+      console.log(`Search "${query}": no results found`);
       return [];
     }
 
-    // Transform to our format
-    return data.features.map((f: { properties?: { category?: string }; text?: string; place_name?: string; center?: [number, number] }) => ({
+    console.log(`Search "${query}": ${data.features.length} results found`);
+
+    // Transform Search Box API response format to our MapboxFeature format
+    return data.features.map((f: {
+      properties?: {
+        name?: string;
+        full_address?: string;
+        address?: string;
+        place_formatted?: string;
+        poi_category?: string[];
+        maki?: string;
+      };
+      geometry?: {
+        coordinates?: [number, number];
+      };
+    }) => ({
       properties: {
-        name: f.text || 'Unknown',
-        full_address: f.place_name || '',
-        category: f.properties?.category || ''
+        name: f.properties?.name || 'Unknown',
+        full_address: f.properties?.full_address || f.properties?.place_formatted || '',
+        category: Array.isArray(f.properties?.poi_category) ? f.properties?.poi_category.join(', ') : ''
       },
       geometry: {
-        coordinates: f.center || [0, 0]
+        coordinates: f.geometry?.coordinates || [0, 0]
       }
     }));
   } catch (error) {
-    console.error('Mapbox search error:', error);
+    console.error(`Search error for "${query}":`, error);
     return [];
   }
 }
@@ -322,24 +341,22 @@ Deno.serve(async (req) => {
 
     console.log(`Geocoded to: ${mapCenter.lat}, ${mapCenter.lng}`);
 
-    // Search for multifamily communities using multiple queries
-    const multifamilyQueries = ['apartments', 'apartment complex', 'multifamily'];
+    // Search for multifamily communities using text queries
+    const multifamilyQueries = ['apartments', 'apartment complex', 'multifamily housing'];
     const allMultifamilyResults: MapboxFeature[] = [];
     
     for (const query of multifamilyQueries) {
-      const results = await searchMapboxCategory(query, mapCenter, radiusMiles, mapboxToken, 20);
+      const results = await searchMapboxPOI(query, mapCenter, radiusMiles, mapboxToken, 10);
       allMultifamilyResults.push(...results);
-      console.log(`Multifamily query "${query}": ${results.length} results`);
     }
 
-    // Search for fitness facilities using multiple queries
-    const fitnessQueries = ['gym', 'fitness center', 'fitness'];
+    // Search for fitness facilities using text queries
+    const fitnessQueries = ['gym', 'fitness center', 'health club'];
     const allFitnessResults: MapboxFeature[] = [];
     
     for (const query of fitnessQueries) {
-      const results = await searchMapboxCategory(query, mapCenter, radiusMiles, mapboxToken, 20);
+      const results = await searchMapboxPOI(query, mapCenter, radiusMiles, mapboxToken, 10);
       allFitnessResults.push(...results);
-      console.log(`Fitness query "${query}": ${results.length} results`);
     }
 
     // Process multifamily results
