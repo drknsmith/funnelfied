@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { canUseResearch } from '@/lib/workspaceFeatures';
 import { Button } from '@/components/ui/button';
-import { Printer, Share2, Loader2, Copy, Check } from 'lucide-react';
+import { Printer, Share2, Loader2, Copy, Check, Save } from 'lucide-react';
 import { 
   generateProposalOutputs,
   PropertyClass,
@@ -180,6 +180,47 @@ export default function Research() {
             </p>
           </div>
           <div className="flex gap-2">
+            {selectedDealId && (
+              <Button
+                variant="default"
+                onClick={async () => {
+                  const result = await saveReport(
+                    {
+                      communityName,
+                      communityAddress,
+                      units: units ? parseInt(units) : undefined,
+                      sfOverride: sfOverride ? parseInt(sfOverride) : undefined,
+                      propertyClass,
+                      demographics,
+                      compsRadius,
+                      advancedOverrides,
+                      outputs,
+                      multifamilyComps,
+                      fitnessComps,
+                      mapCenter,
+                      dealId: selectedDealId
+                    },
+                    undefined // no expiration for deal-linked research
+                  );
+                  if (result) {
+                    toast.success('Research saved to deal', {
+                      action: {
+                        label: 'View Deal',
+                        onClick: () => navigate(`/deals/${selectedDealId}`)
+                      }
+                    });
+                  }
+                }}
+                disabled={isSaving || (!outputs.section1_budget.ok && !outputs.section2_squareFootage.ok)}
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save to Deal
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => handlePrint()}
