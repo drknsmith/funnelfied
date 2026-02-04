@@ -18,3 +18,8 @@ export function canUseMapping(workspaceId?: string | null): boolean {
 export function canUseProposalCreator(workspaceId?: string | null): boolean {
   return isSuperiorWorkspace(workspaceId);
 }
+
+// Alias for clarity - Research is the user-facing name
+export function canUseResearch(workspaceId?: string | null): boolean {
+  return isSuperiorWorkspace(workspaceId);
+}
