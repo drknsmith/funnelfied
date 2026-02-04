@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { canUseProposalCreator } from '@/lib/workspaceFeatures';
+import { canUseResearch } from '@/lib/workspaceFeatures';
 import { Button } from '@/components/ui/button';
 import { Printer, Share2, Loader2, Copy, Check } from 'lucide-react';
 import { 
@@ -37,13 +37,13 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 
-export default function ProposalCreator() {
+export default function Research() {
   const navigate = useNavigate();
   const { activeWorkspaceId } = useAuth();
   const printRef = useRef<HTMLDivElement>(null);
 
   // Check workspace access
-  const hasAccess = canUseProposalCreator(activeWorkspaceId);
+  const hasAccess = canUseResearch(activeWorkspaceId);
 
   // Redirect if no access
   useEffect(() => {
@@ -161,9 +161,9 @@ export default function ProposalCreator() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Proposal Creator</h1>
+            <h1 className="text-2xl font-bold">Research</h1>
             <p className="text-muted-foreground">
-              Generate presentation-ready fitness center proposals
+              Generate presentation-ready market research
             </p>
           </div>
           <div className="flex gap-2">
@@ -180,7 +180,7 @@ export default function ProposalCreator() {
               disabled={!outputs.section1_budget.ok && !outputs.section2_squareFootage.ok}
             >
               <Share2 className="h-4 w-4 mr-2" />
-              Share Report
+              Share Research
             </Button>
           </div>
         </div>
@@ -242,9 +242,9 @@ export default function ProposalCreator() {
         <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Share Report</DialogTitle>
+              <DialogTitle>Share Research</DialogTitle>
               <DialogDescription>
-                Generate a shareable link to this proposal
+                Generate a shareable link to this research
               </DialogDescription>
             </DialogHeader>
             

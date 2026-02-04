@@ -7,12 +7,15 @@ import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { useInteractions } from '@/hooks/useInteractions';
 import { useContacts } from '@/hooks/useContacts';
 import { useDealFiles } from '@/hooks/useDealFiles';
+import { useAuth } from '@/contexts/AuthContext';
+import { canUseResearch } from '@/lib/workspaceFeatures';
 import StageTimeline from '@/components/deals/StageTimeline';
 import InteractionList from '@/components/deals/InteractionList';
 import InteractionFormDialog from '@/components/deals/InteractionFormDialog';
 import DealFormDialog from '@/components/deals/DealFormDialog';
 import { PlaybookPanel } from '@/components/deals/PlaybookPanel';
 import { MessagesTab } from '@/components/deals/MessagesTab';
+import { ResearchTab } from '@/components/deals/ResearchTab';
 import { PlaybookRequiredModal } from '@/components/deals/PlaybookRequiredModal';
 import { DealFileUpload } from '@/components/deals/DealFileUpload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,12 +50,15 @@ import {
   FileText,
   Link2,
   ExternalLink,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { activeWorkspaceId } = useAuth();
+  const showResearchTab = canUseResearch(activeWorkspaceId);
   const { deal, isLoading } = useDeal(id!);
   const { updateDeal, deleteDeal, isUpdating, isDeleting } = useDeals();
   const { interactions, createInteraction, deleteInteraction, isCreating, isDeleting: isDeletingInteraction } = useInteractions(id);
@@ -223,6 +229,12 @@ export default function DealDetail() {
                   <Building2 className="h-4 w-4" />
                   Details
                 </TabsTrigger>
+                {showResearchTab && (
+                  <TabsTrigger value="research" className="flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    Research
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="interactions" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Interactions
@@ -340,6 +352,15 @@ export default function DealDetail() {
               <TabsContent value="messages" className="mt-4">
                 <MessagesTab deal={deal} />
               </TabsContent>
+
+              {showResearchTab && (
+                <TabsContent value="research" className="mt-4">
+                  <ResearchTab 
+                    dealId={deal.id} 
+                    dealName={deal.deal_name || deal.accounts?.name}
+                  />
+                </TabsContent>
+              )}
 
               <TabsContent value="proposal" className="mt-4">
                 <Card>

@@ -270,8 +270,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {canUseMapping(activeWorkspaceId) && (
                 <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
               )}
-              {canUseProposalCreator(activeWorkspaceId) && (
-                <NavItem to="/proposal-creator" icon={<FileBarChart className="h-4 w-4" />} label="Proposal Creator" collapsed={isCollapsed} />
+{canUseProposalCreator(activeWorkspaceId) && (
+                <NavItem to="/research" icon={<FileBarChart className="h-4 w-4" />} label="Research" collapsed={isCollapsed} />
               )}
             </nav>
 

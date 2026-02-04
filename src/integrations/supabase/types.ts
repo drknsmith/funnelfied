@@ -931,6 +931,7 @@ export type Database = {
           community_name: string | null
           comps_radius: number | null
           created_at: string
+          deal_id: string | null
           demographics: Json | null
           expires_at: string | null
           fitness_comps: Json | null
@@ -951,6 +952,7 @@ export type Database = {
           community_name?: string | null
           comps_radius?: number | null
           created_at?: string
+          deal_id?: string | null
           demographics?: Json | null
           expires_at?: string | null
           fitness_comps?: Json | null
@@ -971,6 +973,7 @@ export type Database = {
           community_name?: string | null
           comps_radius?: number | null
           created_at?: string
+          deal_id?: string | null
           demographics?: Json | null
           expires_at?: string | null
           fitness_comps?: Json | null
@@ -986,6 +989,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "proposal_reports_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proposal_reports_workspace_id_fkey"
             columns: ["workspace_id"]
