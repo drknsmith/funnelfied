@@ -1,7 +1,7 @@
 // Workspace-specific feature flags
 
 export const TRENEUR_WORKSPACE_ID = '14e69d30-13a2-45c0-bcea-0ebe6e638b47';
-export const SUPERIOR_WORKSPACE_ID = 'a2b9c8d7-e6f5-4a3b-9c8d-7e6f5a4b3c2d';
+export const SUPERIOR_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001';
 
 export function isTreneurWorkspace(workspaceId?: string | null): boolean {
   return workspaceId === TRENEUR_WORKSPACE_ID;
