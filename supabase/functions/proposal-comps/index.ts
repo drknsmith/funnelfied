@@ -25,6 +25,21 @@ interface FitnessComp {
   lng?: number;
 }
 
+interface MapboxFeature {
+  properties: {
+    name: string;
+    full_address?: string;
+    address?: string;
+    place_formatted?: string;
+    category?: string;
+    maki?: string;
+  };
+  geometry: {
+    coordinates: [number, number];
+  };
+}
+
+// Geocode address using Mapbox Geocoding API
 async function geocodeAddress(address: string, mapboxToken: string): Promise<{ lat: number; lng: number } | null> {
   try {
     const encoded = encodeURIComponent(address);
@@ -44,6 +59,7 @@ async function geocodeAddress(address: string, mapboxToken: string): Promise<{ l
   }
 }
 
+// Haversine distance calculation in miles
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3959; // Earth's radius in miles
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -54,6 +70,219 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
     Math.sin(dLng/2) * Math.sin(dLng/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c;
+}
+
+// Normalize name for deduplication
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/apartments?|community|residences?|at\s+|the\s+|&|and/gi, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
+// Check if two coordinates are within proximity (in miles)
+function isWithinProximity(coord1: { lat: number; lng: number }, coord2: { lat: number; lng: number }, thresholdMiles: number = 0.031): boolean {
+  return calculateDistance(coord1.lat, coord1.lng, coord2.lat, coord2.lng) < thresholdMiles;
+}
+
+// Search Mapbox for POIs using category search
+async function searchMapboxCategory(
+  query: string,
+  center: { lat: number; lng: number },
+  radiusMiles: number,
+  mapboxToken: string,
+  limit: number = 25
+): Promise<MapboxFeature[]> {
+  try {
+    // Use Mapbox Search Box API (v1) for POI search
+    const bbox = getBoundingBox(center.lat, center.lng, radiusMiles);
+    const encoded = encodeURIComponent(query);
+    
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?` +
+      `access_token=${mapboxToken}` +
+      `&proximity=${center.lng},${center.lat}` +
+      `&bbox=${bbox.join(',')}` +
+      `&types=poi` +
+      `&limit=${limit}`
+    );
+
+    if (!response.ok) {
+      console.error('Mapbox search failed:', response.status, await response.text());
+      return [];
+    }
+
+    const data = await response.json();
+    
+    if (!data.features) {
+      return [];
+    }
+
+    // Transform to our format
+    return data.features.map((f: { properties?: { category?: string }; text?: string; place_name?: string; center?: [number, number] }) => ({
+      properties: {
+        name: f.text || 'Unknown',
+        full_address: f.place_name || '',
+        category: f.properties?.category || ''
+      },
+      geometry: {
+        coordinates: f.center || [0, 0]
+      }
+    }));
+  } catch (error) {
+    console.error('Mapbox search error:', error);
+    return [];
+  }
+}
+
+// Get bounding box for radius search
+function getBoundingBox(lat: number, lng: number, radiusMiles: number): [number, number, number, number] {
+  const latDelta = radiusMiles / 69;
+  const lngDelta = radiusMiles / (69 * Math.cos(lat * Math.PI / 180));
+  
+  return [
+    lng - lngDelta, // min lng (west)
+    lat - latDelta, // min lat (south)
+    lng + lngDelta, // max lng (east)
+    lat + latDelta  // max lat (north)
+  ];
+}
+
+// Deduplicate results by name and proximity
+function deduplicateResults<T extends { name: string; lat?: number; lng?: number }>(results: T[]): T[] {
+  const seen = new Map<string, boolean>();
+  const seenCoords: { lat: number; lng: number }[] = [];
+  
+  return results.filter(place => {
+    const normName = normalizeName(place.name);
+    
+    // Skip if we've seen a very similar name
+    if (seen.has(normName)) {
+      console.log(`Dedup: Skipping "${place.name}" - name match`);
+      return false;
+    }
+    
+    // Skip if coordinates are too close to an existing result
+    if (place.lat && place.lng) {
+      const tooClose = seenCoords.some(coord => 
+        isWithinProximity(coord, { lat: place.lat!, lng: place.lng! })
+      );
+      if (tooClose) {
+        console.log(`Dedup: Skipping "${place.name}" - coordinate proximity`);
+        return false;
+      }
+      seenCoords.push({ lat: place.lat, lng: place.lng });
+    }
+    
+    seen.set(normName, true);
+    return true;
+  });
+}
+
+// Infer property class from name
+function inferPropertyClass(name: string): { inferredClass: string; classConfidence: string } {
+  const text = name.toLowerCase();
+  
+  if (text.includes('luxury') || text.includes('upscale') || text.includes('premium') || 
+      text.includes('grand') || text.includes('plaza') || text.includes('tower')) {
+    return { inferredClass: 'Likely Class A', classConfidence: 'high' };
+  }
+  if (text.includes('affordable') || text.includes('budget') || text.includes('garden') ||
+      text.includes('village') || text.includes('court')) {
+    return { inferredClass: 'Likely Class C', classConfidence: 'medium' };
+  }
+  return { inferredClass: 'Likely Class B', classConfidence: 'medium' };
+}
+
+// Extract amenity signals from name
+function extractAmenitySignals(name: string, category?: string): string[] {
+  const signals: string[] = [];
+  const text = `${name} ${category || ''}`.toLowerCase();
+  
+  if (text.includes('fitness') || text.includes('gym')) signals.push('Fitness Center');
+  if (text.includes('pool') || text.includes('aqua')) signals.push('Pool');
+  if (text.includes('club')) signals.push('Clubhouse');
+  if (text.includes('pet') || text.includes('dog')) signals.push('Pet Friendly');
+  if (text.includes('garage') || text.includes('parking')) signals.push('Covered Parking');
+  if (text.includes('spa') || text.includes('wellness')) signals.push('Spa/Wellness');
+  if (text.includes('loft') || text.includes('studio')) signals.push('Modern Units');
+  
+  return signals.length > 0 ? signals : ['Standard Amenities'];
+}
+
+// Infer fitness facility type
+function inferFacilityType(name: string): string {
+  const text = name.toLowerCase();
+  
+  if (text.includes('planet fitness') || text.includes('la fitness') || 
+      text.includes('anytime fitness') || text.includes('24 hour fitness') ||
+      text.includes('gold') || text.includes('world gym')) {
+    return 'Big Box Gym';
+  }
+  if (text.includes('crossfit')) return 'CrossFit Box';
+  if (text.includes('yoga') || text.includes('pilates') || text.includes('barre')) return 'Boutique Studio';
+  if (text.includes('orangetheory') || text.includes('orange theory') || 
+      text.includes('f45') || text.includes('barry')) return 'Boutique Fitness';
+  if (text.includes('equinox') || text.includes('lifetime') || text.includes('life time')) return 'Premium Club';
+  if (text.includes('ymca') || text.includes('rec') || text.includes('community')) return 'Community Center';
+  if (text.includes('martial') || text.includes('boxing') || text.includes('mma')) return 'Combat Sports';
+  if (text.includes('spin') || text.includes('cycle') || text.includes('soul')) return 'Cycling Studio';
+  
+  return 'Fitness Facility';
+}
+
+// Extract focus tags
+function extractFocusTags(name: string, facilityType: string): string[] {
+  const tags: string[] = [];
+  const text = name.toLowerCase();
+  
+  if (facilityType === 'Big Box Gym') {
+    tags.push('cardio-heavy', 'strength-focused');
+  }
+  if (text.includes('crossfit') || text.includes('functional')) tags.push('functional');
+  if (text.includes('yoga')) tags.push('flexibility', 'mind-body');
+  if (text.includes('pilates')) tags.push('core-strength', 'low-impact');
+  if (text.includes('spin') || text.includes('cycle')) tags.push('cardio', 'endurance');
+  if (text.includes('boxing') || text.includes('mma')) tags.push('combat', 'conditioning');
+  if (facilityType === 'Boutique Fitness') tags.push('HIIT', 'group-classes');
+  if (facilityType === 'Community Center') tags.push('family-friendly', 'pool');
+  
+  return tags.length > 0 ? tags : ['general-fitness'];
+}
+
+// Generate complement guidance
+function generateComplementGuidance(facilityType: string): string[] {
+  const guidance: string[] = [];
+  
+  switch (facilityType) {
+    case 'Big Box Gym':
+      guidance.push('Focus on convenience and premium equipment to differentiate');
+      guidance.push('Emphasize 24/7 access without additional membership fees');
+      break;
+    case 'CrossFit Box':
+      guidance.push('Offer functional training alternatives with lower intensity options');
+      guidance.push('Target residents who want HIIT without the box commitment');
+      break;
+    case 'Boutique Studio':
+      guidance.push('Provide broader equipment variety than specialized studios');
+      guidance.push('Offer complementary recovery options');
+      break;
+    case 'Boutique Fitness':
+      guidance.push('Position as unlimited access vs per-class pricing');
+      break;
+    case 'Premium Club':
+      guidance.push('Match amenity quality with competitive membership convenience');
+      guidance.push('Highlight no additional cost for residents');
+      break;
+    case 'Community Center':
+      guidance.push('Emphasize modern equipment and extended hours');
+      break;
+    default:
+      guidance.push('Highlight 24/7 accessibility and resident-exclusive benefits');
+  }
+  
+  return guidance;
 }
 
 Deno.serve(async (req) => {
@@ -72,7 +301,6 @@ Deno.serve(async (req) => {
     }
 
     const mapboxToken = Deno.env.get('MAPBOX_PUBLIC_TOKEN');
-    const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
 
     if (!mapboxToken) {
       return new Response(
@@ -94,138 +322,89 @@ Deno.serve(async (req) => {
 
     console.log(`Geocoded to: ${mapCenter.lat}, ${mapCenter.lng}`);
 
+    // Search for multifamily communities using multiple queries
+    const multifamilyQueries = ['apartments', 'apartment complex', 'multifamily'];
+    const allMultifamilyResults: MapboxFeature[] = [];
+    
+    for (const query of multifamilyQueries) {
+      const results = await searchMapboxCategory(query, mapCenter, radiusMiles, mapboxToken, 20);
+      allMultifamilyResults.push(...results);
+      console.log(`Multifamily query "${query}": ${results.length} results`);
+    }
+
+    // Search for fitness facilities using multiple queries
+    const fitnessQueries = ['gym', 'fitness center', 'fitness'];
+    const allFitnessResults: MapboxFeature[] = [];
+    
+    for (const query of fitnessQueries) {
+      const results = await searchMapboxCategory(query, mapCenter, radiusMiles, mapboxToken, 20);
+      allFitnessResults.push(...results);
+      console.log(`Fitness query "${query}": ${results.length} results`);
+    }
+
+    // Process multifamily results
     const multifamilyComps: MultifamilyComp[] = [];
+    for (const feature of allMultifamilyResults) {
+      const [lng, lat] = feature.geometry.coordinates;
+      const distance = calculateDistance(mapCenter.lat, mapCenter.lng, lat, lng);
+      
+      // Filter by radius
+      if (distance > radiusMiles) continue;
+      
+      const { inferredClass, classConfidence } = inferPropertyClass(feature.properties.name);
+      
+      multifamilyComps.push({
+        name: feature.properties.name,
+        address: feature.properties.full_address || feature.properties.place_formatted || 'Address available on map',
+        distance: Math.round(distance * 10) / 10,
+        inferredClass,
+        classConfidence,
+        amenitySignals: extractAmenitySignals(feature.properties.name, feature.properties.category),
+        lat,
+        lng
+      });
+    }
+
+    // Process fitness results
     const fitnessComps: FitnessComp[] = [];
-
-    // If Firecrawl is available, use it to search for comps
-    if (firecrawlKey) {
-      try {
-        // Search for multifamily communities
-        const multifamilySearchQuery = `apartments near ${address} multifamily community`;
-        console.log('Searching for multifamily:', multifamilySearchQuery);
-
-        const multifamilyResponse = await fetch('https://api.firecrawl.dev/v1/search', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${firecrawlKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            query: multifamilySearchQuery,
-            limit: 15,
-            country: 'us',
-          }),
-        });
-
-        const multifamilyData = await multifamilyResponse.json();
-        console.log('Multifamily search results:', multifamilyData.data?.length || 0);
-
-        if (multifamilyData.success && multifamilyData.data) {
-          for (const result of multifamilyData.data.slice(0, 10)) {
-            // Try to extract address and geocode
-            const resultAddress = result.description?.match(/\d+[^,]+,[^,]+,\s*[A-Z]{2}\s*\d{5}/)?.[ 0] || 
-                                 result.title?.match(/\d+[^,]+/)?.[ 0];
-            
-            let coords: { lat: number; lng: number } | null = null;
-            if (resultAddress) {
-              coords = await geocodeAddress(resultAddress, mapboxToken);
-            }
-
-            const distance = coords 
-              ? calculateDistance(mapCenter.lat, mapCenter.lng, coords.lat, coords.lng)
-              : Math.random() * radiusMiles; // Fallback for display
-
-            if (!coords || distance <= radiusMiles) {
-              multifamilyComps.push({
-                name: result.title?.split('|')[0]?.trim() || 'Unknown Community',
-                address: resultAddress || 'Address not available',
-                distance: Math.round(distance * 10) / 10,
-                inferredClass: inferPropertyClass(result.title, result.description),
-                classConfidence: coords ? 'medium' : 'low',
-                amenitySignals: extractAmenitySignals(result.description),
-                lat: coords?.lat,
-                lng: coords?.lng
-              });
-            }
-          }
-        }
-
-        // Search for fitness facilities
-        const fitnessSearchQuery = `gyms fitness centers near ${address}`;
-        console.log('Searching for fitness:', fitnessSearchQuery);
-
-        const fitnessResponse = await fetch('https://api.firecrawl.dev/v1/search', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${firecrawlKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            query: fitnessSearchQuery,
-            limit: 15,
-            country: 'us',
-          }),
-        });
-
-        const fitnessData = await fitnessResponse.json();
-        console.log('Fitness search results:', fitnessData.data?.length || 0);
-
-        if (fitnessData.success && fitnessData.data) {
-          for (const result of fitnessData.data.slice(0, 10)) {
-            const resultAddress = result.description?.match(/\d+[^,]+,[^,]+,\s*[A-Z]{2}\s*\d{5}/)?.[ 0] ||
-                                 result.title?.match(/\d+[^,]+/)?.[ 0];
-            
-            let coords: { lat: number; lng: number } | null = null;
-            if (resultAddress) {
-              coords = await geocodeAddress(resultAddress, mapboxToken);
-            }
-
-            const distance = coords 
-              ? calculateDistance(mapCenter.lat, mapCenter.lng, coords.lat, coords.lng)
-              : Math.random() * radiusMiles;
-
-            if (!coords || distance <= radiusMiles) {
-              const facilityType = inferFacilityType(result.title, result.url);
-              fitnessComps.push({
-                name: result.title?.split('|')[0]?.split('-')[0]?.trim() || 'Unknown Gym',
-                address: resultAddress || 'Address not available',
-                distance: Math.round(distance * 10) / 10,
-                type: facilityType,
-                focusTags: extractFocusTags(result.title, result.description, facilityType),
-                complementGuidance: generateComplementGuidance(facilityType),
-                lat: coords?.lat,
-                lng: coords?.lng
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Firecrawl search error:', error);
-        // Continue with mock data if Firecrawl fails
-      }
+    for (const feature of allFitnessResults) {
+      const [lng, lat] = feature.geometry.coordinates;
+      const distance = calculateDistance(mapCenter.lat, mapCenter.lng, lat, lng);
+      
+      // Filter by radius
+      if (distance > radiusMiles) continue;
+      
+      const facilityType = inferFacilityType(feature.properties.name);
+      
+      fitnessComps.push({
+        name: feature.properties.name,
+        address: feature.properties.full_address || feature.properties.place_formatted || 'Address available on map',
+        distance: Math.round(distance * 10) / 10,
+        type: facilityType,
+        focusTags: extractFocusTags(feature.properties.name, facilityType),
+        complementGuidance: generateComplementGuidance(facilityType),
+        lat,
+        lng
+      });
     }
 
-    // If we don't have enough results, add some mock data for demo purposes
-    if (multifamilyComps.length < 3) {
-      const mockMultifamily = generateMockMultifamilyComps(mapCenter, radiusMiles, 5 - multifamilyComps.length);
-      multifamilyComps.push(...mockMultifamily);
-    }
+    // Deduplicate results
+    const dedupedMultifamily = deduplicateResults(multifamilyComps);
+    const dedupedFitness = deduplicateResults(fitnessComps);
 
-    if (fitnessComps.length < 3) {
-      const mockFitness = generateMockFitnessComps(mapCenter, radiusMiles, 5 - fitnessComps.length);
-      fitnessComps.push(...mockFitness);
-    }
+    console.log(`Multifamily: ${multifamilyComps.length} raw -> ${dedupedMultifamily.length} deduped`);
+    console.log(`Fitness: ${fitnessComps.length} raw -> ${dedupedFitness.length} deduped`);
 
     // Sort by distance
-    multifamilyComps.sort((a, b) => a.distance - b.distance);
-    fitnessComps.sort((a, b) => a.distance - b.distance);
+    dedupedMultifamily.sort((a, b) => a.distance - b.distance);
+    dedupedFitness.sort((a, b) => a.distance - b.distance);
 
     return new Response(
       JSON.stringify({
         success: true,
         mapCenter,
-        multifamilyComps: multifamilyComps.slice(0, 10),
-        fitnessComps: fitnessComps.slice(0, 10)
+        multifamilyComps: dedupedMultifamily.slice(0, 15),
+        fitnessComps: dedupedFitness.slice(0, 15)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -237,134 +416,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-
-function inferPropertyClass(title?: string, description?: string): string {
-  const text = `${title || ''} ${description || ''}`.toLowerCase();
-  
-  if (text.includes('luxury') || text.includes('upscale') || text.includes('premium')) {
-    return 'Likely Class A';
-  }
-  if (text.includes('affordable') || text.includes('budget') || text.includes('low income')) {
-    return 'Likely Class C';
-  }
-  return 'Likely Class B';
-}
-
-function extractAmenitySignals(description?: string): string[] {
-  const signals: string[] = [];
-  const text = (description || '').toLowerCase();
-  
-  if (text.includes('fitness') || text.includes('gym')) signals.push('Fitness Center');
-  if (text.includes('pool')) signals.push('Pool');
-  if (text.includes('clubhouse')) signals.push('Clubhouse');
-  if (text.includes('pet')) signals.push('Pet Friendly');
-  if (text.includes('garage') || text.includes('parking')) signals.push('Covered Parking');
-  if (text.includes('spa') || text.includes('sauna')) signals.push('Spa/Wellness');
-  
-  return signals.length > 0 ? signals : ['Standard Amenities'];
-}
-
-function inferFacilityType(title?: string, url?: string): string {
-  const text = `${title || ''} ${url || ''}`.toLowerCase();
-  
-  if (text.includes('planet fitness') || text.includes('la fitness') || text.includes('anytime')) {
-    return 'Big Box Gym';
-  }
-  if (text.includes('crossfit')) return 'CrossFit Box';
-  if (text.includes('yoga') || text.includes('pilates')) return 'Boutique Studio';
-  if (text.includes('orange') || text.includes('f45') || text.includes('barry')) return 'Boutique Fitness';
-  if (text.includes('equinox') || text.includes('lifetime')) return 'Premium Club';
-  if (text.includes('ymca') || text.includes('rec center')) return 'Community Center';
-  
-  return 'Fitness Facility';
-}
-
-function extractFocusTags(title?: string, description?: string, facilityType?: string): string[] {
-  const tags: string[] = [];
-  const text = `${title || ''} ${description || ''}`.toLowerCase();
-  
-  if (text.includes('cardio') || facilityType === 'Big Box Gym') tags.push('cardio-heavy');
-  if (text.includes('strength') || text.includes('weight')) tags.push('strength-focused');
-  if (text.includes('class') || text.includes('group')) tags.push('group-classes');
-  if (text.includes('personal') || text.includes('training')) tags.push('personal-training');
-  if (text.includes('recovery') || text.includes('stretch')) tags.push('recovery');
-  if (text.includes('functional') || text.includes('crossfit')) tags.push('functional');
-  if (text.includes('beginner')) tags.push('beginner-friendly');
-  
-  return tags.length > 0 ? tags : ['general-fitness'];
-}
-
-function generateComplementGuidance(facilityType: string): string[] {
-  const guidance: string[] = [];
-  
-  switch (facilityType) {
-    case 'Big Box Gym':
-      guidance.push('Focus on convenience and premium equipment to differentiate');
-      break;
-    case 'CrossFit Box':
-      guidance.push('Offer functional training alternatives with lower intensity options');
-      break;
-    case 'Boutique Studio':
-      guidance.push('Provide broader equipment variety than specialized studios');
-      break;
-    case 'Premium Club':
-      guidance.push('Match amenity quality with competitive membership convenience');
-      break;
-    default:
-      guidance.push('Highlight 24/7 accessibility and resident-exclusive benefits');
-  }
-  
-  return guidance;
-}
-
-function generateMockMultifamilyComps(center: { lat: number; lng: number }, radius: number, count: number): MultifamilyComp[] {
-  const names = ['Parkview Apartments', 'The Residences', 'Urban Living', 'Cityscape', 'The Heights'];
-  const classes = ['Likely Class A', 'Likely Class B', 'Likely Class B', 'Likely Class C'];
-  
-  return Array.from({ length: count }, (_, i) => {
-    const angle = (i / count) * 2 * Math.PI;
-    const distance = 0.5 + Math.random() * (radius - 0.5);
-    const lat = center.lat + (distance / 69) * Math.cos(angle);
-    const lng = center.lng + (distance / (69 * Math.cos(center.lat * Math.PI / 180))) * Math.sin(angle);
-    
-    return {
-      name: names[i % names.length],
-      address: `${1000 + i * 100} Example Street`,
-      distance: Math.round(distance * 10) / 10,
-      inferredClass: classes[i % classes.length],
-      classConfidence: 'estimated',
-      amenitySignals: ['Fitness Center', 'Pool', 'Clubhouse'].slice(0, 2 + Math.floor(Math.random() * 2)),
-      lat,
-      lng
-    };
-  });
-}
-
-function generateMockFitnessComps(center: { lat: number; lng: number }, radius: number, count: number): FitnessComp[] {
-  const facilities = [
-    { name: 'Anytime Fitness', type: 'Big Box Gym', tags: ['24/7', 'cardio-heavy', 'strength'] },
-    { name: 'Pure Barre', type: 'Boutique Studio', tags: ['low-impact', 'classes', 'toning'] },
-    { name: 'CrossFit Box', type: 'CrossFit Box', tags: ['functional', 'high-intensity', 'community'] },
-    { name: 'YMCA', type: 'Community Center', tags: ['family-friendly', 'pool', 'classes'] },
-    { name: 'Orange Theory', type: 'Boutique Fitness', tags: ['HIIT', 'heart-rate', 'classes'] }
-  ];
-  
-  return Array.from({ length: count }, (_, i) => {
-    const facility = facilities[i % facilities.length];
-    const angle = (i / count) * 2 * Math.PI + Math.PI / 4;
-    const distance = 0.5 + Math.random() * (radius - 0.5);
-    const lat = center.lat + (distance / 69) * Math.cos(angle);
-    const lng = center.lng + (distance / (69 * Math.cos(center.lat * Math.PI / 180))) * Math.sin(angle);
-    
-    return {
-      name: facility.name,
-      address: `${2000 + i * 200} Fitness Blvd`,
-      distance: Math.round(distance * 10) / 10,
-      type: facility.type,
-      focusTags: facility.tags,
-      complementGuidance: generateComplementGuidance(facility.type),
-      lat,
-      lng
-    };
-  });
-}

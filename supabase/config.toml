@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.trainer-miner]
 verify_jwt = false
+
+[functions.proposal-comps]
+verify_jwt = false
