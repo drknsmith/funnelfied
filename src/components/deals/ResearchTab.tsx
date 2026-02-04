@@ -93,8 +93,8 @@ export function ResearchTab({ dealId, dealName, accountLocation }: ResearchTabPr
         setFitnessComps(report.fitnessComps);
         setMapCenter(report.mapCenter || undefined);
       } else {
-        // Pre-populate from deal data
-        if (dealName) setCommunityName(dealName);
+        // Pre-populate from deal data - Community Name stays blank for user input
+        // Only pre-fill Community Address from account location
         if (accountLocation) setCommunityAddress(accountLocation);
         setIsEditing(true); // Start in edit mode for new research
       }
@@ -423,6 +423,8 @@ export function ResearchTab({ dealId, dealName, accountLocation }: ResearchTabPr
         setAdvancedOverrides={setAdvancedOverrides}
         onFetchComps={handleFetchComps}
         isFetchingComps={isFetchingComps}
+        dealName={dealName || undefined}
+        isEmbeddedInDeal={true}
       />
 
       {/* Output Sections */}
