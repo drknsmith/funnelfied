@@ -123,7 +123,7 @@ export interface Deal {
 }
 
 export interface DealWithRelations extends Deal {
-  accounts?: { id: string; name: string } | null;
+  accounts?: { id: string; name: string; location?: string | null } | null;
   contacts?: { id: string; name: string } | null;
   playbooks?: { id: string; name: string } | null;
 }
@@ -139,7 +139,7 @@ export function useDeals(filters?: { stage?: string; status?: string }) {
     queryFn: async () => {
       let query = supabase
         .from('deals')
-        .select('*, accounts(id, name), contacts(id, name), playbooks(id, name)')
+        .select('*, accounts(id, name, location), contacts(id, name), playbooks(id, name)')
         .order('created_at', { ascending: false });
 
       if (filters?.stage) {
@@ -239,7 +239,7 @@ export function useDeal(id: string | undefined) {
       if (!id) return null;
       const { data, error } = await supabase
         .from('deals')
-        .select('*, accounts(id, name), contacts(id, name), playbooks(id, name)')
+        .select('*, accounts(id, name, location), contacts(id, name), playbooks(id, name)')
         .eq('id', id)
         .maybeSingle();
 

@@ -18,6 +18,7 @@ import { ProposalPrintView } from '@/components/proposal/ProposalPrintView';
 import { useProposalComps, MultifamilyComp, FitnessComp } from '@/hooks/useProposalComps';
 import { useProposalReport } from '@/hooks/useProposalReport';
 import { supabase } from '@/integrations/supabase/client';
+import { DealWithRelations } from '@/hooks/useDeals';
 import {
   Select,
   SelectContent,
@@ -51,6 +52,9 @@ export default function Research() {
       navigate('/');
     }
   }, [activeWorkspaceId, hasAccess, navigate]);
+
+  // Deal selection state (for standalone Research page)
+  const [selectedDealId, setSelectedDealId] = useState('');
 
   // Input state
   const [communityName, setCommunityName] = useState('');
@@ -86,6 +90,14 @@ export default function Research() {
     };
     getToken();
   }, []);
+
+  // Handle deal selection - auto-populate address from account location
+  const handleDealChange = (dealId: string, deal?: DealWithRelations) => {
+    setSelectedDealId(dealId);
+    if (deal?.accounts?.location) {
+      setCommunityAddress(deal.accounts.location);
+    }
+  };
 
   // Computed outputs
   const outputs = useMemo(() => {
@@ -130,7 +142,8 @@ export default function Research() {
         outputs,
         multifamilyComps,
         fitnessComps,
-        mapCenter
+        mapCenter,
+        dealId: selectedDealId || undefined
       },
       expirationDays === 'never' ? undefined : parseInt(expirationDays)
     );
@@ -205,6 +218,9 @@ export default function Research() {
           setAdvancedOverrides={setAdvancedOverrides}
           onFetchComps={handleFetchComps}
           isFetchingComps={isFetchingComps}
+          dealId={selectedDealId}
+          setDealId={handleDealChange}
+          isEmbeddedInDeal={false}
         />
 
         {/* Output Sections */}

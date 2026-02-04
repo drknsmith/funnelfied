@@ -16,6 +16,8 @@ import {
   DEFAULTS
 } from '@/lib/superiorProposalAlgorithm';
 import type { DemographicCategory } from '@/lib/superiorProposalAlgorithm';
+import { DealSearchSelect } from '@/components/deals/DealSearchSelect';
+import { DealWithRelations } from '@/hooks/useDeals';
 
 interface ProposalInputPanelProps {
   communityName: string;
@@ -36,6 +38,11 @@ interface ProposalInputPanelProps {
   setAdvancedOverrides: (value: AdvancedOverrides) => void;
   onFetchComps: () => void;
   isFetchingComps: boolean;
+  // New optional props for deal selection
+  dealId?: string;
+  setDealId?: (dealId: string, deal?: DealWithRelations) => void;
+  dealName?: string;
+  isEmbeddedInDeal?: boolean;
 }
 
 export function ProposalInputPanel({
@@ -56,7 +63,11 @@ export function ProposalInputPanel({
   advancedOverrides,
   setAdvancedOverrides,
   onFetchComps,
-  isFetchingComps
+  isFetchingComps,
+  dealId,
+  setDealId,
+  dealName,
+  isEmbeddedInDeal = false
 }: ProposalInputPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -88,6 +99,25 @@ export function ProposalInputPanel({
         <CardTitle>Community Details</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Deal Name Field */}
+        <div className="space-y-2">
+          <Label htmlFor="dealName">Deal Name</Label>
+          {isEmbeddedInDeal ? (
+            <Input
+              id="dealName"
+              value={dealName || ''}
+              readOnly
+              disabled
+              className="bg-muted"
+            />
+          ) : (
+            <DealSearchSelect
+              value={dealId || ''}
+              onValueChange={(id, deal) => setDealId?.(id, deal)}
+            />
+          )}
+        </div>
+
         {/* Basic Inputs */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
