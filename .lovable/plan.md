@@ -1,208 +1,158 @@
 
-# Fix SPA Routing, Add Save Button, and Improve Comp Results (No New API Key Required)
+# Fix: Switch to Mapbox Search Box API for Comp Results
 
-## Overview
+## Problem Identified
 
-This plan addresses three issues using **only your existing Mapbox token** - no new API keys needed:
+The `proposal-comps` edge function is returning 0 results because:
+- **Mapbox removed POI data from the Geocoding v5 API** on December 20, 2024
+- The current code uses `https://api.mapbox.com/geocoding/v5/mapbox.places/...?types=poi`
+- This deprecated endpoint no longer returns points of interest like apartments and gyms
 
-1. **404 errors on published site** - Add SPA routing configuration
-2. **Save button on standalone Research** - Only show when a deal is selected
-3. **Poor comp results** - Switch from Firecrawl to Mapbox Search Box API for verified POI data
+## Solution
+
+Switch from the deprecated Geocoding v5 API to the **Mapbox Search Box API v1**, which has dedicated category search endpoints that still return POI data.
 
 ---
 
-## Part 1: Fix Published Site 404 Errors
+## API Changes
 
-### Problem
-Direct navigation to `/research` on the published site returns a 404 because the hosting server doesn't handle client-side routes.
+| Aspect | Current (Broken) | New (Working) |
+|--------|------------------|---------------|
+| Endpoint | `geocoding/v5/mapbox.places` | `search/searchbox/v1/category` |
+| POI Support | Removed Dec 2024 | Active |
+| Search Type | Text query with `types=poi` | Category-based canonical names |
 
-### Solution
-Create a `_redirects` file in the `public` folder.
+---
 
-| File | Action |
-|------|--------|
-| `public/_redirects` | Create |
+## New API Endpoints
 
-**Content:**
+**Category Search:**
 ```text
-/*    /index.html   200
+https://api.mapbox.com/search/searchbox/v1/category/{category_id}
+  ?access_token={token}
+  &proximity={lng},{lat}
+  &radius={meters}
+  &limit=25
 ```
 
+**Categories to use:**
+- **Multifamily**: `apartment`, `residential`
+- **Fitness**: `gym`, `fitness_center`, `health_club`
+
 ---
 
-## Part 2: Add "Save to Deal" Button
-
-### Current Behavior
-- Standalone Research page has "Print PDF" and "Share Research" buttons
-- No way to explicitly save and link research to a deal
-
-### New Behavior
-- Add a **"Save to Deal"** button that only appears when a deal is selected from the dropdown
-- When clicked, saves the research and links it to the selected deal
-- Shows success toast with option to navigate to the deal
-
-### Files to Modify
+## File to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/Research.tsx` | Add "Save to Deal" button conditionally rendered when `selectedDealId` is set |
-
-### UI Changes
-```text
-Header buttons (no deal selected):
-[Print PDF] [Share Research]
-
-Header buttons (deal selected):
-[Save to Deal] [Print PDF] [Share Research]
-```
-
-The "Save to Deal" button will:
-1. Call `saveReport()` with the `dealId`
-2. Show success toast: "Research saved to deal"
-3. Offer toast action to navigate to the deal page
+| `supabase/functions/proposal-comps/index.ts` | Update `searchMapboxCategory` function to use Search Box API v1 category endpoint |
 
 ---
 
-## Part 3: Improve Comp Results with Mapbox Search Box API
+## Implementation Details
 
-### Current Problems
-The Firecrawl-based approach has issues:
-- Pulls duplicate locations
-- Returns unreliable addresses ("Address not available")
-- Uses web search results instead of verified business data
-- Falls back to mock data with fake addresses
-- No deduplication logic
+### Updated Search Function
 
-### Solution: Use Mapbox Search Box API (Already Have the Token!)
-
-Replace Firecrawl with **Mapbox Search Box API**, which:
-- Uses your existing `MAPBOX_PUBLIC_TOKEN`
-- Provides verified POI (Point of Interest) data
-- Returns precise coordinates and real addresses
-- Supports category filtering for apartments and fitness centers
-
-### Changes to Edge Function
-
-**File:** `supabase/functions/proposal-comps/index.ts`
-
-**Key Improvements:**
-
-1. **Use Mapbox Search Box API**
-   - Search for "apartment" POIs within radius
-   - Search for "gym" / "fitness" POIs within radius
-
-2. **Add Deduplication Logic**
-   - Normalize names (lowercase, remove common suffixes)
-   - Check coordinate proximity (within 50m = same location)
-   - Track seen place IDs
-
-3. **Remove Mock Data Fallback**
-   - Only return real, verified data
-   - Empty results are honest and don't confuse users
-
-4. **Proper Distance Filtering**
-   - Use haversine distance calculation
-   - Strict radius enforcement
-
-### New Edge Function Flow
-
-```text
-1. Geocode input address (Mapbox Geocoding v5)
-2. Search Mapbox Search Box for apartments
-   - Category: "apartment", "residential"
-   - Filter by radius
-   - Deduplicate by name + coordinates
-3. Search Mapbox Search Box for fitness
-   - Category: "gym", "fitness"
-   - Filter by radius
-   - Deduplicate by name + coordinates
-4. Enrich results with:
-   - Distance calculation
-   - Property class inference (from name/properties)
-   - Amenity signals
-   - Facility type classification
-5. Return sorted, deduplicated results
-```
-
-### Mapbox Search Box API Request
+Replace the current `searchMapboxCategory` function to use the new endpoint:
 
 ```typescript
-// Example for apartments
-const response = await fetch(
-  `https://api.mapbox.com/search/searchbox/v1/category/${category}?` +
-  `access_token=${mapboxToken}` +
-  `&proximity=${lng},${lat}` +
-  `&limit=25`
-);
-
-// Categories to use:
-// Apartments: "apartment", "residential_area" 
-// Fitness: "gym", "fitness_center", "sports_center"
-```
-
-### Deduplication Strategy
-
-```typescript
-function deduplicateResults(results) {
-  const seen = new Map(); // key: normalized name
-  const seenCoords = []; // [{lat, lng}]
-  
-  return results.filter(place => {
-    const normName = normalizeName(place.name);
+async function searchMapboxCategory(
+  category: string,  // Now a category ID, not a search query
+  center: { lat: number; lng: number },
+  radiusMiles: number,
+  mapboxToken: string,
+  limit: number = 25
+): Promise<MapboxFeature[]> {
+  try {
+    const radiusMeters = Math.round(radiusMiles * 1609.34);
     
-    // Check if we've seen this name
-    if (seen.has(normName)) return false;
-    
-    // Check if coordinates are within 50m of an existing result
-    const tooClose = seenCoords.some(coord => 
-      haversineDistance(coord, place) < 0.031 // ~50 meters
+    const response = await fetch(
+      `https://api.mapbox.com/search/searchbox/v1/category/${category}?` +
+      `access_token=${mapboxToken}` +
+      `&proximity=${center.lng},${center.lat}` +
+      `&radius=${radiusMeters}` +
+      `&limit=${limit}`
     );
-    if (tooClose) return false;
-    
-    seen.set(normName, true);
-    seenCoords.push({lat: place.lat, lng: place.lng});
-    return true;
-  });
-}
 
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/apartments?|community|residences?|at\s+|the\s+/gi, '')
-    .replace(/[^a-z0-9]/g, '')
-    .trim();
+    if (!response.ok) {
+      console.error(`Category search "${category}" failed:`, response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    
+    // Transform Search Box response format
+    return (data.results || []).map((r: any) => ({
+      properties: {
+        name: r.name || 'Unknown',
+        full_address: r.full_address || r.address || '',
+        category: r.poi_category || ''
+      },
+      geometry: {
+        coordinates: [r.coordinates?.longitude || 0, r.coordinates?.latitude || 0]
+      }
+    }));
+  } catch (error) {
+    console.error(`Category search error for "${category}":`, error);
+    return [];
+  }
 }
+```
+
+### Updated Query Categories
+
+Replace text queries with Mapbox category IDs:
+
+```typescript
+// Before (broken)
+const multifamilyQueries = ['apartments', 'apartment complex', 'multifamily'];
+const fitnessQueries = ['gym', 'fitness center', 'fitness'];
+
+// After (working)
+const multifamilyCategories = ['apartment', 'residential'];
+const fitnessCategories = ['gym', 'fitness_center', 'health_club'];
 ```
 
 ---
 
-## Files Summary
+## Search Box API Response Format
 
-| File | Action | Description |
-|------|--------|-------------|
-| `public/_redirects` | Create | SPA routing for published site |
-| `src/pages/Research.tsx` | Modify | Add conditional "Save to Deal" button |
-| `supabase/functions/proposal-comps/index.ts` | Rewrite | Replace Firecrawl with Mapbox Search Box API, add deduplication |
+The Search Box API returns a different structure than the Geocoding API:
+
+```json
+{
+  "results": [
+    {
+      "name": "The Ponce City Market Flats",
+      "full_address": "675 Ponce De Leon Ave NE, Atlanta, GA 30308",
+      "coordinates": {
+        "latitude": 33.7729,
+        "longitude": -84.3634
+      },
+      "poi_category": "apartment"
+    }
+  ]
+}
+```
+
+The code will transform this to match the existing `MapboxFeature` interface.
 
 ---
 
-## Before/After Comparison
+## Verification
 
-| Aspect | Before (Firecrawl) | After (Mapbox Search Box) |
-|--------|-------------------|---------------------------|
-| API Key | Firecrawl key | Existing Mapbox token |
-| Data Source | Web search results | Verified POI database |
-| Addresses | Often missing | Real, formatted addresses |
-| Duplicates | Common | Eliminated via deduplication |
-| Coordinates | Unreliable/missing | Precise lat/lng |
-| Mock Data | Falls back to fake data | Only real results |
-| Cost | Firecrawl credits | Included with Mapbox |
+After deployment:
+1. Test with a real address in Atlanta
+2. Confirm multifamily results include actual apartment complexes
+3. Confirm fitness results include gyms and fitness centers
+4. Verify coordinates are accurate on the map
 
 ---
 
-## Implementation Order
+## Summary
 
-1. Create `public/_redirects` (fixes 404 on publish)
-2. Add "Save to Deal" button to Research.tsx
-3. Rewrite proposal-comps edge function to use Mapbox Search Box
-4. Test end-to-end with real addresses
+This is a single-file fix that:
+1. Switches from deprecated Geocoding v5 POI endpoint to Search Box API v1
+2. Uses category-based searches instead of text queries
+3. Adapts to the new response format
+4. Maintains all existing deduplication and enrichment logic
