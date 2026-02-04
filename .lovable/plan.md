@@ -1,158 +1,138 @@
 
-# Fix: Switch to Mapbox Search Box API for Comp Results
+
+# Fix: Improve Multifamily Search Accuracy with Stricter Filtering
 
 ## Problem Identified
 
-The `proposal-comps` edge function is returning 0 results because:
-- **Mapbox removed POI data from the Geocoding v5 API** on December 20, 2024
-- The current code uses `https://api.mapbox.com/geocoding/v5/mapbox.places/...?types=poi`
-- This deprecated endpoint no longer returns points of interest like apartments and gyms
+The current implementation has two issues:
+
+1. **Proximity doesn't filter, only ranks**: Mapbox's `proximity` parameter suggests a preference but doesn't enforce a strict radius. Results from other counties can still appear if they're strong text matches.
+
+2. **Generic search terms return wrong results**: Searching for "apartments" returns property management offices, apartment locators, and leasing companies rather than actual apartment communities.
+
+3. **Only 10 results per query (API limit)**: With Mapbox returning mixed-quality results, we're not getting enough actual communities.
+
+---
 
 ## Solution
 
-Switch from the deprecated Geocoding v5 API to the **Mapbox Search Box API v1**, which has dedicated category search endpoints that still return POI data.
+### 1. Use More Specific Search Queries
 
----
+Replace generic terms with queries that target actual communities:
 
-## API Changes
+| Current Query | Improved Queries |
+|---------------|------------------|
+| `apartments` | `apartment community`, `apartment homes` |
+| `apartment complex` | `luxury apartments`, `lofts` |
+| `multifamily housing` | `senior living apartments`, `affordable housing` |
 
-| Aspect | Current (Broken) | New (Working) |
-|--------|------------------|---------------|
-| Endpoint | `geocoding/v5/mapbox.places` | `search/searchbox/v1/category` |
-| POI Support | Removed Dec 2024 | Active |
-| Search Type | Text query with `types=poi` | Category-based canonical names |
+### 2. Add Location Context to Queries
 
----
+Include the city/area from the geocoded address in the search query to force locality:
 
-## New API Endpoints
+```typescript
+// Extract city from address for query context
+const city = extractCityFromAddress(address);
 
-**Category Search:**
-```text
-https://api.mapbox.com/search/searchbox/v1/category/{category_id}
-  ?access_token={token}
-  &proximity={lng},{lat}
-  &radius={meters}
-  &limit=25
+// Build location-aware queries
+const queries = [
+  `apartment community near ${city}`,
+  `apartments ${city}`,
+  `luxury apartments ${city}`
+];
 ```
 
-**Categories to use:**
-- **Multifamily**: `apartment`, `residential`
-- **Fitness**: `gym`, `fitness_center`, `health_club`
+### 3. Stricter Distance Filtering Post-Search
+
+Apply strict distance filtering **before** processing (currently done after):
+
+```typescript
+// Immediately filter results by distance
+const withinRadius = results.filter(r => {
+  const [lng, lat] = r.geometry.coordinates;
+  const dist = calculateDistance(center.lat, center.lng, lat, lng);
+  return dist <= radiusMiles;
+});
+```
+
+### 4. Filter Out Non-Community Results
+
+Add a filter to exclude leasing offices, property management, and apartment locators:
+
+```typescript
+const excludePatterns = [
+  /locator/i,
+  /management/i,
+  /leasing office/i,
+  /real estate/i,
+  /realty/i,
+  /property group/i,
+  /housing authority/i
+];
+
+const isActualCommunity = (name: string) => 
+  !excludePatterns.some(pattern => pattern.test(name));
+```
+
+### 5. Log Results with Distance for Debugging
+
+Add detailed logging to see what's being returned and filtered:
+
+```typescript
+console.log(`Result: "${name}" at ${distance.toFixed(2)} mi - ${included ? 'INCLUDED' : 'EXCLUDED'}`);
+```
 
 ---
 
-## File to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/proposal-comps/index.ts` | Update `searchMapboxCategory` function to use Search Box API v1 category endpoint |
+| `supabase/functions/proposal-comps/index.ts` | Update search queries, add name filtering, add distance logging |
 
 ---
 
-## Implementation Details
-
-### Updated Search Function
-
-Replace the current `searchMapboxCategory` function to use the new endpoint:
+## Updated Search Approach
 
 ```typescript
-async function searchMapboxCategory(
-  category: string,  // Now a category ID, not a search query
-  center: { lat: number; lng: number },
-  radiusMiles: number,
-  mapboxToken: string,
-  limit: number = 25
-): Promise<MapboxFeature[]> {
-  try {
-    const radiusMeters = Math.round(radiusMiles * 1609.34);
-    
-    const response = await fetch(
-      `https://api.mapbox.com/search/searchbox/v1/category/${category}?` +
-      `access_token=${mapboxToken}` +
-      `&proximity=${center.lng},${center.lat}` +
-      `&radius=${radiusMeters}` +
-      `&limit=${limit}`
-    );
+// More specific apartment community queries
+const multifamilyQueries = [
+  'apartment community',
+  'apartment homes', 
+  'luxury apartments',
+  'lofts apartments',
+  'senior living apartments'
+];
 
-    if (!response.ok) {
-      console.error(`Category search "${category}" failed:`, response.status);
-      return [];
-    }
-
-    const data = await response.json();
-    
-    // Transform Search Box response format
-    return (data.results || []).map((r: any) => ({
-      properties: {
-        name: r.name || 'Unknown',
-        full_address: r.full_address || r.address || '',
-        category: r.poi_category || ''
-      },
-      geometry: {
-        coordinates: [r.coordinates?.longitude || 0, r.coordinates?.latitude || 0]
-      }
-    }));
-  } catch (error) {
-    console.error(`Category search error for "${category}":`, error);
-    return [];
-  }
+// Filter function for actual communities
+function isValidCommunity(name: string): boolean {
+  const excludePatterns = [
+    /locator/i, /management/i, /leasing/i, /real estate/i,
+    /realty/i, /property group/i, /housing authority/i,
+    /apartment finder/i, /rent\./i, /realtor/i
+  ];
+  return !excludePatterns.some(p => p.test(name));
 }
 ```
 
-### Updated Query Categories
+---
 
-Replace text queries with Mapbox category IDs:
+## Expected Results
 
-```typescript
-// Before (broken)
-const multifamilyQueries = ['apartments', 'apartment complex', 'multifamily'];
-const fitnessQueries = ['gym', 'fitness center', 'fitness'];
-
-// After (working)
-const multifamilyCategories = ['apartment', 'residential'];
-const fitnessCategories = ['gym', 'fitness_center', 'health_club'];
-```
+| Metric | Current | After Fix |
+|--------|---------|-----------|
+| Communities from other counties | Common | Filtered out |
+| Property management offices | Included | Excluded |
+| Actual communities found | ~3-4 | More (up to 15) |
+| Distance accuracy | Approximate | Strict radius enforcement |
 
 ---
 
-## Search Box API Response Format
+## Implementation
 
-The Search Box API returns a different structure than the Geocoding API:
+1. Update `multifamilyQueries` with more specific terms
+2. Add `isValidCommunity()` filter function
+3. Apply strict distance filtering immediately after API response
+4. Add detailed logging for debugging
+5. Deploy and test with the same address
 
-```json
-{
-  "results": [
-    {
-      "name": "The Ponce City Market Flats",
-      "full_address": "675 Ponce De Leon Ave NE, Atlanta, GA 30308",
-      "coordinates": {
-        "latitude": 33.7729,
-        "longitude": -84.3634
-      },
-      "poi_category": "apartment"
-    }
-  ]
-}
-```
-
-The code will transform this to match the existing `MapboxFeature` interface.
-
----
-
-## Verification
-
-After deployment:
-1. Test with a real address in Atlanta
-2. Confirm multifamily results include actual apartment complexes
-3. Confirm fitness results include gyms and fitness centers
-4. Verify coordinates are accurate on the map
-
----
-
-## Summary
-
-This is a single-file fix that:
-1. Switches from deprecated Geocoding v5 POI endpoint to Search Box API v1
-2. Uses category-based searches instead of text queries
-3. Adapts to the new response format
-4. Maintains all existing deduplication and enrichment logic
