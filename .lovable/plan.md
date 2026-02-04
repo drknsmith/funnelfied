@@ -1,168 +1,265 @@
 
-# Add Deal Name Searchable Dropdown to Research
+# Fix SPA Routing, Add Save Button, and Improve Comp Results
 
 ## Overview
-Add a new "Deal Name" input field to the Research tool that:
-1. Shows as a searchable dropdown when accessing Research from the sidebar menu
-2. Auto-fills from the current deal when accessing Research from a Deal page (not editable)
-3. Keeps Community Name separate and user-editable in both contexts
+
+This plan addresses three issues:
+1. **404 errors on published site** - Add SPA routing configuration
+2. **Save button on standalone Research** - Only show when a deal is attached
+3. **Poor comp results** - Replace Firecrawl with Google Places API for reliable, deduplicated data
 
 ---
 
-## Current vs. New Behavior
+## Part 1: Fix Published Site 404 Errors
 
-| Context | Current | New |
-|---------|---------|-----|
-| Sidebar → Research | No deal association | Searchable deal dropdown, when selected auto-populates Community Address from deal's account location |
-| Deal → Research Tab | Community Name auto-filled from Deal Name | Deal Name auto-filled (read-only), Community Name left blank for user input |
+### Problem
+Direct navigation to `/research` (or any route) on the published site returns a 404 error because the hosting server doesn't know how to handle client-side routes.
+
+### Solution
+Create a `_redirects` file in the `public` folder:
+
+| File | Action |
+|------|--------|
+| `public/_redirects` | Create |
+
+**Content:**
+```text
+/*    /index.html   200
+```
+
+This tells the server to serve `index.html` for all paths, letting React Router handle routing.
 
 ---
 
-## Implementation Plan
+## Part 2: Save Button for Standalone Research
 
-### 1. Create Deal Search Select Component
+### Current Behavior
+- Standalone Research page (`/research`) has "Print PDF" and "Share Research" buttons
+- No explicit "Save" button that links research to a deal
 
-**New file: `src/components/deals/DealSearchSelect.tsx`**
+### New Behavior
+- Add a **"Save to Deal"** button that only appears when a deal is selected
+- When clicked, it saves the research and links it to the selected deal
+- After saving, show a success message and optionally navigate to the deal's Research tab
 
-Similar to `AccountSearchSelect.tsx`:
-- Searchable dropdown using `Command` component
-- Filters deals as user types
-- Returns selected deal ID and deal object
-- Displays deal name with optional account name
+### Files to Modify
 
-### 2. Update ProposalInputPanel
+| File | Changes |
+|------|---------|
+| `src/pages/Research.tsx` | Add "Save to Deal" button conditionally rendered when `selectedDealId` is set |
 
-**Modify: `src/components/proposal/ProposalInputPanel.tsx`**
+### UI Changes
+```text
+Header buttons (when no deal selected):
+[Print PDF] [Share Research]
 
-Add new props:
+Header buttons (when deal selected):
+[Print PDF] [Share Research] [Save to Deal]
+```
+
+The "Save to Deal" button will:
+1. Call `saveReport()` with the `dealId`
+2. Show success toast: "Research saved to deal"
+3. Optionally offer to navigate to the deal page
+
+---
+
+## Part 3: Improve Comp Results with Google Places API
+
+### Current Problems
+The current Firecrawl-based approach has issues:
+- Pulls duplicate locations (same place appearing multiple times)
+- Returns unreliable/fake addresses ("Address not available")
+- Uses generic web search results instead of actual business data
+- Falls back to mock data that clutters real results
+- No deduplication logic
+
+### Solution: Switch to Google Places API
+
+Replace Firecrawl web search with Google Places API (Text Search), which provides:
+- Accurate, verified business locations
+- Precise coordinates
+- Business types and categories
+- Real addresses
+
+### API Requirements
+
+A new secret will be needed:
+
+| Secret | Purpose |
+|--------|---------|
+| `GOOGLE_PLACES_API_KEY` | Access to Google Places Text Search API |
+
+### Changes to Edge Function
+
+**File:** `supabase/functions/proposal-comps/index.ts`
+
+**Key Improvements:**
+
+1. **Use Google Places Text Search API**
+   - Query: `"apartments multifamily" near {address}` for communities
+   - Query: `"gym OR fitness center" near {address}` for fitness
+
+2. **Add Deduplication Logic**
+   - Normalize names (lowercase, remove common suffixes)
+   - Track seen place IDs to prevent duplicates
+   - Use coordinate proximity check (within 50m = same location)
+
+3. **Remove Mock Data Fallback**
+   - Only return real, verified data
+   - Empty results are better than fake data
+
+4. **Better Distance Filtering**
+   - Use actual haversine distance calculation
+   - Strict radius enforcement
+
+### New Edge Function Flow
+
+```text
+1. Geocode input address (Mapbox)
+2. Search Google Places for apartments/multifamily
+   - Text Search: "apartments multifamily near {address}"
+   - Filter by radius
+   - Deduplicate by name + coordinates
+3. Search Google Places for fitness facilities
+   - Text Search: "gym fitness center near {address}"  
+   - Filter by radius
+   - Deduplicate by name + coordinates
+4. Enrich results with:
+   - Distance calculation
+   - Property class inference (from name/types)
+   - Amenity signals (from types)
+   - Facility type classification
+5. Return sorted, deduplicated results
+```
+
+### Google Places API Response Mapping
+
+**Multifamily:**
 ```typescript
-interface ProposalInputPanelProps {
-  // New props
-  dealId?: string;
-  setDealId?: (value: string) => void;
-  dealName?: string;
-  isEmbeddedInDeal?: boolean;  // When true, hides deal selector
-  // ... existing props
+{
+  name: place.displayName.text,
+  address: place.formattedAddress,
+  distance: calculateDistance(...),
+  lat: place.location.latitude,
+  lng: place.location.longitude,
+  inferredClass: inferFromTypes(place.types),
+  classConfidence: 'high',
+  amenitySignals: extractFromTypes(place.types)
 }
 ```
 
-Add Deal Name field in the form:
-- When `isEmbeddedInDeal=true`: Show read-only text with deal name
-- When `isEmbeddedInDeal=false`: Show searchable DealSearchSelect dropdown
+**Fitness:**
+```typescript
+{
+  name: place.displayName.text,
+  address: place.formattedAddress,
+  distance: calculateDistance(...),
+  lat: place.location.latitude,
+  lng: place.location.longitude,
+  type: classifyFacility(place.displayName.text, place.types),
+  focusTags: extractFocusTags(place.types),
+  complementGuidance: generateGuidance(type)
+}
+```
 
-### 3. Update Research Page (Standalone)
+### Deduplication Strategy
 
-**Modify: `src/pages/Research.tsx`**
-
-- Add `selectedDealId` state
-- Pass deal selector props to `ProposalInputPanel`
-- When deal is selected, fetch deal data and optionally auto-fill Community Address from account location
-- Link saved report to selected deal via `dealId`
-
-### 4. Update ResearchTab (Embedded in Deal)
-
-**Modify: `src/components/deals/ResearchTab.tsx`**
-
-- Pass `isEmbeddedInDeal=true` to `ProposalInputPanel`
-- Pass `dealName` for read-only display
-- Change pre-population: Community Name stays blank (not filled from deal name)
-- Community Address still pre-fills from account location
-
-### 5. Update Report Saving
-
-**Modify: `src/hooks/useProposalReport.ts`**
-
-- Ensure `saveReport` accepts optional `dealId`
-- Already implemented - just needs to be passed from standalone Research page
+```typescript
+function deduplicateResults(results) {
+  const seen = new Map(); // key: normalized name
+  const seenCoords = []; // [{lat, lng}]
+  
+  return results.filter(place => {
+    const normName = normalize(place.name);
+    
+    // Check name similarity
+    if (seen.has(normName)) return false;
+    
+    // Check coordinate proximity (within 50m)
+    const isDuplicate = seenCoords.some(coord => 
+      haversineDistance(coord, place) < 0.05 // 50 meters
+    );
+    if (isDuplicate) return false;
+    
+    seen.set(normName, true);
+    seenCoords.push({lat: place.lat, lng: place.lng});
+    return true;
+  });
+}
+```
 
 ---
 
-## File Changes Summary
+## Files Summary
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/components/deals/DealSearchSelect.tsx` | Create | New searchable deal dropdown component |
-| `src/components/proposal/ProposalInputPanel.tsx` | Modify | Add Deal Name field (dropdown or read-only) |
-| `src/pages/Research.tsx` | Modify | Add deal selection state and auto-population logic |
-| `src/components/deals/ResearchTab.tsx` | Modify | Pass embedded flag, keep Community Name blank |
-
----
-
-## Component Structure
-
-```text
-Research.tsx (Standalone)
-├── selectedDealId state
-├── Fetch deal data on selection
-└── ProposalInputPanel
-    ├── Deal Name: DealSearchSelect dropdown
-    ├── Community Name: text input (blank)
-    ├── Community Address: auto-filled from deal's account
-    └── ... other fields
-
-ResearchTab.tsx (Embedded in Deal)
-└── ProposalInputPanel
-    ├── Deal Name: read-only text (from dealName prop)
-    ├── Community Name: text input (blank - user fills)
-    ├── Community Address: auto-filled from account
-    └── ... other fields
-```
-
----
-
-## UI Layout Update
-
-Current ProposalInputPanel layout:
-```text
-[Community Name] [Community Address]
-[Units] [Property Class] [SF Override]
-```
-
-New layout:
-```text
-[Deal Name (dropdown/readonly)]
-[Community Name] [Community Address]
-[Units] [Property Class] [SF Override]
-```
+| `public/_redirects` | Create | SPA routing for published site |
+| `src/pages/Research.tsx` | Modify | Add conditional "Save to Deal" button |
+| `supabase/functions/proposal-comps/index.ts` | Rewrite | Replace Firecrawl with Google Places API, add deduplication |
 
 ---
 
 ## Technical Details
 
-### DealSearchSelect Component
+### Google Places Text Search Request
 
 ```typescript
-interface DealSearchSelectProps {
-  value: string;
-  onValueChange: (dealId: string, deal?: DealWithRelations) => void;
-  disabled?: boolean;
+const response = await fetch(
+  'https://places.googleapis.com/v1/places:searchText',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+      'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.types'
+    },
+    body: JSON.stringify({
+      textQuery: `apartments multifamily near ${address}`,
+      locationBias: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius: radiusMiles * 1609.34 // meters
+        }
+      },
+      maxResultCount: 20
+    })
+  }
+);
+```
+
+### Name Normalization for Deduplication
+
+```typescript
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/apartments?|community|residences?|at\s+|the\s+/gi, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
 }
 ```
 
-Features:
-- Uses `useDeals()` hook to fetch available deals
-- Filters by typed search text
-- Returns both deal ID and full deal object for auto-population
+---
 
-### Auto-population Logic
+## Before/After Comparison
 
-When deal is selected from dropdown in standalone Research:
-```typescript
-const handleDealChange = (dealId: string, deal?: DealWithRelations) => {
-  setSelectedDealId(dealId);
-  if (deal?.accounts?.location) {
-    setCommunityAddress(deal.accounts.location);
-  }
-};
-```
+| Aspect | Before (Firecrawl) | After (Google Places) |
+|--------|-------------------|----------------------|
+| Data Source | Web search results | Verified business database |
+| Addresses | Often "Address not available" | Real, formatted addresses |
+| Duplicates | Common | Eliminated via deduplication |
+| Coordinates | Unreliable/missing | Precise lat/lng |
+| Mock Data | Falls back to fake data | Only real results |
+| Cost | Firecrawl credits | Google Places API credits |
 
-### ResearchTab Changes
+---
 
-```typescript
-// Before (current)
-if (dealName) setCommunityName(dealName);
+## Implementation Order
 
-// After (new)
-// Don't pre-fill communityName - leave blank for user input
-// dealName is shown in read-only Deal Name field
-```
+1. Create `public/_redirects` (1 line)
+2. Add "Save to Deal" button to Research.tsx
+3. Request Google Places API key from user
+4. Rewrite proposal-comps edge function
+5. Test end-to-end with real addresses
