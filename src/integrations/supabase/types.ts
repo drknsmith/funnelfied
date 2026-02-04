@@ -924,6 +924,77 @@ export type Database = {
           },
         ]
       }
+      proposal_reports: {
+        Row: {
+          advanced_overrides: Json | null
+          community_address: string | null
+          community_name: string | null
+          comps_radius: number | null
+          created_at: string
+          demographics: Json | null
+          expires_at: string | null
+          fitness_comps: Json | null
+          id: string
+          map_center: Json | null
+          multifamily_comps: Json | null
+          outputs: Json | null
+          owner_user_id: string
+          property_class: string | null
+          sf_override: number | null
+          token: string
+          units: number | null
+          workspace_id: string
+        }
+        Insert: {
+          advanced_overrides?: Json | null
+          community_address?: string | null
+          community_name?: string | null
+          comps_radius?: number | null
+          created_at?: string
+          demographics?: Json | null
+          expires_at?: string | null
+          fitness_comps?: Json | null
+          id?: string
+          map_center?: Json | null
+          multifamily_comps?: Json | null
+          outputs?: Json | null
+          owner_user_id: string
+          property_class?: string | null
+          sf_override?: number | null
+          token: string
+          units?: number | null
+          workspace_id: string
+        }
+        Update: {
+          advanced_overrides?: Json | null
+          community_address?: string | null
+          community_name?: string | null
+          comps_radius?: number | null
+          created_at?: string
+          demographics?: Json | null
+          expires_at?: string | null
+          fitness_comps?: Json | null
+          id?: string
+          map_center?: Json | null
+          multifamily_comps?: Json | null
+          outputs?: Json | null
+          owner_user_id?: string
+          property_class?: string | null
+          sf_override?: number | null
+          token?: string
+          units?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       super_admin_workspace_overrides: {
         Row: {
           active_workspace_id: string
