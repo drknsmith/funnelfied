@@ -81,6 +81,38 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+// Check if a result is an actual apartment community (not a locator, management office, etc.)
+function isValidApartmentCommunity(name: string): boolean {
+  const excludePatterns = [
+    /locator/i,
+    /management/i,
+    /leasing office/i,
+    /real estate/i,
+    /realty/i,
+    /property group/i,
+    /housing authority/i,
+    /apartment finder/i,
+    /rent\./i,
+    /realtor/i,
+    /apartment guide/i,
+    /apartmentlist/i,
+    /zillow/i,
+    /trulia/i,
+    /forrent/i,
+    /apartments\.com/i,
+    /rental/i,
+    /property management/i,
+    /brokerage/i,
+    /investment/i,
+    /capital/i,
+    /holdings/i,
+    /llc/i,
+    /inc\./i,
+    /development/i
+  ];
+  return !excludePatterns.some(p => p.test(name));
+}
+
 // Check if two coordinates are within proximity (in miles)
 function isWithinProximity(coord1: { lat: number; lng: number }, coord2: { lat: number; lng: number }, thresholdMiles: number = 0.031): boolean {
   return calculateDistance(coord1.lat, coord1.lng, coord2.lat, coord2.lng) < thresholdMiles;
@@ -341,8 +373,15 @@ Deno.serve(async (req) => {
 
     console.log(`Geocoded to: ${mapCenter.lat}, ${mapCenter.lng}`);
 
-    // Search for multifamily communities using text queries
-    const multifamilyQueries = ['apartments', 'apartment complex', 'multifamily housing'];
+    // Search for multifamily communities using more specific text queries
+    const multifamilyQueries = [
+      'apartment community',
+      'apartment homes',
+      'luxury apartments',
+      'lofts apartments',
+      'senior living apartments',
+      'apartments'
+    ];
     const allMultifamilyResults: MapboxFeature[] = [];
     
     for (const query of multifamilyQueries) {
@@ -359,24 +398,36 @@ Deno.serve(async (req) => {
       allFitnessResults.push(...results);
     }
 
-    // Process multifamily results
+    // Process multifamily results with strict filtering
     const multifamilyComps: MultifamilyComp[] = [];
     for (const feature of allMultifamilyResults) {
       const [lng, lat] = feature.geometry.coordinates;
       const distance = calculateDistance(mapCenter.lat, mapCenter.lng, lat, lng);
+      const name = feature.properties.name;
       
-      // Filter by radius
-      if (distance > radiusMiles) continue;
+      // Strict radius filtering first
+      if (distance > radiusMiles) {
+        console.log(`Filtered out "${name}" - ${distance.toFixed(2)} mi > ${radiusMiles} mi radius`);
+        continue;
+      }
       
-      const { inferredClass, classConfidence } = inferPropertyClass(feature.properties.name);
+      // Filter out non-community results (locators, management offices, etc.)
+      if (!isValidApartmentCommunity(name)) {
+        console.log(`Filtered out "${name}" - not a valid apartment community`);
+        continue;
+      }
+      
+      console.log(`INCLUDED: "${name}" at ${distance.toFixed(2)} mi`);
+      
+      const { inferredClass, classConfidence } = inferPropertyClass(name);
       
       multifamilyComps.push({
-        name: feature.properties.name,
+        name,
         address: feature.properties.full_address || feature.properties.place_formatted || 'Address available on map',
         distance: Math.round(distance * 10) / 10,
         inferredClass,
         classConfidence,
-        amenitySignals: extractAmenitySignals(feature.properties.name, feature.properties.category),
+        amenitySignals: extractAmenitySignals(name, feature.properties.category),
         lat,
         lng
       });
