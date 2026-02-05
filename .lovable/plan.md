@@ -1,190 +1,185 @@
 
 
-# Fix: Campaign Creation RLS Failures
+# Fix: Calendar Date Issues
 
-## Root Cause Analysis
+## Issues Identified
 
-The database logs confirm multiple RLS violations for `sm_campaigns`:
-```
-new row violates row-level security policy for table "sm_campaigns"
-```
+### Issue 1: Thursday Registering as Monday
+**Root Cause**: Timezone conversion in date formatting
 
-The issue is a **timing/null safety problem** in the `useSMCampaigns` hook:
-
+When generating schedule slots in `useSMScheduleSlots.ts`:
 ```typescript
-workspace_id: workspaceId!,  // <-- If workspaceId is null, this sends null!
+const slotDate = addDays(addWeeks(weekStart, week), recurrenceRule.day_of_week);
+const dateStr = format(slotDate, 'yyyy-MM-dd');
 ```
 
-The TypeScript non-null assertion (`!`) only silences the compiler - it doesn't prevent `null` from being sent to Supabase at runtime. When `workspaceId` is `null`:
-- The insert sends `workspace_id: null`
-- RLS policy checks `workspace_id = current_workspace()`
-- `null ≠ 'uuid-value'` → RLS violation
+The `format()` function from date-fns interprets the date correctly in local time, BUT there's a known issue where dates can shift when:
+- The `Date` object is created/manipulated in local time
+- Comparison with database dates happens in UTC
+- The user is in a timezone behind UTC (e.g., US Eastern, Pacific)
 
-## Why First Campaign Worked
+Database evidence confirms the bug:
+- Campaign "Founder's Journey" has `day_of_week: 4` (Thursday)
+- Slots are scheduled for `2026-02-02, 2026-02-09...` (Mondays!)
+- These are 3 days off from Thursday
 
-The first campaign creation happened when `workspaceId` was properly populated. Subsequent attempts may have occurred:
-- Before `workspaceId` was loaded (race condition)
-- After a component remount that temporarily cleared state
-- With stale closure capturing an old `workspaceId` value
+### Issue 2: Calendar Row Coloring
+**Current Behavior**: Platform stripes show full color if a slot exists, regardless of actual content
+
+**Desired Behavior**: 
+- **Muted color** = slot exists but NO actual content scheduled
+- **Full color** = actual post/content is scheduled
+
+---
 
 ## Solution
 
-### 1. Add Guard Clauses Before Mutations
+### Part 1: Fix Date Handling with Local Time Formatting
 
-Prevent mutations when `workspaceId` is not available:
+**File: `src/hooks/useSMScheduleSlots.ts`**
 
-**File: `src/hooks/useSMCampaigns.ts`**
+Create a helper function that uses local date components instead of relying on format():
 
 ```typescript
-const createMutation = useMutation({
-  mutationFn: async (input: CreateCampaignInput) => {
-    if (!workspaceId) {
-      throw new Error('Workspace not loaded. Please refresh the page.');
-    }
-    
-    const { data, error } = await supabase
-      .from('sm_campaigns')
-      .insert({
-        workspace_id: workspaceId,  // Remove ! assertion
-        // ... rest of insert
-      })
+// Use local date components to avoid timezone shifts
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 ```
 
-Apply same pattern to:
-- `useSMScheduleSlots.ts` - create mutation and generateSlotsForCampaign
-- `useSMContentItems.ts` - create mutation
-- `useSMAssets.ts` - upload function
-
-### 2. Add Debug Logging
-
-Temporarily add logging to identify when workspaceId is null:
-
+Update the slot generation (line 170):
 ```typescript
-const createMutation = useMutation({
-  mutationFn: async (input: CreateCampaignInput) => {
-    console.log('[SM Debug] Creating campaign with workspaceId:', workspaceId);
-    if (!workspaceId) {
-      console.error('[SM Debug] workspaceId is null at mutation time');
-      throw new Error('Workspace not loaded. Please refresh the page.');
-    }
-    // ...
-  },
+// Before
+const dateStr = format(slotDate, 'yyyy-MM-dd');
+
+// After  
+const dateStr = toLocalDateString(slotDate);
 ```
 
-### 3. Disable UI Actions When Workspace Not Ready
+Also update date parsing in `useSMCalendarData.ts` where dates are compared:
 
-Prevent the "Create Campaign" button from being clickable when workspace isn't loaded:
+**File: `src/hooks/useSMCalendarData.ts`**
 
-**File: `src/pages/social-media/Campaigns.tsx`**
+When processing content items with `override_date`, ensure consistent date string handling.
 
+---
+
+### Part 2: Distinguish "Has Slot" vs "Has Actual Content"
+
+**File: `src/hooks/useSMCalendarData.ts`**
+
+Update the `CalendarDayData` interface to track both:
 ```typescript
-import { useAuth } from '@/contexts/AuthContext';
+export interface CalendarDayData {
+  date: string;
+  platforms: {
+    [key in SMPlatform]: {
+      hasSlot: boolean;        // Slot exists (scheduled placeholder)
+      hasContent: boolean;     // Actual content item linked
+      campaignId: string | null;
+      campaignColor: string | null;
+      campaignName: string | null;
+      contentCount: number;
+      slotStatus: SlotStatus | null;
+    };
+  };
+}
+```
 
-export default function Campaigns() {
-  const { workspaceId } = useAuth();
-  const { campaigns, isLoading, deleteCampaign, toggleActive } = useSMCampaigns();
-  
+Update slot processing (around line 104):
+```typescript
+dayData.platforms[platform] = {
+  hasSlot: true,           // Slot exists
+  hasContent: false,       // No content yet (will be updated later)
+  campaignId: slot.campaign_id,
   // ...
-  
-  <Button 
-    onClick={() => setFormOpen(true)}
-    disabled={!workspaceId}  // Disable if no workspace
-  >
-    <Plus className="h-4 w-4 mr-2" />
-    New Campaign
-  </Button>
-```
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/hooks/useSMCampaigns.ts` | Add null check guard before insert |
-| `src/hooks/useSMScheduleSlots.ts` | Add null check guard before inserts |
-| `src/hooks/useSMContentItems.ts` | Add null check guard before insert |
-| `src/hooks/useSMAssets.ts` | Add null check guard before insert |
-| `src/pages/social-media/Campaigns.tsx` | Disable create button when workspace not ready |
-| `src/components/social-media/AddContentDialog.tsx` | Disable submit when workspace not ready |
-
-## Code Changes Summary
-
-### useSMCampaigns.ts - Create Mutation
-
-```typescript
-const createMutation = useMutation({
-  mutationFn: async (input: CreateCampaignInput) => {
-    if (!workspaceId) {
-      throw new Error('Workspace not loaded. Please refresh the page.');
-    }
-    
-    const { data, error } = await supabase
-      .from('sm_campaigns')
-      .insert({
-        workspace_id: workspaceId,
-        name: input.name,
-        color: input.color,
-        description_brief: input.description_brief || null,
-        platforms: input.platforms as string[],
-        recurrence_rule: JSON.parse(JSON.stringify(input.recurrence_rule)),
-        do_dont_guidance: input.do_dont_guidance || null,
-        default_cta_style: input.default_cta_style || null,
-        keyword_tags: input.keyword_tags || [],
-        is_active: input.is_active ?? true,
-        created_by: profile?.user_id ?? user?.id ?? null,
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-  onError: (error: any) => {
-    console.error('Error creating campaign:', error);
-    if (error?.message?.includes('Workspace not loaded')) {
-      toast.error('Workspace not loaded. Please refresh the page.');
-    } else if (error?.message?.includes('row level security')) {
-      toast.error('Permission/workspace mismatch. Please refresh and try again.');
-    } else {
-      toast.error('Failed to create campaign');
-    }
-  },
-});
-```
-
-### useSMScheduleSlots.ts - generateSlotsForCampaign
-
-```typescript
-const generateSlotsForCampaign = async (
-  campaignId: string,
-  platforms: SMPlatform[],
-  recurrenceRule: RecurrenceRule,
-  weeksAhead: number = 12
-) => {
-  if (!workspaceId) {
-    throw new Error('Workspace not loaded. Please refresh the page.');
-  }
-  
-  // ... rest of function
-  
-  if (slots.length > 0) {
-    const { error } = await supabase
-      .from('sm_schedule_slots')
-      .insert(
-        slots.map(s => ({
-          ...s,
-          workspace_id: workspaceId,  // Remove ! assertion
-        }))
-      );
-    // ...
-  }
 };
 ```
 
-## Expected Result
+Update content processing (around line 158):
+```typescript
+dayData.platforms[platform].hasSlot = true;
+dayData.platforms[platform].hasContent = true;  // Actual content exists
+dayData.platforms[platform].contentCount++;
+```
 
-After these changes:
-1. If `workspaceId` is null, user sees clear error message "Workspace not loaded. Please refresh."
-2. UI buttons are disabled when workspace isn't ready
-3. No more RLS violations from null workspace_id inserts
-4. Debug logging helps identify if the issue recurs
+**File: `src/components/social-media/PlatformStripes.tsx`**
+
+Update styling logic:
+```typescript
+const hasSlot = platformData?.hasSlot || false;
+const hasContent = platformData?.hasContent || false;
+
+// Styling:
+// - hasContent = full campaign color
+// - hasSlot but !hasContent = muted color (20% opacity)
+// - !hasSlot = dashed border (empty)
+
+<div
+  className={cn(
+    'flex items-center gap-1 rounded px-1 transition-all',
+    compact ? 'h-4' : 'h-5',
+    hasSlot && !hasContent && 'border border-dashed', // Slot only
+    (hasSlot || hasContent) && 'cursor-pointer',
+    !hasSlot && !hasContent && 'border border-dashed border-muted-foreground/30',
+    onStripeClick && 'hover:ring-1 hover:ring-primary/50'
+  )}
+  style={
+    hasContent && campaignColor
+      ? { backgroundColor: `${campaignColor}CC` }  // Full color (80% opacity)
+      : hasSlot && campaignColor
+        ? { backgroundColor: `${campaignColor}33`, borderColor: campaignColor }  // Muted (20% opacity)
+        : undefined
+  }
+>
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useSMScheduleSlots.ts` | Add `toLocalDateString()` helper, use for slot dates |
+| `src/hooks/useSMCalendarData.ts` | Add `hasSlot` field, distinguish from `hasContent` |
+| `src/components/social-media/PlatformStripes.tsx` | Update styling for slot vs content states |
+| `src/components/social-media/CalendarDayView.tsx` | Update references to new `hasSlot` field |
+| `src/components/social-media/CalendarWeekView.tsx` | Update references to new `hasSlot` field |
+
+---
+
+## Technical Details
+
+### Date Helper Function
+```typescript
+/**
+ * Format a Date object to YYYY-MM-DD string using local time components.
+ * This avoids timezone issues that occur with toISOString() or date-fns format().
+ */
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+```
+
+### Color States
+
+| State | Appearance |
+|-------|------------|
+| No slot, no content | Dashed border, muted foreground |
+| Slot only (placeholder) | Muted campaign color (20% opacity), dashed border |
+| Has actual content | Full campaign color (80% opacity), solid fill |
+
+---
+
+## Expected Results
+
+1. **Campaign day selection works correctly**: Thursday campaigns appear on Thursday, not Monday
+2. **Visual distinction**: Users can see at a glance which slots have actual content vs just placeholders
+3. **Timezone consistency**: Dates display correctly regardless of user timezone
 
