@@ -1,185 +1,313 @@
 
 
-# Fix: Calendar Date Issues
+# Calendar Row Click Navigation + Content Upload Features
 
-## Issues Identified
+## Summary
 
-### Issue 1: Thursday Registering as Monday
-**Root Cause**: Timezone conversion in date formatting
+This plan addresses two requests:
+1. **Calendar row click navigation** - When clicking a platform stripe that has content, navigate to a content detail/edit page instead of opening the drawer
+2. **Image/video upload in content creation/edit** - Add media upload capability to the ContentDrawer and AddContentDialog
 
-When generating schedule slots in `useSMScheduleSlots.ts`:
-```typescript
-const slotDate = addDays(addWeeks(weekStart, week), recurrenceRule.day_of_week);
-const dateStr = format(slotDate, 'yyyy-MM-dd');
-```
+---
 
-The `format()` function from date-fns interprets the date correctly in local time, BUT there's a known issue where dates can shift when:
-- The `Date` object is created/manipulated in local time
-- Comparison with database dates happens in UTC
-- The user is in a timezone behind UTC (e.g., US Eastern, Pacific)
+## Current State Analysis
 
-Database evidence confirms the bug:
-- Campaign "Founder's Journey" has `day_of_week: 4` (Thursday)
-- Slots are scheduled for `2026-02-02, 2026-02-09...` (Mondays!)
-- These are 3 days off from Thursday
+### Calendar Click Behavior
+- **PlatformStripes.tsx** - Handles stripe clicks via `onStripeClick` callback
+- **ContentCalendar.tsx** - Receives clicks and opens `ContentDrawer`
+- **ContentDrawer.tsx** - Shows existing content list and "Add Content" form
 
-### Issue 2: Calendar Row Coloring
-**Current Behavior**: Platform stripes show full color if a slot exists, regardless of actual content
+### Content Management
+- Content items can have linked assets via `sm_content_assets` junction table
+- Assets are uploaded via `useSMAssets.ts` hook to `sm-assets` storage bucket
+- `ContentThumbnail.tsx` displays content in drawer but has no click-to-edit functionality
 
-**Desired Behavior**: 
-- **Muted color** = slot exists but NO actual content scheduled
-- **Full color** = actual post/content is scheduled
+### Current Limitation
+- No dedicated content detail/edit page exists
+- ContentDrawer shows content list but doesn't allow editing
+- No upload UI in content creation flow
 
 ---
 
 ## Solution
 
-### Part 1: Fix Date Handling with Local Time Formatting
+### Part 1: Click-to-Edit Content Detail Drawer
 
-**File: `src/hooks/useSMScheduleSlots.ts`**
+Create a new `ContentDetailDrawer.tsx` component that opens when clicking a platform stripe with existing content. This allows viewing and editing a specific content item.
 
-Create a helper function that uses local date components instead of relying on format():
+**New File: `src/components/social-media/ContentDetailDrawer.tsx`**
 
-```typescript
-// Use local date components to avoid timezone shifts
-function toLocalDateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-```
+Features:
+- View/edit title, caption, status, campaign
+- View/upload/remove media attachments
+- Delete content item
+- Navigate between multiple content items on same date/platform
 
-Update the slot generation (line 170):
-```typescript
-// Before
-const dateStr = format(slotDate, 'yyyy-MM-dd');
+**Changes to `src/components/social-media/ContentDrawer.tsx`**
 
-// After  
-const dateStr = toLocalDateString(slotDate);
-```
-
-Also update date parsing in `useSMCalendarData.ts` where dates are compared:
-
-**File: `src/hooks/useSMCalendarData.ts`**
-
-When processing content items with `override_date`, ensure consistent date string handling.
-
----
-
-### Part 2: Distinguish "Has Slot" vs "Has Actual Content"
-
-**File: `src/hooks/useSMCalendarData.ts`**
-
-Update the `CalendarDayData` interface to track both:
-```typescript
-export interface CalendarDayData {
-  date: string;
-  platforms: {
-    [key in SMPlatform]: {
-      hasSlot: boolean;        // Slot exists (scheduled placeholder)
-      hasContent: boolean;     // Actual content item linked
-      campaignId: string | null;
-      campaignColor: string | null;
-      campaignName: string | null;
-      contentCount: number;
-      slotStatus: SlotStatus | null;
-    };
-  };
-}
-```
-
-Update slot processing (around line 104):
-```typescript
-dayData.platforms[platform] = {
-  hasSlot: true,           // Slot exists
-  hasContent: false,       // No content yet (will be updated later)
-  campaignId: slot.campaign_id,
-  // ...
-};
-```
-
-Update content processing (around line 158):
-```typescript
-dayData.platforms[platform].hasSlot = true;
-dayData.platforms[platform].hasContent = true;  // Actual content exists
-dayData.platforms[platform].contentCount++;
-```
-
-**File: `src/components/social-media/PlatformStripes.tsx`**
-
-Update styling logic:
-```typescript
-const hasSlot = platformData?.hasSlot || false;
-const hasContent = platformData?.hasContent || false;
-
-// Styling:
-// - hasContent = full campaign color
-// - hasSlot but !hasContent = muted color (20% opacity)
-// - !hasSlot = dashed border (empty)
-
+When clicking an existing content item in the drawer, open the detail drawer for that item:
+```tsx
+// ContentThumbnail wrapped in clickable container
 <div
-  className={cn(
-    'flex items-center gap-1 rounded px-1 transition-all',
-    compact ? 'h-4' : 'h-5',
-    hasSlot && !hasContent && 'border border-dashed', // Slot only
-    (hasSlot || hasContent) && 'cursor-pointer',
-    !hasSlot && !hasContent && 'border border-dashed border-muted-foreground/30',
-    onStripeClick && 'hover:ring-1 hover:ring-primary/50'
-  )}
-  style={
-    hasContent && campaignColor
-      ? { backgroundColor: `${campaignColor}CC` }  // Full color (80% opacity)
-      : hasSlot && campaignColor
-        ? { backgroundColor: `${campaignColor}33`, borderColor: campaignColor }  // Muted (20% opacity)
-        : undefined
-  }
+  onClick={() => onContentClick?.(item.id)}
+  className="cursor-pointer"
 >
+  <ContentThumbnail item={item} />
+</div>
+```
+
+**Changes to `src/pages/social-media/ContentCalendar.tsx`**
+
+Track selected content ID and render ContentDetailDrawer:
+```tsx
+const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+
+// In ContentDrawer, pass handler for content clicks
+<ContentDrawer
+  onContentClick={(contentId) => {
+    setSelectedContentId(contentId);
+    // Keep drawer context or switch to detail view
+  }}
+/>
+
+// Render detail drawer
+<ContentDetailDrawer
+  open={!!selectedContentId}
+  onOpenChange={(open) => !open && setSelectedContentId(null)}
+  contentId={selectedContentId}
+  onUpdate={() => {
+    // Refresh data
+  }}
+/>
+```
+
+### Part 2: Media Upload in Content Creation/Edit
+
+Add upload capability to both:
+1. ContentDetailDrawer (editing existing content)
+2. ContentDrawer "Add Content" form (creating new content)
+3. AddContentDialog (standalone content creation)
+
+**Implementation Approach**
+
+Reuse the existing `AssetUploader.tsx` component pattern and `useSMAssets` hook:
+
+```tsx
+// In content form
+const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+const [showAssetPicker, setShowAssetPicker] = useState(false);
+
+// Asset selection section
+<div className="space-y-2">
+  <Label>Media</Label>
+  {/* Show selected assets */}
+  <div className="flex flex-wrap gap-2">
+    {selectedAssets.map((asset) => (
+      <div key={asset.id} className="relative w-16 h-16">
+        <img src={asset.thumbnail_url || asset.file_url} ... />
+        <button onClick={() => removeAsset(asset.id)}>×</button>
+      </div>
+    ))}
+  </div>
+  
+  {/* Add media buttons */}
+  <div className="flex gap-2">
+    <Button size="sm" variant="outline" onClick={() => setShowUploader(true)}>
+      <Upload /> Upload New
+    </Button>
+    <Button size="sm" variant="outline" onClick={() => setShowAssetPicker(true)}>
+      <Image /> From Library
+    </Button>
+  </div>
+</div>
+
+// On submit, pass asset_ids to createContentItem
+await createContentItem({
+  ...formData,
+  asset_ids: selectedAssetIds,
+});
+```
+
+**New Component: `src/components/social-media/AssetPicker.tsx`**
+
+A dialog to select existing assets from the library:
+```tsx
+interface AssetPickerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedIds: string[];
+  onSelect: (assetIds: string[]) => void;
+  multiple?: boolean;
+}
 ```
 
 ---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/social-media/ContentDetailDrawer.tsx` | View/edit single content item with full details |
+| `src/components/social-media/AssetPicker.tsx` | Select assets from existing library |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useSMScheduleSlots.ts` | Add `toLocalDateString()` helper, use for slot dates |
-| `src/hooks/useSMCalendarData.ts` | Add `hasSlot` field, distinguish from `hasContent` |
-| `src/components/social-media/PlatformStripes.tsx` | Update styling for slot vs content states |
-| `src/components/social-media/CalendarDayView.tsx` | Update references to new `hasSlot` field |
-| `src/components/social-media/CalendarWeekView.tsx` | Update references to new `hasSlot` field |
+| `src/components/social-media/ContentDrawer.tsx` | Add `onContentClick` prop, make thumbnails clickable, add media upload to create form |
+| `src/components/social-media/AddContentDialog.tsx` | Add media upload/selection section |
+| `src/pages/social-media/ContentCalendar.tsx` | Track selected content ID, render ContentDetailDrawer |
+| `src/components/social-media/ContentThumbnail.tsx` | Add onClick handling |
 
 ---
 
 ## Technical Details
 
-### Date Helper Function
-```typescript
-/**
- * Format a Date object to YYYY-MM-DD string using local time components.
- * This avoids timezone issues that occur with toISOString() or date-fns format().
- */
-function toLocalDateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+### ContentDetailDrawer.tsx Structure
+
+```tsx
+interface ContentDetailDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  contentId: string | null;
+}
+
+export function ContentDetailDrawer({ open, onOpenChange, contentId }: ContentDetailDrawerProps) {
+  const { contentItems, updateContentItem, deleteContentItem } = useSMContentItems();
+  const { assets, uploadAsset } = useSMAssets();
+  const { campaigns } = useSMCampaigns();
+  
+  const content = contentItems.find(c => c.id === contentId);
+  
+  // Form state
+  const [title, setTitle] = useState('');
+  const [caption, setCaption] = useState('');
+  const [status, setStatus] = useState<ContentStatus>('idea');
+  const [campaignId, setCampaignId] = useState('none');
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  
+  // Sync form with content
+  useEffect(() => {
+    if (content) {
+      setTitle(content.title || '');
+      setCaption(content.caption || '');
+      setStatus(content.status);
+      setCampaignId(content.campaign_id || 'none');
+      setSelectedAssetIds(content.assets?.map(a => a.id) || []);
+    }
+  }, [content]);
+  
+  const handleSave = async () => {
+    await updateContentItem({
+      id: contentId!,
+      title,
+      caption,
+      status,
+      campaign_id: campaignId !== 'none' ? campaignId : undefined,
+      asset_ids: selectedAssetIds,
+    });
+    onOpenChange(false);
+  };
+  
+  const handleDelete = async () => {
+    await deleteContentItem(contentId!);
+    onOpenChange(false);
+  };
+  
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        {/* Platform icon and date header */}
+        {/* Form fields: title, caption, status, campaign */}
+        {/* Media section with upload/picker */}
+        {/* Save/Delete buttons */}
+      </SheetContent>
+    </Sheet>
+  );
 }
 ```
 
-### Color States
+### AssetPicker.tsx Structure
 
-| State | Appearance |
-|-------|------------|
-| No slot, no content | Dashed border, muted foreground |
-| Slot only (placeholder) | Muted campaign color (20% opacity), dashed border |
-| Has actual content | Full campaign color (80% opacity), solid fill |
+```tsx
+interface AssetPickerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedIds: string[];
+  onSelect: (assetIds: string[]) => void;
+  multiple?: boolean;
+}
+
+export function AssetPicker({ open, onOpenChange, selectedIds, onSelect, multiple = true }: AssetPickerProps) {
+  const { assets, isLoading } = useSMAssets();
+  const [selected, setSelected] = useState<string[]>(selectedIds);
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Select Media</DialogTitle>
+        </DialogHeader>
+        
+        {/* Grid of assets with selection checkboxes */}
+        <div className="grid grid-cols-4 gap-2 overflow-y-auto">
+          {assets.map((asset) => (
+            <div
+              key={asset.id}
+              onClick={() => toggleAsset(asset.id)}
+              className={cn(
+                'relative aspect-square rounded cursor-pointer',
+                selected.includes(asset.id) && 'ring-2 ring-primary'
+              )}
+            >
+              <img src={asset.thumbnail_url || asset.file_url} />
+              {selected.includes(asset.id) && <CheckIcon />}
+            </div>
+          ))}
+        </div>
+        
+        <DialogFooter>
+          <Button onClick={() => { onSelect(selected); onOpenChange(false); }}>
+            Select ({selected.length})
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+---
+
+## User Flow
+
+### Viewing/Editing Existing Content
+
+1. User clicks on a platform stripe with content (full color)
+2. ContentDrawer opens showing list of content for that date/platform
+3. User clicks on a content item thumbnail
+4. ContentDetailDrawer opens with full edit form:
+   - Title, caption, status, campaign fields
+   - Media section showing attached assets
+   - Buttons to upload new or select from library
+   - Save and Delete buttons
+
+### Creating New Content with Media
+
+1. User clicks "Add Content" in drawer or ContentList page
+2. Form shows platform toggles, date picker, title, caption, status
+3. New "Media" section allows:
+   - "Upload New" - Opens AssetUploader for direct upload
+   - "From Library" - Opens AssetPicker to choose existing assets
+4. Selected assets shown as thumbnails with remove button
+5. On submit, content item created with linked assets
 
 ---
 
 ## Expected Results
 
-1. **Campaign day selection works correctly**: Thursday campaigns appear on Thursday, not Monday
-2. **Visual distinction**: Users can see at a glance which slots have actual content vs just placeholders
-3. **Timezone consistency**: Dates display correctly regardless of user timezone
+1. **Click to edit** - Clicking content in calendar opens detail drawer for editing
+2. **Media upload** - Users can attach images/videos when creating or editing content
+3. **Asset reuse** - Users can select from existing asset library
+4. **Consistent UX** - Same upload flow as Asset Library page
 
