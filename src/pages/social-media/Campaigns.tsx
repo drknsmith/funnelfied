@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { CampaignList } from '@/components/social-media/CampaignList';
 import { CampaignForm } from '@/components/social-media/CampaignForm';
 import { useSMCampaigns, type SMCampaign } from '@/hooks/useSMCampaigns';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Campaigns() {
+  const { workspaceId } = useAuth();
   const { campaigns, isLoading, deleteCampaign, toggleActive } = useSMCampaigns();
   const [formOpen, setFormOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<SMCampaign | null>(null);
@@ -38,7 +40,7 @@ export default function Campaigns() {
             Manage your recurring social media campaigns
           </p>
         </div>
-        <Button onClick={() => setFormOpen(true)}>
+        <Button onClick={() => setFormOpen(true)} disabled={!workspaceId}>
           <Plus className="h-4 w-4 mr-2" />
           New Campaign
         </Button>

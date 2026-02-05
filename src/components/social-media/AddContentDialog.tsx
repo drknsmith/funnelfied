@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 import { SM_PLATFORMS, CONTENT_STATUSES, type SMPlatform, type ContentStatus } from '@/lib/socialMediaConstants';
 import { useSMContentItems } from '@/hooks/useSMContentItems';
 import type { SMCampaign } from '@/hooks/useSMCampaigns';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface AddContentDialogProps {
@@ -36,6 +37,7 @@ export function AddContentDialog({
   onOpenChange,
   campaigns,
 }: AddContentDialogProps) {
+  const { workspaceId } = useAuth();
   const { createContentItem, isCreating } = useSMContentItems();
   
   // Form state
@@ -85,6 +87,8 @@ export function AddContentDialog({
 
     handleClose();
   };
+
+  const canSubmit = selectedPlatforms.length > 0 && scheduledDate && workspaceId;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -213,7 +217,7 @@ export function AddContentDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={selectedPlatforms.length === 0 || !scheduledDate || isCreating}
+            disabled={!canSubmit || isCreating}
           >
             {isCreating ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />

@@ -59,10 +59,14 @@ export function useSMCampaigns() {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateCampaignInput) => {
+      if (!workspaceId) {
+        throw new Error('Workspace not loaded. Please refresh the page.');
+      }
+      
       const { data, error } = await supabase
         .from('sm_campaigns')
         .insert({
-          workspace_id: workspaceId!,
+          workspace_id: workspaceId,
           name: input.name,
           color: input.color,
           description_brief: input.description_brief || null,
@@ -86,7 +90,9 @@ export function useSMCampaigns() {
     },
     onError: (error: any) => {
       console.error('Error creating campaign:', error);
-      if (error?.message?.includes('row level security')) {
+      if (error?.message?.includes('Workspace not loaded')) {
+        toast.error('Workspace not loaded. Please refresh the page.');
+      } else if (error?.message?.includes('row level security')) {
         toast.error('Permission/workspace mismatch. Refresh and try again.');
       } else {
         toast.error('Failed to create campaign');
