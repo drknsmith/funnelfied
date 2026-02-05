@@ -24,11 +24,11 @@ export interface CreateSlotInput {
 }
 
 export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
-  const { profile } = useAuth();
+  const { workspaceId } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: slots = [], isLoading } = useQuery({
-    queryKey: ['sm-schedule-slots', profile?.workspace_id, dateRange],
+    queryKey: ['sm-schedule-slots', workspaceId, dateRange],
     queryFn: async () => {
       let query = supabase
         .from('sm_schedule_slots')
@@ -50,7 +50,7 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
         status: s.status as SlotStatus,
       })) as SMScheduleSlot[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createMutation = useMutation({
@@ -58,7 +58,7 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
       const { data, error } = await supabase
         .from('sm_schedule_slots')
         .insert({
-          workspace_id: profile!.workspace_id,
+          workspace_id: workspaceId!,
           campaign_id: input.campaign_id || null,
           scheduled_date: input.scheduled_date,
           platform: input.platform,
@@ -74,9 +74,13 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
       queryClient.invalidateQueries({ queryKey: ['sm-schedule-slots'] });
       queryClient.invalidateQueries({ queryKey: ['sm-calendar-data'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating slot:', error);
-      toast.error('Failed to create schedule slot');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to create schedule slot');
+      }
     },
   });
 
@@ -102,9 +106,13 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
       queryClient.invalidateQueries({ queryKey: ['sm-schedule-slots'] });
       queryClient.invalidateQueries({ queryKey: ['sm-calendar-data'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating slot:', error);
-      toast.error('Failed to update schedule slot');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to update schedule slot');
+      }
     },
   });
 
@@ -121,9 +129,13 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
       queryClient.invalidateQueries({ queryKey: ['sm-schedule-slots'] });
       queryClient.invalidateQueries({ queryKey: ['sm-calendar-data'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting slot:', error);
-      toast.error('Failed to delete schedule slot');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to delete schedule slot');
+      }
     },
   });
 
@@ -168,7 +180,7 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
         .insert(
           slots.map(s => ({
             ...s,
-            workspace_id: profile!.workspace_id,
+            workspace_id: workspaceId!,
           }))
         );
       

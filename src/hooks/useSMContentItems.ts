@@ -36,11 +36,11 @@ export interface CreateContentItemInput {
 }
 
 export function useSMContentItems(dateRange?: { start: string; end: string }) {
-  const { profile } = useAuth();
+  const { workspaceId, profile, user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: contentItems = [], isLoading } = useQuery({
-    queryKey: ['sm-content-items', profile?.workspace_id, dateRange],
+    queryKey: ['sm-content-items', workspaceId, dateRange],
     queryFn: async () => {
       let query = supabase
         .from('sm_content_items')
@@ -77,7 +77,7 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
           .filter(Boolean),
       })) as SMContentItem[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createMutation = useMutation({
@@ -86,7 +86,7 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
       const { data, error } = await supabase
         .from('sm_content_items')
         .insert({
-          workspace_id: profile!.workspace_id,
+          workspace_id: workspaceId!,
           schedule_slot_id: input.schedule_slot_id || null,
           campaign_id: input.campaign_id || null,
           platform: input.platform,
@@ -95,7 +95,7 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
           hashtags_saved: input.hashtags_saved || [],
           status: input.status || 'idea',
           override_date: input.override_date || null,
-          created_by: profile!.user_id,
+          created_by: profile?.user_id ?? user?.id ?? null,
         })
         .select()
         .single();
@@ -124,9 +124,13 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
       queryClient.invalidateQueries({ queryKey: ['sm-calendar-data'] });
       toast.success('Content created');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating content:', error);
-      toast.error('Failed to create content');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to create content');
+      }
     },
   });
 
@@ -180,9 +184,13 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
       queryClient.invalidateQueries({ queryKey: ['sm-calendar-data'] });
       toast.success('Content updated');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating content:', error);
-      toast.error('Failed to update content');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to update content');
+      }
     },
   });
 
@@ -200,9 +208,13 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
       queryClient.invalidateQueries({ queryKey: ['sm-calendar-data'] });
       toast.success('Content deleted');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting content:', error);
-      toast.error('Failed to delete content');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to delete content');
+      }
     },
   });
 
@@ -219,9 +231,13 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
       queryClient.invalidateQueries({ queryKey: ['sm-content-items'] });
       queryClient.invalidateQueries({ queryKey: ['sm-calendar-data'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating status:', error);
-      toast.error('Failed to update status');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to update status');
+      }
     },
   });
 

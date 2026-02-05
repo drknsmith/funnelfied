@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PLATFORM_ORDER, type SMPlatform, type SlotStatus, type ContentStatus } from '@/lib/socialMediaConstants';
-import { format, parseISO } from 'date-fns';
 
 export interface CalendarDayData {
   date: string;
@@ -32,10 +31,10 @@ export interface CalendarContentItem {
 }
 
 export function useSMCalendarData(dateRange: { start: string; end: string }) {
-  const { profile } = useAuth();
+  const { workspaceId } = useAuth();
 
   return useQuery({
-    queryKey: ['sm-calendar-data', profile?.workspace_id, dateRange],
+    queryKey: ['sm-calendar-data', workspaceId, dateRange],
     queryFn: async () => {
       // Fetch campaigns
       const { data: campaigns, error: campaignsError } = await supabase
@@ -172,6 +171,6 @@ export function useSMCalendarData(dateRange: { start: string; end: string }) {
         campaigns: campaigns || [],
       };
     },
-    enabled: !!profile?.workspace_id && !!dateRange.start && !!dateRange.end,
+    enabled: !!workspaceId && !!dateRange.start && !!dateRange.end,
   });
 }

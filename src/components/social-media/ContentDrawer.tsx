@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -26,6 +25,7 @@ import { useSMContentItems } from '@/hooks/useSMContentItems';
 import type { SMCampaign } from '@/hooks/useSMCampaigns';
 import type { CalendarContentItem } from '@/hooks/useSMCalendarData';
 import { ContentThumbnail } from './ContentThumbnail';
+import { cn } from '@/lib/utils';
 
 interface ContentDrawerProps {
   open: boolean;
@@ -47,16 +47,16 @@ export function ContentDrawer({
   const { createContentItem, isCreating } = useSMContentItems();
   const [showForm, setShowForm] = useState(false);
   
-  // Form state
+  // Form state - multi-platform support
   const [title, setTitle] = useState('');
-  const [platform, setPlatform] = useState<SMPlatform | ''>('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<SMPlatform[]>([]);
   const [campaignId, setCampaignId] = useState<string>('none');
   const [caption, setCaption] = useState('');
   const [status, setStatus] = useState<ContentStatus>('idea');
 
   const resetForm = () => {
     setTitle('');
-    setPlatform('');
+    setSelectedPlatforms([]);
     setCampaignId('none');
     setCaption('');
     setStatus('idea');
@@ -68,17 +68,28 @@ export function ContentDrawer({
     onOpenChange(false);
   };
 
-  const handleSubmit = async () => {
-    if (!platform || !selectedDate) return;
+  const togglePlatform = (platform: SMPlatform) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platform)
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
+  };
 
-    await createContentItem({
-      platform: platform as SMPlatform,
-      campaign_id: campaignId !== 'none' ? campaignId : undefined,
-      title: title || undefined,
-      caption: caption || undefined,
-      status,
-      override_date: selectedDate,
-    });
+  const handleSubmit = async () => {
+    if (selectedPlatforms.length === 0 || !selectedDate) return;
+
+    // Create content for each selected platform
+    for (const platform of selectedPlatforms) {
+      await createContentItem({
+        platform,
+        campaign_id: campaignId !== 'none' ? campaignId : undefined,
+        title: title || undefined,
+        caption: caption || undefined,
+        status,
+        override_date: selectedDate,
+      });
+    }
 
     resetForm();
   };
@@ -131,28 +142,36 @@ export function ContentDrawer({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="platform">Platform *</Label>
-                <Select
-                  value={platform}
-                  onValueChange={(v) => setPlatform(v as SMPlatform)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SM_PLATFORMS.map((p) => {
-                      const Icon = p.icon;
-                      return (
-                        <SelectItem key={p.value} value={p.value}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" style={{ color: p.color }} />
-                            {p.label}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <Label>Platforms *</Label>
+                <div className="flex flex-wrap gap-2">
+                  {SM_PLATFORMS.map((p) => {
+                    const Icon = p.icon;
+                    const isSelected = selectedPlatforms.includes(p.value);
+                    return (
+                      <Button
+                        key={p.value}
+                        variant={isSelected ? "default" : "outline"}
+                        size="sm"
+                        type="button"
+                        onClick={() => togglePlatform(p.value)}
+                        className={cn(
+                          "gap-1.5",
+                          isSelected && "ring-2 ring-offset-1"
+                        )}
+                        style={isSelected ? { 
+                          backgroundColor: p.color,
+                          borderColor: p.color,
+                        } : undefined}
+                      >
+                        <Icon className="h-4 w-4" style={!isSelected ? { color: p.color } : undefined} />
+                        {p.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Select one or more platforms. Content will be duplicated for each.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -161,7 +180,7 @@ export function ContentDrawer({
                   <SelectTrigger>
                     <SelectValue placeholder="Select campaign" />
                   </SelectTrigger>
-                <SelectContent>
+                  <SelectContent>
                     <SelectItem value="none">No campaign</SelectItem>
                     {campaigns.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
@@ -215,13 +234,13 @@ export function ContentDrawer({
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={!platform || isCreating}
+                  disabled={selectedPlatforms.length === 0 || isCreating}
                   className="flex-1"
                 >
                   {isCreating ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : null}
-                  Add Content
+                  Add Content {selectedPlatforms.length > 1 && `(${selectedPlatforms.length})`}
                 </Button>
               </div>
             </div>
@@ -229,7 +248,7 @@ export function ContentDrawer({
             <Button onClick={() => {
               setShowForm(true);
               if (selectedPlatform) {
-                setPlatform(selectedPlatform);
+                setSelectedPlatforms([selectedPlatform]);
               }
             }} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
