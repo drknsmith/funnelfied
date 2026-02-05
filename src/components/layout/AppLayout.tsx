@@ -46,9 +46,10 @@ import {
   Loader2,
   Map,
   FileBarChart,
+  Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { canUseMapping, canUseProposalCreator } from '@/lib/workspaceFeatures';
+import { canUseMapping, canUseProposalCreator, canUseSocialMedia } from '@/lib/workspaceFeatures';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
@@ -272,6 +273,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               )}
 {canUseProposalCreator(activeWorkspaceId) && (
                 <NavItem to="/research" icon={<FileBarChart className="h-4 w-4" />} label="Research" collapsed={isCollapsed} />
+              )}
+              {canUseSocialMedia(activeWorkspaceId) && (
+                <NavItem to="/social-media" icon={<Share2 className="h-4 w-4" />} label="Social Media" collapsed={isCollapsed} />
               )}
             </nav>
 
