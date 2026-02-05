@@ -50,14 +50,14 @@ export function ContentDrawer({
   // Form state
   const [title, setTitle] = useState('');
   const [platform, setPlatform] = useState<SMPlatform | ''>('');
-  const [campaignId, setCampaignId] = useState<string>('');
+  const [campaignId, setCampaignId] = useState<string>('none');
   const [caption, setCaption] = useState('');
   const [status, setStatus] = useState<ContentStatus>('idea');
 
   const resetForm = () => {
     setTitle('');
     setPlatform('');
-    setCampaignId('');
+    setCampaignId('none');
     setCaption('');
     setStatus('idea');
     setShowForm(false);
@@ -73,7 +73,7 @@ export function ContentDrawer({
 
     await createContentItem({
       platform: platform as SMPlatform,
-      campaign_id: campaignId || undefined,
+      campaign_id: campaignId !== 'none' ? campaignId : undefined,
       title: title || undefined,
       caption: caption || undefined,
       status,
@@ -161,8 +161,8 @@ export function ContentDrawer({
                   <SelectTrigger>
                     <SelectValue placeholder="Select campaign" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No campaign</SelectItem>
+                <SelectContent>
+                    <SelectItem value="none">No campaign</SelectItem>
                     {campaigns.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         <div className="flex items-center gap-2">

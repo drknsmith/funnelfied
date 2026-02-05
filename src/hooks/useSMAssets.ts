@@ -3,6 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+export interface UsageDetail {
+  content_id: string;
+  date: string | null;
+  title: string | null;
+  platform: string | null;
+}
+
 export interface SMAsset {
   id: string;
   workspace_id: string;
@@ -13,6 +20,8 @@ export interface SMAsset {
   notes: string | null;
   created_by: string | null;
   created_at: string;
+  usage_count: number;
+  usage_details: UsageDetail[];
 }
 
 export function useSMAssets() {
@@ -24,16 +33,53 @@ export function useSMAssets() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sm_assets')
-        .select('*')
+        .select(`
+          *,
+          sm_content_assets (
+            content_item_id,
+            sm_content_items (
+              id,
+              override_date,
+              title,
+              platform,
+              schedule_slot_id,
+              sm_schedule_slots (
+                scheduled_date
+              )
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      return (data || []).map(a => ({
-        ...a,
-        asset_type: a.asset_type as 'image' | 'carousel' | 'video',
-        tags: a.tags || [],
-      })) as SMAsset[];
+      return (data || []).map(a => {
+        const contentAssets = (a as any).sm_content_assets || [];
+        
+        const usageDetails: UsageDetail[] = contentAssets
+          .filter((ca: any) => ca.sm_content_items)
+          .map((ca: any) => ({
+            content_id: ca.content_item_id,
+            date: ca.sm_content_items?.override_date || 
+                  ca.sm_content_items?.sm_schedule_slots?.scheduled_date || null,
+            title: ca.sm_content_items?.title || null,
+            platform: ca.sm_content_items?.platform || null,
+          }));
+        
+        return {
+          id: a.id,
+          workspace_id: a.workspace_id,
+          asset_type: a.asset_type as 'image' | 'carousel' | 'video',
+          file_url: a.file_url,
+          thumbnail_url: a.thumbnail_url,
+          tags: a.tags || [],
+          notes: a.notes,
+          created_by: a.created_by,
+          created_at: a.created_at,
+          usage_count: usageDetails.length,
+          usage_details: usageDetails,
+        } as SMAsset;
+      });
     },
     enabled: !!profile?.workspace_id,
   });
