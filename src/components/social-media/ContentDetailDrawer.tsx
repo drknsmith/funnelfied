@@ -61,15 +61,15 @@ export function ContentDetailDrawer({
   const platformConfig = SM_PLATFORMS.find(p => p.value === content?.platform);
   const Icon = platformConfig?.icon;
   
-  // Get selected campaign for AI caption generation
-  const selectedCampaign = campaigns.find(c => c.id === campaignId);
-  
   // Form state
   const [title, setTitle] = useState('');
   const [caption, setCaption] = useState('');
   const [status, setStatus] = useState<ContentStatus>('idea');
   const [campaignId, setCampaignId] = useState<string>('none');
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  
+  // Get selected campaign for AI caption generation
+  const selectedCampaign = campaigns.find(c => c.id === campaignId);
   
   // UI state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

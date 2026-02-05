@@ -55,9 +55,6 @@ export function ContentDrawer({
   const { generateCaption, isGenerating } = useSMCaptionGenerator();
   const [showForm, setShowForm] = useState(false);
   
-  // Get selected campaign for AI caption generation
-  const selectedCampaign = campaigns.find(c => c.id === campaignId);
-  
   // Form state - multi-platform support
   const [title, setTitle] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<SMPlatform[]>([]);
@@ -65,6 +62,9 @@ export function ContentDrawer({
   const [caption, setCaption] = useState('');
   const [status, setStatus] = useState<ContentStatus>('idea');
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  
+  // Get selected campaign for AI caption generation
+  const selectedCampaign = campaigns.find(c => c.id === campaignId);
   
   // UI state
   const [showAssetUploader, setShowAssetUploader] = useState(false);
