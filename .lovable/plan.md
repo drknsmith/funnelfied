@@ -1,214 +1,190 @@
 
-# Fix: Social Media RLS Violations + New Features
 
-## Summary
+# Fix: Campaign Creation RLS Failures
 
-This plan addresses:
-1. **RLS violation bug** - Campaign/content/asset creation fails because hooks use `profile.workspace_id` instead of the effective `workspaceId`
-2. **Add button to Content header** - With date input for scheduling content outside of calendar day context
-3. **Multi-platform toggle** - Allow selecting multiple platforms and duplicate content for each
+## Root Cause Analysis
 
----
+The database logs confirm multiple RLS violations for `sm_campaigns`:
+```
+new row violates row-level security policy for table "sm_campaigns"
+```
 
-## Part 1: Fix RLS Violation in All Social Media Hooks
+The issue is a **timing/null safety problem** in the `useSMCampaigns` hook:
 
-### Root Cause
-The hooks use `profile!.workspace_id` (user's home workspace) instead of `workspaceId` from `useAuth()` (the effective workspace for super admins who switched workspaces).
-
-### Files to Modify
-
-**1. `src/hooks/useSMCampaigns.ts`**
-| Line | Current | Change To |
-|------|---------|-----------|
-| 37 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
-| 41 | `queryKey: ['sm-campaigns', profile?.workspace_id]` | `queryKey: ['sm-campaigns', workspaceId]` |
-| 57 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
-| 65 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
-| 75 | `created_by: profile!.user_id` | `created_by: profile?.user_id ?? user?.id ?? null` |
-| 87-89 | Generic error toast | Add RLS-specific error message |
-
-**2. `src/hooks/useSMScheduleSlots.ts`**
-| Line | Current | Change To |
-|------|---------|-----------|
-| 27 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
-| 31 | `queryKey: [..., profile?.workspace_id, ...]` | `queryKey: [..., workspaceId, ...]` |
-| 53 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
-| 61 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
-| 171 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
-
-**3. `src/hooks/useSMContentItems.ts`**
-| Line | Current | Change To |
-|------|---------|-----------|
-| 39 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
-| 43 | `queryKey: [..., profile?.workspace_id, ...]` | `queryKey: [..., workspaceId, ...]` |
-| 80 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
-| 89 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
-| 98 | `created_by: profile!.user_id` | `created_by: profile?.user_id ?? user?.id ?? null` |
-
-**4. `src/hooks/useSMAssets.ts`**
-| Line | Current | Change To |
-|------|---------|-----------|
-| 28 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
-| 32 | `queryKey: ['sm-assets', profile?.workspace_id]` | `queryKey: ['sm-assets', workspaceId]` |
-| 84 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
-| 96 | `filePath = \`${profile!.workspace_id}/...\`` | `filePath = \`${workspaceId}/...\`` |
-| 113 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
-| 117 | `created_by: profile!.user_id` | `created_by: profile?.user_id ?? user?.id ?? null` |
-
-**5. `src/hooks/useSMCalendarData.ts`**
-| Line | Current | Change To |
-|------|---------|-----------|
-| 35 | `const { profile } = useAuth()` | `const { workspaceId } = useAuth()` |
-| 38 | `queryKey: [..., profile?.workspace_id, ...]` | `queryKey: [..., workspaceId, ...]` |
-| 175 | `enabled: !!profile?.workspace_id && ...` | `enabled: !!workspaceId && ...` |
-
-### Improved Error Messages
-
-In `useSMCampaigns.ts` onError callback:
 ```typescript
-onError: (error) => {
-  console.error('Error creating campaign:', error);
-  if (error.message?.includes('row level security')) {
-    toast.error('Permission/workspace mismatch. Refresh and try again.');
-  } else {
-    toast.error('Failed to create campaign');
+workspace_id: workspaceId!,  // <-- If workspaceId is null, this sends null!
+```
+
+The TypeScript non-null assertion (`!`) only silences the compiler - it doesn't prevent `null` from being sent to Supabase at runtime. When `workspaceId` is `null`:
+- The insert sends `workspace_id: null`
+- RLS policy checks `workspace_id = current_workspace()`
+- `null ≠ 'uuid-value'` → RLS violation
+
+## Why First Campaign Worked
+
+The first campaign creation happened when `workspaceId` was properly populated. Subsequent attempts may have occurred:
+- Before `workspaceId` was loaded (race condition)
+- After a component remount that temporarily cleared state
+- With stale closure capturing an old `workspaceId` value
+
+## Solution
+
+### 1. Add Guard Clauses Before Mutations
+
+Prevent mutations when `workspaceId` is not available:
+
+**File: `src/hooks/useSMCampaigns.ts`**
+
+```typescript
+const createMutation = useMutation({
+  mutationFn: async (input: CreateCampaignInput) => {
+    if (!workspaceId) {
+      throw new Error('Workspace not loaded. Please refresh the page.');
+    }
+    
+    const { data, error } = await supabase
+      .from('sm_campaigns')
+      .insert({
+        workspace_id: workspaceId,  // Remove ! assertion
+        // ... rest of insert
+      })
+```
+
+Apply same pattern to:
+- `useSMScheduleSlots.ts` - create mutation and generateSlotsForCampaign
+- `useSMContentItems.ts` - create mutation
+- `useSMAssets.ts` - upload function
+
+### 2. Add Debug Logging
+
+Temporarily add logging to identify when workspaceId is null:
+
+```typescript
+const createMutation = useMutation({
+  mutationFn: async (input: CreateCampaignInput) => {
+    console.log('[SM Debug] Creating campaign with workspaceId:', workspaceId);
+    if (!workspaceId) {
+      console.error('[SM Debug] workspaceId is null at mutation time');
+      throw new Error('Workspace not loaded. Please refresh the page.');
+    }
+    // ...
+  },
+```
+
+### 3. Disable UI Actions When Workspace Not Ready
+
+Prevent the "Create Campaign" button from being clickable when workspace isn't loaded:
+
+**File: `src/pages/social-media/Campaigns.tsx`**
+
+```typescript
+import { useAuth } from '@/contexts/AuthContext';
+
+export default function Campaigns() {
+  const { workspaceId } = useAuth();
+  const { campaigns, isLoading, deleteCampaign, toggleActive } = useSMCampaigns();
+  
+  // ...
+  
+  <Button 
+    onClick={() => setFormOpen(true)}
+    disabled={!workspaceId}  // Disable if no workspace
+  >
+    <Plus className="h-4 w-4 mr-2" />
+    New Campaign
+  </Button>
+```
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/hooks/useSMCampaigns.ts` | Add null check guard before insert |
+| `src/hooks/useSMScheduleSlots.ts` | Add null check guard before inserts |
+| `src/hooks/useSMContentItems.ts` | Add null check guard before insert |
+| `src/hooks/useSMAssets.ts` | Add null check guard before insert |
+| `src/pages/social-media/Campaigns.tsx` | Disable create button when workspace not ready |
+| `src/components/social-media/AddContentDialog.tsx` | Disable submit when workspace not ready |
+
+## Code Changes Summary
+
+### useSMCampaigns.ts - Create Mutation
+
+```typescript
+const createMutation = useMutation({
+  mutationFn: async (input: CreateCampaignInput) => {
+    if (!workspaceId) {
+      throw new Error('Workspace not loaded. Please refresh the page.');
+    }
+    
+    const { data, error } = await supabase
+      .from('sm_campaigns')
+      .insert({
+        workspace_id: workspaceId,
+        name: input.name,
+        color: input.color,
+        description_brief: input.description_brief || null,
+        platforms: input.platforms as string[],
+        recurrence_rule: JSON.parse(JSON.stringify(input.recurrence_rule)),
+        do_dont_guidance: input.do_dont_guidance || null,
+        default_cta_style: input.default_cta_style || null,
+        keyword_tags: input.keyword_tags || [],
+        is_active: input.is_active ?? true,
+        created_by: profile?.user_id ?? user?.id ?? null,
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  onError: (error: any) => {
+    console.error('Error creating campaign:', error);
+    if (error?.message?.includes('Workspace not loaded')) {
+      toast.error('Workspace not loaded. Please refresh the page.');
+    } else if (error?.message?.includes('row level security')) {
+      toast.error('Permission/workspace mismatch. Please refresh and try again.');
+    } else {
+      toast.error('Failed to create campaign');
+    }
+  },
+});
+```
+
+### useSMScheduleSlots.ts - generateSlotsForCampaign
+
+```typescript
+const generateSlotsForCampaign = async (
+  campaignId: string,
+  platforms: SMPlatform[],
+  recurrenceRule: RecurrenceRule,
+  weeksAhead: number = 12
+) => {
+  if (!workspaceId) {
+    throw new Error('Workspace not loaded. Please refresh the page.');
   }
-},
-```
-
-Apply similar pattern to other SM hooks.
-
----
-
-## Part 2: Add "Add Content" Button to Content Header
-
-### Changes to `src/pages/social-media/ContentList.tsx`
-
-Add an "Add Content" button in the CardHeader that opens a dialog/drawer:
-- Add `useState` for dialog open state
-- Add date picker input (required - since we're outside calendar context)
-- Import and render `AddContentDialog` component
-
-**New Component: `src/components/social-media/AddContentDialog.tsx`**
-
-A dialog with:
-- Date picker (required)
-- Platform toggles (multi-select checkboxes)
-- Campaign selector (optional)
-- Title, caption, status fields
-- On submit: create one content item per selected platform
-
----
-
-## Part 3: Multi-Platform Toggle for Content Creation
-
-### Current Behavior
-- Single platform select dropdown
-- Creates one content item
-
-### New Behavior
-- Platform selection is a set of toggle buttons (like checkboxes)
-- User can select 1 or more platforms
-- On save, duplicate content for each selected platform
-
-### Files to Modify
-
-**1. `src/components/social-media/ContentDrawer.tsx`**
-
-Replace:
-```tsx
-const [platform, setPlatform] = useState<SMPlatform | ''>('');
-```
-
-With:
-```tsx
-const [selectedPlatforms, setSelectedPlatforms] = useState<SMPlatform[]>([]);
-```
-
-Replace platform `<Select>` with platform toggles:
-```tsx
-<div className="flex flex-wrap gap-2">
-  {SM_PLATFORMS.map((p) => {
-    const Icon = p.icon;
-    const isSelected = selectedPlatforms.includes(p.value);
-    return (
-      <Button
-        key={p.value}
-        variant={isSelected ? "default" : "outline"}
-        size="sm"
-        onClick={() => {
-          if (isSelected) {
-            setSelectedPlatforms(prev => prev.filter(x => x !== p.value));
-          } else {
-            setSelectedPlatforms(prev => [...prev, p.value]);
-          }
-        }}
-      >
-        <Icon className="h-4 w-4 mr-1" />
-        {p.label}
-      </Button>
-    );
-  })}
-</div>
-```
-
-Update handleSubmit to create multiple content items:
-```tsx
-const handleSubmit = async () => {
-  if (selectedPlatforms.length === 0 || !selectedDate) return;
-
-  // Create content for each selected platform
-  for (const platform of selectedPlatforms) {
-    await createContentItem({
-      platform,
-      campaign_id: campaignId !== 'none' ? campaignId : undefined,
-      title: title || undefined,
-      caption: caption || undefined,
-      status,
-      override_date: selectedDate,
-    });
+  
+  // ... rest of function
+  
+  if (slots.length > 0) {
+    const { error } = await supabase
+      .from('sm_schedule_slots')
+      .insert(
+        slots.map(s => ({
+          ...s,
+          workspace_id: workspaceId,  // Remove ! assertion
+        }))
+      );
+    // ...
   }
-
-  resetForm();
 };
 ```
 
-**2. `src/components/social-media/AddContentDialog.tsx`** (new file)
+## Expected Result
 
-Same multi-platform toggle pattern with required date picker:
-```tsx
-<div className="space-y-2">
-  <Label>Date *</Label>
-  <Input
-    type="date"
-    value={scheduledDate}
-    onChange={(e) => setScheduledDate(e.target.value)}
-  />
-</div>
-```
+After these changes:
+1. If `workspaceId` is null, user sees clear error message "Workspace not loaded. Please refresh."
+2. UI buttons are disabled when workspace isn't ready
+3. No more RLS violations from null workspace_id inserts
+4. Debug logging helps identify if the issue recurs
 
----
-
-## Files Summary
-
-| File | Action | Changes |
-|------|--------|---------|
-| `src/hooks/useSMCampaigns.ts` | Modify | Use `workspaceId` + better error msg |
-| `src/hooks/useSMScheduleSlots.ts` | Modify | Use `workspaceId` |
-| `src/hooks/useSMContentItems.ts` | Modify | Use `workspaceId` |
-| `src/hooks/useSMAssets.ts` | Modify | Use `workspaceId` |
-| `src/hooks/useSMCalendarData.ts` | Modify | Use `workspaceId` |
-| `src/components/social-media/ContentDrawer.tsx` | Modify | Multi-platform toggles |
-| `src/pages/social-media/ContentList.tsx` | Modify | Add "Add Content" button |
-| `src/components/social-media/AddContentDialog.tsx` | Create | New dialog with date + platforms |
-
----
-
-## Expected Results
-
-After implementation:
-1. Campaign creation works for Super Admins in switched workspaces
-2. Content creation works from Calendar and Content list
-3. Asset uploads work correctly
-4. Users can select multiple platforms and content duplicates for each
-5. Content list has "Add Content" button with date input
