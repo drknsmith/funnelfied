@@ -1,222 +1,214 @@
 
-# Fix: Social Media Content Manager Bugs + New Features
+# Fix: Social Media RLS Violations + New Features
 
-## Issues Identified
+## Summary
 
-### Bug 1: Select Empty String Value Error
-**Location**: `src/components/social-media/ContentDrawer.tsx` line 165
-
-The error `A <Select.Item /> must have a value prop that is not an empty string` is caused by:
-```tsx
-<SelectItem value="">No campaign</SelectItem>
-```
-
-Radix UI Select does not allow empty string values for SelectItem.
-
-**Fix**: Use a sentinel value like `"none"` instead of empty string.
-
-### Bug 2: Campaign Creation Failing  
-The console shows errors but no specific database error. The issue is likely the RLS policy or the `recurrence_rule` JSONB field. Looking at the code, the insert looks correct but we should verify the error is being logged properly.
-
-### Bug 3: Day View Content Creation Error
-Same Select empty string issue in ContentDrawer when opened from Day View.
+This plan addresses:
+1. **RLS violation bug** - Campaign/content/asset creation fails because hooks use `profile.workspace_id` instead of the effective `workspaceId`
+2. **Add button to Content header** - With date input for scheduling content outside of calendar day context
+3. **Multi-platform toggle** - Allow selecting multiple platforms and duplicate content for each
 
 ---
 
-## New Feature Requests
+## Part 1: Fix RLS Violation in All Social Media Hooks
 
-### Feature 1: Auto-populate Asset Library from Content
-When users add images/videos to content, they should automatically appear in the Asset Library with:
-- Usage count showing how many times the asset was used
-- Details popup showing all dates the asset was used on
+### Root Cause
+The hooks use `profile!.workspace_id` (user's home workspace) instead of `workspaceId` from `useAuth()` (the effective workspace for super admins who switched workspaces).
 
-### Feature 2: New "Content" Tab
-Add a new tab between "Campaigns" and "Asset Library" showing:
-- Table/list view of all content items
-- Columns:
-  - Content title/preview
-  - Upcoming post (next scheduled date)
-  - Last post (most recent date)
-  - Frequency (number of posts)
+### Files to Modify
 
-### Feature 3: Asset Usage Tracking
-- Display usage count on each asset card
-- Show list of dates/content items in Asset Detail modal
+**1. `src/hooks/useSMCampaigns.ts`**
+| Line | Current | Change To |
+|------|---------|-----------|
+| 37 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
+| 41 | `queryKey: ['sm-campaigns', profile?.workspace_id]` | `queryKey: ['sm-campaigns', workspaceId]` |
+| 57 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
+| 65 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
+| 75 | `created_by: profile!.user_id` | `created_by: profile?.user_id ?? user?.id ?? null` |
+| 87-89 | Generic error toast | Add RLS-specific error message |
+
+**2. `src/hooks/useSMScheduleSlots.ts`**
+| Line | Current | Change To |
+|------|---------|-----------|
+| 27 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
+| 31 | `queryKey: [..., profile?.workspace_id, ...]` | `queryKey: [..., workspaceId, ...]` |
+| 53 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
+| 61 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
+| 171 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
+
+**3. `src/hooks/useSMContentItems.ts`**
+| Line | Current | Change To |
+|------|---------|-----------|
+| 39 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
+| 43 | `queryKey: [..., profile?.workspace_id, ...]` | `queryKey: [..., workspaceId, ...]` |
+| 80 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
+| 89 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
+| 98 | `created_by: profile!.user_id` | `created_by: profile?.user_id ?? user?.id ?? null` |
+
+**4. `src/hooks/useSMAssets.ts`**
+| Line | Current | Change To |
+|------|---------|-----------|
+| 28 | `const { profile } = useAuth()` | `const { workspaceId, profile, user } = useAuth()` |
+| 32 | `queryKey: ['sm-assets', profile?.workspace_id]` | `queryKey: ['sm-assets', workspaceId]` |
+| 84 | `enabled: !!profile?.workspace_id` | `enabled: !!workspaceId` |
+| 96 | `filePath = \`${profile!.workspace_id}/...\`` | `filePath = \`${workspaceId}/...\`` |
+| 113 | `workspace_id: profile!.workspace_id` | `workspace_id: workspaceId!` |
+| 117 | `created_by: profile!.user_id` | `created_by: profile?.user_id ?? user?.id ?? null` |
+
+**5. `src/hooks/useSMCalendarData.ts`**
+| Line | Current | Change To |
+|------|---------|-----------|
+| 35 | `const { profile } = useAuth()` | `const { workspaceId } = useAuth()` |
+| 38 | `queryKey: [..., profile?.workspace_id, ...]` | `queryKey: [..., workspaceId, ...]` |
+| 175 | `enabled: !!profile?.workspace_id && ...` | `enabled: !!workspaceId && ...` |
+
+### Improved Error Messages
+
+In `useSMCampaigns.ts` onError callback:
+```typescript
+onError: (error) => {
+  console.error('Error creating campaign:', error);
+  if (error.message?.includes('row level security')) {
+    toast.error('Permission/workspace mismatch. Refresh and try again.');
+  } else {
+    toast.error('Failed to create campaign');
+  }
+},
+```
+
+Apply similar pattern to other SM hooks.
 
 ---
 
-## Implementation Plan
+## Part 2: Add "Add Content" Button to Content Header
 
-### Phase 1: Fix Select Empty String Bugs
+### Changes to `src/pages/social-media/ContentList.tsx`
 
-**File**: `src/components/social-media/ContentDrawer.tsx`
+Add an "Add Content" button in the CardHeader that opens a dialog/drawer:
+- Add `useState` for dialog open state
+- Add date picker input (required - since we're outside calendar context)
+- Import and render `AddContentDialog` component
 
-| Line | Change |
-|------|--------|
-| 53 | Initialize campaignId state to `'none'` instead of empty string |
-| 76 | Check `campaignId !== 'none'` before passing to create function |
-| 165 | Change `value=""` to `value="none"` |
+**New Component: `src/components/social-media/AddContentDialog.tsx`**
 
+A dialog with:
+- Date picker (required)
+- Platform toggles (multi-select checkboxes)
+- Campaign selector (optional)
+- Title, caption, status fields
+- On submit: create one content item per selected platform
+
+---
+
+## Part 3: Multi-Platform Toggle for Content Creation
+
+### Current Behavior
+- Single platform select dropdown
+- Creates one content item
+
+### New Behavior
+- Platform selection is a set of toggle buttons (like checkboxes)
+- User can select 1 or more platforms
+- On save, duplicate content for each selected platform
+
+### Files to Modify
+
+**1. `src/components/social-media/ContentDrawer.tsx`**
+
+Replace:
 ```tsx
-// Before
-const [campaignId, setCampaignId] = useState<string>('');
-...
-campaign_id: campaignId || undefined,
-...
-<SelectItem value="">No campaign</SelectItem>
-
-// After  
-const [campaignId, setCampaignId] = useState<string>('none');
-...
-campaign_id: campaignId !== 'none' ? campaignId : undefined,
-...
-<SelectItem value="none">No campaign</SelectItem>
+const [platform, setPlatform] = useState<SMPlatform | ''>('');
 ```
 
-### Phase 2: Add "Content" Tab
-
-**File**: `src/pages/SocialMedia.tsx`
-
-Add new tab in the tabs array:
+With:
 ```tsx
-const tabs = [
-  { to: '/social-media', label: 'Content Calendar', icon: CalendarDays, exact: true },
-  { to: '/social-media/campaigns', label: 'Campaigns', icon: Megaphone },
-  { to: '/social-media/content', label: 'Content', icon: FileText },  // NEW
-  { to: '/social-media/assets', label: 'Asset Library', icon: ImageIcon },
-];
+const [selectedPlatforms, setSelectedPlatforms] = useState<SMPlatform[]>([]);
 ```
 
-**New File**: `src/pages/social-media/ContentList.tsx`
-
-Create a table view showing all content items with:
-- Title/preview column
-- Platform icon
-- Campaign badge
-- Upcoming date (calculated from override_date or schedule slot)
-- Last post date
-- Post frequency count
-
-**File**: `src/App.tsx`
-
-Add new route:
+Replace platform `<Select>` with platform toggles:
 ```tsx
-<Route path="content" element={<ContentList />} />
+<div className="flex flex-wrap gap-2">
+  {SM_PLATFORMS.map((p) => {
+    const Icon = p.icon;
+    const isSelected = selectedPlatforms.includes(p.value);
+    return (
+      <Button
+        key={p.value}
+        variant={isSelected ? "default" : "outline"}
+        size="sm"
+        onClick={() => {
+          if (isSelected) {
+            setSelectedPlatforms(prev => prev.filter(x => x !== p.value));
+          } else {
+            setSelectedPlatforms(prev => [...prev, p.value]);
+          }
+        }}
+      >
+        <Icon className="h-4 w-4 mr-1" />
+        {p.label}
+      </Button>
+    );
+  })}
+</div>
 ```
 
-### Phase 3: Enhanced Asset Library with Usage Tracking
-
-**File**: `src/hooks/useSMAssets.ts`
-
-Update query to include usage count by joining with `sm_content_assets`:
+Update handleSubmit to create multiple content items:
 ```tsx
-const { data: assets = [], isLoading } = useQuery({
-  queryKey: ['sm-assets', profile?.workspace_id],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('sm_assets')
-      .select(`
-        *,
-        sm_content_assets (
-          content_item_id,
-          sm_content_items (
-            id,
-            override_date,
-            title,
-            platform,
-            schedule_slot_id,
-            sm_schedule_slots (
-              scheduled_date
-            )
-          )
-        )
-      `)
-      .order('created_at', { ascending: false });
-    
-    // Calculate usage count from sm_content_assets relation
-    return data.map(a => ({
-      ...a,
-      usage_count: a.sm_content_assets?.length || 0,
-      usage_details: a.sm_content_assets?.map(ca => ({
-        content_id: ca.content_item_id,
-        date: ca.sm_content_items?.override_date || 
-              ca.sm_content_items?.sm_schedule_slots?.scheduled_date,
-        title: ca.sm_content_items?.title,
-        platform: ca.sm_content_items?.platform
-      })).filter(Boolean) || []
-    }));
-  },
-});
+const handleSubmit = async () => {
+  if (selectedPlatforms.length === 0 || !selectedDate) return;
+
+  // Create content for each selected platform
+  for (const platform of selectedPlatforms) {
+    await createContentItem({
+      platform,
+      campaign_id: campaignId !== 'none' ? campaignId : undefined,
+      title: title || undefined,
+      caption: caption || undefined,
+      status,
+      override_date: selectedDate,
+    });
+  }
+
+  resetForm();
+};
 ```
 
-**File**: `src/components/social-media/AssetGrid.tsx`
+**2. `src/components/social-media/AddContentDialog.tsx`** (new file)
 
-Add usage count badge to each asset card:
+Same multi-platform toggle pattern with required date picker:
 ```tsx
-{asset.usage_count > 0 && (
-  <Badge className="absolute top-1 right-1">
-    Used {asset.usage_count}x
-  </Badge>
-)}
-```
-
-**File**: `src/components/social-media/AssetDetail.tsx`
-
-Add usage history section:
-```tsx
-{/* Usage History */}
-{asset.usage_details?.length > 0 && (
-  <div className="space-y-2">
-    <Label>Used In ({asset.usage_details.length})</Label>
-    <div className="max-h-40 overflow-y-auto space-y-1">
-      {asset.usage_details.map((usage, idx) => (
-        <div key={idx} className="text-sm flex items-center gap-2 p-2 bg-muted rounded">
-          <PlatformIcon platform={usage.platform} />
-          <span>{usage.title || 'Untitled'}</span>
-          <span className="text-muted-foreground ml-auto">
-            {usage.date ? format(parseISO(usage.date), 'MMM d, yyyy') : 'No date'}
-          </span>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+<div className="space-y-2">
+  <Label>Date *</Label>
+  <Input
+    type="date"
+    value={scheduledDate}
+    onChange={(e) => setScheduledDate(e.target.value)}
+  />
+</div>
 ```
 
 ---
 
-## Files to Modify
+## Files Summary
 
-| File | Changes |
-|------|---------|
-| `src/components/social-media/ContentDrawer.tsx` | Fix empty string SelectItem value |
-| `src/pages/SocialMedia.tsx` | Add Content tab |
-| `src/App.tsx` | Add Content route |
-| `src/hooks/useSMAssets.ts` | Add usage count/details to query |
-| `src/components/social-media/AssetGrid.tsx` | Display usage count badge |
-| `src/components/social-media/AssetDetail.tsx` | Show usage history |
-
-## New Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/pages/social-media/ContentList.tsx` | Content list view with table |
+| File | Action | Changes |
+|------|--------|---------|
+| `src/hooks/useSMCampaigns.ts` | Modify | Use `workspaceId` + better error msg |
+| `src/hooks/useSMScheduleSlots.ts` | Modify | Use `workspaceId` |
+| `src/hooks/useSMContentItems.ts` | Modify | Use `workspaceId` |
+| `src/hooks/useSMAssets.ts` | Modify | Use `workspaceId` |
+| `src/hooks/useSMCalendarData.ts` | Modify | Use `workspaceId` |
+| `src/components/social-media/ContentDrawer.tsx` | Modify | Multi-platform toggles |
+| `src/pages/social-media/ContentList.tsx` | Modify | Add "Add Content" button |
+| `src/components/social-media/AddContentDialog.tsx` | Create | New dialog with date + platforms |
 
 ---
 
-## Technical Notes
+## Expected Results
 
-### Content List Columns
-
-| Column | Data Source |
-|--------|-------------|
-| Title/Preview | `content_items.title` or thumbnail |
-| Platform | `content_items.platform` icon |
-| Campaign | `content_items.campaign_id` → campaign name/color |
-| Upcoming Post | Next date ≥ today from `override_date` or slot dates |
-| Last Post | Most recent `override_date` or slot date where status = 'published' |
-| Frequency | Count of content items per platform/campaign grouping |
-
-### Asset Usage Count
-
-The usage count comes from the `sm_content_assets` junction table which links content items to assets. Each row represents one usage of the asset in a content item.
+After implementation:
+1. Campaign creation works for Super Admins in switched workspaces
+2. Content creation works from Calendar and Content list
+3. Asset uploads work correctly
+4. Users can select multiple platforms and content duplicates for each
+5. Content list has "Add Content" button with date input
