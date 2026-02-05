@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Loader2, Upload, Image, X } from 'lucide-react';
+import { Plus, Loader2, Upload, Image, X, Sparkles } from 'lucide-react';
+import { useSMCaptionGenerator } from '@/hooks/useSMCaptionGenerator';
 import { format, parseISO } from 'date-fns';
 import { SM_PLATFORMS, CONTENT_STATUSES, type SMPlatform, type ContentStatus } from '@/lib/socialMediaConstants';
 import { useSMContentItems } from '@/hooks/useSMContentItems';
@@ -51,7 +52,11 @@ export function ContentDrawer({
 }: ContentDrawerProps) {
   const { createContentItem, isCreating } = useSMContentItems();
   const { assets, uploadAsset, isUploading } = useSMAssets();
+  const { generateCaption, isGenerating } = useSMCaptionGenerator();
   const [showForm, setShowForm] = useState(false);
+  
+  // Get selected campaign for AI caption generation
+  const selectedCampaign = campaigns.find(c => c.id === campaignId);
   
   // Form state - multi-platform support
   const [title, setTitle] = useState('');
@@ -236,7 +241,33 @@ export function ContentDrawer({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="caption">Caption</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="caption">Caption</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        const newCaption = await generateCaption({
+                          platform: selectedPlatforms,
+                          title,
+                          campaign: selectedCampaign,
+                        });
+                        if (newCaption) {
+                          setCaption(newCaption);
+                        }
+                      }}
+                      disabled={isGenerating || campaignId === 'none' || selectedPlatforms.length === 0}
+                      title={campaignId === 'none' ? 'Select a campaign first' : undefined}
+                    >
+                      {isGenerating ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-1" />
+                      )}
+                      Generate with AI
+                    </Button>
+                  </div>
                   <Textarea
                     id="caption"
                     placeholder="Write your caption..."
@@ -244,6 +275,11 @@ export function ContentDrawer({
                     onChange={(e) => setCaption(e.target.value)}
                     rows={4}
                   />
+                  {campaignId === 'none' && (
+                    <p className="text-xs text-muted-foreground">
+                      Select a campaign to enable AI caption generation
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

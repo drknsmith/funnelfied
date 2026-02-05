@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.proposal-comps]
 verify_jwt = false
+
+[functions.sm-caption-generator]
+verify_jwt = false

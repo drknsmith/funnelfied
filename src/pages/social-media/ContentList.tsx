@@ -11,11 +11,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, FileText, Plus } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Loader2, FileText, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useSMContentItems } from '@/hooks/useSMContentItems';
 import { useSMCampaigns } from '@/hooks/useSMCampaigns';
 import { SM_PLATFORMS, type SMPlatform } from '@/lib/socialMediaConstants';
 import { AddContentDialog } from '@/components/social-media/AddContentDialog';
+import { ContentDetailDrawer } from '@/components/social-media/ContentDetailDrawer';
 
 interface ContentWithStats {
   id: string;
@@ -31,9 +48,11 @@ interface ContentWithStats {
 }
 
 export default function ContentList() {
-  const { contentItems, isLoading: contentLoading } = useSMContentItems();
+  const { contentItems, isLoading: contentLoading, deleteContentItem, isDeleting } = useSMContentItems();
   const { campaigns, isLoading: campaignsLoading } = useSMCampaigns();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const contentWithStats = useMemo(() => {
     const today = startOfToday();
@@ -99,6 +118,12 @@ export default function ContentList() {
     return SM_PLATFORMS.find(p => p.value === platform);
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    await deleteContentItem(deleteId);
+    setDeleteId(null);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -144,6 +169,7 @@ export default function ContentList() {
                   <TableHead>Upcoming Post</TableHead>
                   <TableHead>Last Post</TableHead>
                   <TableHead className="text-right">Frequency</TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -159,9 +185,9 @@ export default function ContentList() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {PlatformIcon && (
-                            <PlatformIcon 
-                              className="h-4 w-4" 
-                              style={{ color: platformInfo?.color }} 
+                            <PlatformIcon
+                              className="h-4 w-4"
+                              style={{ color: platformInfo?.color }}
                             />
                           )}
                           <span className="text-sm">{platformInfo?.label}</span>
@@ -205,6 +231,28 @@ export default function ContentList() {
                       <TableCell className="text-right">
                         <Badge variant="outline">{item.frequency}</Badge>
                       </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedContentId(item.id)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(item.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -219,6 +267,35 @@ export default function ContentList() {
         onOpenChange={setAddDialogOpen}
         campaigns={campaigns}
       />
+
+      <ContentDetailDrawer
+        open={!!selectedContentId}
+        onOpenChange={(open) => !open && setSelectedContentId(null)}
+        contentId={selectedContentId}
+        campaigns={campaigns}
+        contentItems={contentItems}
+      />
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Content?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this content item. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
