@@ -9,8 +9,10 @@ import { CalendarDayView } from '@/components/social-media/CalendarDayView';
 import { CalendarFilters } from '@/components/social-media/CalendarFilters';
 import { CalendarLegend } from '@/components/social-media/CalendarLegend';
 import { ContentDrawer } from '@/components/social-media/ContentDrawer';
+import { ContentDetailDrawer } from '@/components/social-media/ContentDetailDrawer';
 import { useSMCalendarData } from '@/hooks/useSMCalendarData';
 import { useSMCampaigns } from '@/hooks/useSMCampaigns';
+import { useSMContentItems } from '@/hooks/useSMContentItems';
 import type { SMPlatform, SlotStatus } from '@/lib/socialMediaConstants';
 
 type ViewMode = 'month' | 'week' | 'day';
@@ -26,8 +28,12 @@ export default function ContentCalendar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<SMPlatform | null>(null);
+  
+  // Content detail drawer state
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
 
   const { campaigns } = useSMCampaigns();
+  const { contentItems } = useSMContentItems();
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -84,6 +90,10 @@ export default function ContentCalendar() {
     setSelectedDate(date);
     setSelectedPlatform(platform || null);
     setDrawerOpen(true);
+  };
+
+  const handleContentClick = (contentId: string) => {
+    setSelectedContentId(contentId);
   };
 
   // Get header text based on view mode
@@ -188,6 +198,16 @@ export default function ContentCalendar() {
         selectedPlatform={selectedPlatform}
         campaigns={campaigns}
         contentItems={selectedDate ? calendarData?.contentByDate?.[selectedDate] || [] : []}
+        onContentClick={handleContentClick}
+      />
+
+      {/* Content Detail Drawer */}
+      <ContentDetailDrawer
+        open={!!selectedContentId}
+        onOpenChange={(open) => !open && setSelectedContentId(null)}
+        contentId={selectedContentId}
+        campaigns={campaigns}
+        contentItems={contentItems}
       />
     </div>
   );

@@ -5,18 +5,21 @@ import { Badge } from '@/components/ui/badge';
 interface ContentThumbnailProps {
   item: CalendarContentItem;
   compact?: boolean;
+  onClick?: () => void;
 }
 
-export function ContentThumbnail({ item, compact = false }: ContentThumbnailProps) {
+export function ContentThumbnail({ item, compact = false, onClick }: ContentThumbnailProps) {
   return (
     <div
       className={cn(
         'flex items-center gap-2 rounded p-1 transition-colors hover:bg-muted',
-        compact && 'p-0.5'
+        compact && 'p-0.5',
+        onClick && 'cursor-pointer'
       )}
       style={item.campaignColor ? {
         borderLeft: `2px solid ${item.campaignColor}`,
       } : undefined}
+      onClick={onClick}
     >
       {item.thumbnailUrl && (
         <img
