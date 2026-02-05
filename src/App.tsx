@@ -34,6 +34,10 @@ import Calendar from "./pages/Calendar";
 import Mapping from "./pages/Mapping";
 import Research from "./pages/Research";
 import SuperiorReport from "./pages/SuperiorReport";
+import SocialMedia from "./pages/SocialMedia";
+import ContentCalendar from "./pages/social-media/ContentCalendar";
+import SMCampaigns from "./pages/social-media/Campaigns";
+import SMAssetLibrary from "./pages/social-media/AssetLibrary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,6 +81,11 @@ const App = () => (
               <Route path="/research" element={<ProtectedRoute><Research /></ProtectedRoute>} />
               <Route path="/superior/reports/:token" element={<SuperiorReport />} />
               <Route path="/install" element={<Install />} />
+              <Route path="/social-media" element={<ProtectedRoute><SocialMedia /></ProtectedRoute>}>
+                <Route index element={<ContentCalendar />} />
+                <Route path="campaigns" element={<SMCampaigns />} />
+                <Route path="assets" element={<SMAssetLibrary />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
               </Routes>
             </ViewModeProvider>

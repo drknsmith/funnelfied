@@ -23,3 +23,7 @@ export function canUseProposalCreator(workspaceId?: string | null): boolean {
 export function canUseResearch(workspaceId?: string | null): boolean {
   return isSuperiorWorkspace(workspaceId);
 }
+
+export function canUseSocialMedia(workspaceId?: string | null): boolean {
+  return isTreneurWorkspace(workspaceId);
+}

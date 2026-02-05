@@ -1005,6 +1005,266 @@ export type Database = {
           },
         ]
       }
+      sm_assets: {
+        Row: {
+          asset_type: string
+          created_at: string
+          created_by: string | null
+          file_url: string
+          id: string
+          notes: string | null
+          tags: string[] | null
+          thumbnail_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string
+          created_by?: string | null
+          file_url: string
+          id?: string
+          notes?: string | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          created_by?: string | null
+          file_url?: string
+          id?: string
+          notes?: string | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sm_campaigns: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          default_cta_style: string | null
+          description_brief: string | null
+          do_dont_guidance: string | null
+          id: string
+          is_active: boolean
+          keyword_tags: string[] | null
+          name: string
+          platforms: string[]
+          recurrence_rule: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          default_cta_style?: string | null
+          description_brief?: string | null
+          do_dont_guidance?: string | null
+          id?: string
+          is_active?: boolean
+          keyword_tags?: string[] | null
+          name: string
+          platforms?: string[]
+          recurrence_rule?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          default_cta_style?: string | null
+          description_brief?: string | null
+          do_dont_guidance?: string | null
+          id?: string
+          is_active?: boolean
+          keyword_tags?: string[] | null
+          name?: string
+          platforms?: string[]
+          recurrence_rule?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_campaigns_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sm_content_assets: {
+        Row: {
+          asset_id: string
+          content_item_id: string
+          display_order: number
+          id: string
+        }
+        Insert: {
+          asset_id: string
+          content_item_id: string
+          display_order?: number
+          id?: string
+        }
+        Update: {
+          asset_id?: string
+          content_item_id?: string
+          display_order?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_content_assets_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "sm_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_content_assets_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "sm_content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sm_content_items: {
+        Row: {
+          campaign_id: string | null
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          hashtags_saved: string[] | null
+          hashtags_suggested: string[] | null
+          id: string
+          override_date: string | null
+          platform: string
+          schedule_slot_id: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          hashtags_saved?: string[] | null
+          hashtags_suggested?: string[] | null
+          id?: string
+          override_date?: string | null
+          platform: string
+          schedule_slot_id?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          hashtags_saved?: string[] | null
+          hashtags_suggested?: string[] | null
+          id?: string
+          override_date?: string | null
+          platform?: string
+          schedule_slot_id?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_content_items_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "sm_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_content_items_schedule_slot_id_fkey"
+            columns: ["schedule_slot_id"]
+            isOneToOne: false
+            referencedRelation: "sm_schedule_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_content_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sm_schedule_slots: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          id: string
+          platform: string
+          scheduled_date: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          platform: string
+          scheduled_date: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          platform?: string
+          scheduled_date?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_schedule_slots_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "sm_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_schedule_slots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       super_admin_workspace_overrides: {
         Row: {
           active_workspace_id: string
