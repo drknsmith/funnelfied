@@ -25,11 +25,11 @@ export interface SMAsset {
 }
 
 export function useSMAssets() {
-  const { profile } = useAuth();
+  const { workspaceId, profile, user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['sm-assets', profile?.workspace_id],
+    queryKey: ['sm-assets', workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sm_assets')
@@ -81,7 +81,7 @@ export function useSMAssets() {
         } as SMAsset;
       });
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const uploadMutation = useMutation({
@@ -93,7 +93,7 @@ export function useSMAssets() {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${profile!.workspace_id}/${fileName}`;
+      const filePath = `${workspaceId}/${fileName}`;
       
       const { error: uploadError } = await supabase.storage
         .from('sm-assets')
@@ -110,11 +110,11 @@ export function useSMAssets() {
       const { data, error } = await supabase
         .from('sm_assets')
         .insert({
-          workspace_id: profile!.workspace_id,
+          workspace_id: workspaceId!,
           asset_type: assetType,
           file_url: urlData.publicUrl,
           thumbnail_url: isVideo ? null : urlData.publicUrl, // For images, thumbnail is same as file
-          created_by: profile!.user_id,
+          created_by: profile?.user_id ?? user?.id ?? null,
         })
         .select()
         .single();
@@ -126,9 +126,13 @@ export function useSMAssets() {
       queryClient.invalidateQueries({ queryKey: ['sm-assets'] });
       toast.success('Asset uploaded');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error uploading asset:', error);
-      toast.error('Failed to upload asset');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to upload asset');
+      }
     },
   });
 
@@ -152,9 +156,13 @@ export function useSMAssets() {
       queryClient.invalidateQueries({ queryKey: ['sm-assets'] });
       toast.success('Asset updated');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating asset:', error);
-      toast.error('Failed to update asset');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to update asset');
+      }
     },
   });
 
@@ -180,9 +188,13 @@ export function useSMAssets() {
       queryClient.invalidateQueries({ queryKey: ['sm-assets'] });
       toast.success('Asset deleted');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting asset:', error);
-      toast.error('Failed to delete asset');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to delete asset');
+      }
     },
   });
 

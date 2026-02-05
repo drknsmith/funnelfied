@@ -34,11 +34,11 @@ export interface CreateCampaignInput {
 }
 
 export function useSMCampaigns() {
-  const { profile } = useAuth();
+  const { workspaceId, profile, user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: campaigns = [], isLoading } = useQuery({
-    queryKey: ['sm-campaigns', profile?.workspace_id],
+    queryKey: ['sm-campaigns', workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sm_campaigns')
@@ -54,7 +54,7 @@ export function useSMCampaigns() {
         keyword_tags: c.keyword_tags || [],
       })) as SMCampaign[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createMutation = useMutation({
@@ -62,7 +62,7 @@ export function useSMCampaigns() {
       const { data, error } = await supabase
         .from('sm_campaigns')
         .insert({
-          workspace_id: profile!.workspace_id,
+          workspace_id: workspaceId!,
           name: input.name,
           color: input.color,
           description_brief: input.description_brief || null,
@@ -72,7 +72,7 @@ export function useSMCampaigns() {
           default_cta_style: input.default_cta_style || null,
           keyword_tags: input.keyword_tags || [],
           is_active: input.is_active ?? true,
-          created_by: profile!.user_id,
+          created_by: profile?.user_id ?? user?.id ?? null,
         })
         .select()
         .single();
@@ -84,9 +84,13 @@ export function useSMCampaigns() {
       queryClient.invalidateQueries({ queryKey: ['sm-campaigns'] });
       toast.success('Campaign created');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating campaign:', error);
-      toast.error('Failed to create campaign');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to create campaign');
+      }
     },
   });
 
@@ -117,9 +121,13 @@ export function useSMCampaigns() {
       queryClient.invalidateQueries({ queryKey: ['sm-campaigns'] });
       toast.success('Campaign updated');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating campaign:', error);
-      toast.error('Failed to update campaign');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to update campaign');
+      }
     },
   });
 
@@ -136,9 +144,13 @@ export function useSMCampaigns() {
       queryClient.invalidateQueries({ queryKey: ['sm-campaigns'] });
       toast.success('Campaign deleted');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting campaign:', error);
-      toast.error('Failed to delete campaign');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to delete campaign');
+      }
     },
   });
 
@@ -154,9 +166,13 @@ export function useSMCampaigns() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sm-campaigns'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error toggling campaign:', error);
-      toast.error('Failed to update campaign');
+      if (error?.message?.includes('row level security')) {
+        toast.error('Permission/workspace mismatch. Refresh and try again.');
+      } else {
+        toast.error('Failed to update campaign');
+      }
     },
   });
 

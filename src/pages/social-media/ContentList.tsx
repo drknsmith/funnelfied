@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { format, parseISO, isAfter, isBefore, startOfToday } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -10,10 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Plus } from 'lucide-react';
 import { useSMContentItems } from '@/hooks/useSMContentItems';
 import { useSMCampaigns } from '@/hooks/useSMCampaigns';
 import { SM_PLATFORMS, type SMPlatform } from '@/lib/socialMediaConstants';
+import { AddContentDialog } from '@/components/social-media/AddContentDialog';
 
 interface ContentWithStats {
   id: string;
@@ -31,6 +33,7 @@ interface ContentWithStats {
 export default function ContentList() {
   const { contentItems, isLoading: contentLoading } = useSMContentItems();
   const { campaigns, isLoading: campaignsLoading } = useSMCampaigns();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const contentWithStats = useMemo(() => {
     const today = startOfToday();
@@ -108,20 +111,28 @@ export default function ContentList() {
     <div className="p-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Content Overview
-          </CardTitle>
-          <CardDescription>
-            All scheduled content with posting frequency and dates
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Content Overview
+              </CardTitle>
+              <CardDescription>
+                All scheduled content with posting frequency and dates
+              </CardDescription>
+            </div>
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Content
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {contentWithStats.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No content items yet</p>
-              <p className="text-sm">Create content from the Content Calendar</p>
+              <p className="text-sm">Click "Add Content" to get started</p>
             </div>
           ) : (
             <Table>
@@ -202,6 +213,12 @@ export default function ContentList() {
           )}
         </CardContent>
       </Card>
+
+      <AddContentDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        campaigns={campaigns}
+      />
     </div>
   );
 }
