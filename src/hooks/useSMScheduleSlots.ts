@@ -3,7 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { SMPlatform, SlotStatus, RecurrenceRule } from '@/lib/socialMediaConstants';
-import { addDays, addWeeks, startOfWeek, format } from 'date-fns';
+import { addDays, addWeeks, startOfWeek } from 'date-fns';
+
+/**
+ * Format a Date object to YYYY-MM-DD string using local time components.
+ * This avoids timezone issues that occur with toISOString() or date-fns format().
+ */
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export interface SMScheduleSlot {
   id: string;
@@ -167,7 +178,7 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
       
       if (shouldSchedule) {
         const slotDate = addDays(addWeeks(weekStart, week), recurrenceRule.day_of_week);
-        const dateStr = format(slotDate, 'yyyy-MM-dd');
+        const dateStr = toLocalDateString(slotDate);
         
         // Create a slot for each platform
         for (const platform of platforms) {

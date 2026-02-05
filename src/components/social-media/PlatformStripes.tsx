@@ -27,6 +27,7 @@ export function PlatformStripes({
     <div className={cn('space-y-1', compact && 'space-y-0.5')}>
       {platformsToShow.map((platform) => {
         const platformData = dayData?.platforms[platform];
+        const hasSlot = platformData?.hasSlot || false;
         const hasContent = platformData?.hasContent || false;
         const campaignColor = platformData?.campaignColor;
         const campaignName = platformData?.campaignName;
@@ -44,19 +45,27 @@ export function PlatformStripes({
         const platformConfig = SM_PLATFORMS.find(p => p.value === platform);
         const Icon = platformConfig?.icon;
 
+        // Styling logic:
+        // - hasContent = full campaign color (80% opacity)
+        // - hasSlot but !hasContent = muted color (20% opacity) with dashed border
+        // - !hasSlot = dashed border only (empty)
         const stripe = (
           <div
             className={cn(
               'flex items-center gap-1 rounded px-1 transition-all',
               compact ? 'h-4' : 'h-5',
-              hasContent
-                ? 'cursor-pointer'
-                : 'border border-dashed border-muted-foreground/30 bg-transparent',
+              hasSlot && !hasContent && 'border border-dashed', // Slot only - dashed border
+              (hasSlot || hasContent) && 'cursor-pointer',
+              !hasSlot && !hasContent && 'border border-dashed border-muted-foreground/30',
               onStripeClick && 'hover:ring-1 hover:ring-primary/50'
             )}
-            style={hasContent && campaignColor ? {
-              backgroundColor: `${campaignColor}CC`, // 80% opacity
-            } : undefined}
+            style={
+              hasContent && campaignColor
+                ? { backgroundColor: `${campaignColor}CC` }  // Full color (80% opacity)
+                : hasSlot && campaignColor
+                  ? { backgroundColor: `${campaignColor}33`, borderColor: campaignColor }  // Muted (20% opacity)
+                  : undefined
+            }
             onClick={(e) => {
               e.stopPropagation();
               onStripeClick?.(platform);
@@ -65,7 +74,7 @@ export function PlatformStripes({
             {Icon && (
               <Icon className={cn(
                 'h-3 w-3',
-                hasContent ? 'text-white' : 'text-muted-foreground/50'
+                hasContent ? 'text-white' : hasSlot ? 'text-foreground/70' : 'text-muted-foreground/50'
               )} />
             )}
             {!compact && hasContent && contentCount > 0 && (
@@ -76,7 +85,7 @@ export function PlatformStripes({
           </div>
         );
 
-        if (hasContent && campaignName) {
+        if ((hasSlot || hasContent) && campaignName) {
           return (
             <Tooltip key={platform}>
               <TooltipTrigger asChild>
@@ -84,7 +93,9 @@ export function PlatformStripes({
               </TooltipTrigger>
               <TooltipContent side="right" className="text-xs">
                 <p className="font-medium">{campaignName}</p>
-                <p className="text-muted-foreground">{contentCount} item(s)</p>
+                <p className="text-muted-foreground">
+                  {hasContent ? `${contentCount} item(s)` : 'Scheduled (no content yet)'}
+                </p>
               </TooltipContent>
             </Tooltip>
           );

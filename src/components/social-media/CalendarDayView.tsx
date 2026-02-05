@@ -55,6 +55,9 @@ export function CalendarDayView({
         const platformConfig = SM_PLATFORMS.find(p => p.value === platform);
         const Icon = platformConfig?.icon;
         const platformContent = dayContent.filter(c => c.platform === platform);
+        const platformData = dayData?.platforms[platform];
+        const hasSlot = platformData?.hasSlot || false;
+        const hasContent = platformContent.length > 0;
 
         return (
           <div key={platform} className="border rounded-lg overflow-hidden">
@@ -69,6 +72,11 @@ export function CalendarDayView({
                 <Badge variant="secondary" className="ml-2">
                   {platformContent.length} item(s)
                 </Badge>
+                {hasSlot && !hasContent && (
+                  <Badge variant="outline" className="ml-1 text-xs">
+                    Scheduled
+                  </Badge>
+                )}
               </div>
               <Button size="sm" variant="outline" onClick={() => onAddContent(platform)}>
                 <Plus className="h-4 w-4 mr-1" />
@@ -80,7 +88,7 @@ export function CalendarDayView({
             <div className="p-4">
               {platformContent.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No content scheduled for this platform
+                  {hasSlot ? 'Slot scheduled - no content added yet' : 'No content scheduled for this platform'}
                 </p>
               ) : (
                 <div className="space-y-4">

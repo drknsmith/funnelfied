@@ -77,6 +77,7 @@ export function CalendarWeekView({
               const dateStr = format(day, 'yyyy-MM-dd');
               const dayData = calendarData[dateStr];
               const platformData = dayData?.platforms[platform];
+              const hasSlot = platformData?.hasSlot || false;
               const dayContent = contentByDate[dateStr]?.filter(c => c.platform === platform) || [];
 
               // Filter by selected campaigns
@@ -92,11 +93,14 @@ export function CalendarWeekView({
                   key={dateStr}
                   className={cn(
                     'min-h-[80px] border-b p-1 cursor-pointer transition-colors hover:bg-muted/50',
-                    hasContent && 'bg-opacity-10'
                   )}
-                  style={hasContent && campaignColor ? {
-                    backgroundColor: `${campaignColor}10`,
-                  } : undefined}
+                  style={
+                    hasContent && campaignColor
+                      ? { backgroundColor: `${campaignColor}20` }  // Full color tint
+                      : hasSlot && campaignColor
+                        ? { backgroundColor: `${campaignColor}08` }  // Very subtle muted tint
+                        : undefined
+                  }
                   onClick={() => onCellClick(dateStr, platform)}
                 >
                   {hasContent ? (
@@ -109,6 +113,10 @@ export function CalendarWeekView({
                           +{filteredContent.length - 2} more
                         </div>
                       )}
+                    </div>
+                  ) : hasSlot ? (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-xs text-muted-foreground italic">Scheduled</div>
                     </div>
                   ) : (
                     <div className="h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">

@@ -7,7 +7,8 @@ export interface CalendarDayData {
   date: string;
   platforms: {
     [key in SMPlatform]: {
-      hasContent: boolean;
+      hasSlot: boolean;        // Slot exists (scheduled placeholder)
+      hasContent: boolean;     // Actual content item linked
       campaignId: string | null;
       campaignColor: string | null;
       campaignName: string | null;
@@ -77,6 +78,7 @@ export function useSMCalendarData(dateRange: { start: string; end: string }) {
       const emptyPlatformData = () => 
         Object.fromEntries(
           PLATFORM_ORDER.map(p => [p, {
+            hasSlot: false,
             hasContent: false,
             campaignId: null,
             campaignColor: null,
@@ -102,7 +104,8 @@ export function useSMCalendarData(dateRange: { start: string; end: string }) {
         const campaign = slot.campaign_id ? campaignMap.get(slot.campaign_id) : null;
         
         dayData.platforms[platform] = {
-          hasContent: true,
+          hasSlot: true,           // Slot exists
+          hasContent: false,       // No content yet (will be updated if content exists)
           campaignId: slot.campaign_id,
           campaignColor: campaign?.color || null,
           campaignName: campaign?.name || null,
@@ -155,7 +158,8 @@ export function useSMCalendarData(dateRange: { start: string; end: string }) {
         const dayData = calendarData.get(effectiveDate)!;
         const platform = item.platform as SMPlatform;
         
-        dayData.platforms[platform].hasContent = true;
+        dayData.platforms[platform].hasSlot = true;    // Mark slot as existing
+        dayData.platforms[platform].hasContent = true; // Actual content exists
         dayData.platforms[platform].contentCount++;
         
         if (campaign && !dayData.platforms[platform].campaignId) {
