@@ -27,7 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trash2, Upload, Image, X } from 'lucide-react';
+import { Loader2, Trash2, Upload, Image, X, Sparkles } from 'lucide-react';
+import { useSMCaptionGenerator } from '@/hooks/useSMCaptionGenerator';
 import { format, parseISO } from 'date-fns';
 import { SM_PLATFORMS, CONTENT_STATUSES, type ContentStatus } from '@/lib/socialMediaConstants';
 import { useSMContentItems, type SMContentItem } from '@/hooks/useSMContentItems';
@@ -54,10 +55,14 @@ export function ContentDetailDrawer({
 }: ContentDetailDrawerProps) {
   const { updateContentItem, deleteContentItem, isUpdating, isDeleting } = useSMContentItems();
   const { assets, uploadAsset, isUploading } = useSMAssets();
+  const { generateCaption, isGenerating } = useSMCaptionGenerator();
   
   const content = contentItems.find(c => c.id === contentId);
   const platformConfig = SM_PLATFORMS.find(p => p.value === content?.platform);
   const Icon = platformConfig?.icon;
+  
+  // Get selected campaign for AI caption generation
+  const selectedCampaign = campaigns.find(c => c.id === campaignId);
   
   // Form state
   const [title, setTitle] = useState('');
@@ -163,7 +168,34 @@ export function ContentDetailDrawer({
 
             {/* Caption */}
             <div className="space-y-2">
-              <Label htmlFor="caption">Caption</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="caption">Caption</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!content) return;
+                    const newCaption = await generateCaption({
+                      platform: content.platform,
+                      title,
+                      campaign: selectedCampaign,
+                    });
+                    if (newCaption) {
+                      setCaption(newCaption);
+                    }
+                  }}
+                  disabled={isGenerating || campaignId === 'none'}
+                  title={campaignId === 'none' ? 'Select a campaign first' : undefined}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-1" />
+                  )}
+                  Generate with AI
+                </Button>
+              </div>
               <Textarea
                 id="caption"
                 placeholder="Write your caption..."
@@ -171,6 +203,11 @@ export function ContentDetailDrawer({
                 onChange={(e) => setCaption(e.target.value)}
                 rows={4}
               />
+              {campaignId === 'none' && (
+                <p className="text-xs text-muted-foreground">
+                  Select a campaign to enable AI caption generation
+                </p>
+              )}
             </div>
 
             {/* Status */}
