@@ -55,10 +55,14 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateSlotInput) => {
+      if (!workspaceId) {
+        throw new Error('Workspace not loaded. Please refresh the page.');
+      }
+      
       const { data, error } = await supabase
         .from('sm_schedule_slots')
         .insert({
-          workspace_id: workspaceId!,
+          workspace_id: workspaceId,
           campaign_id: input.campaign_id || null,
           scheduled_date: input.scheduled_date,
           platform: input.platform,
@@ -146,6 +150,10 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
     recurrenceRule: RecurrenceRule,
     weeksAhead: number = 12
   ) => {
+    if (!workspaceId) {
+      throw new Error('Workspace not loaded. Please refresh the page.');
+    }
+    
     const slots: CreateSlotInput[] = [];
     const today = new Date();
     const weekStart = startOfWeek(today);
@@ -180,7 +188,7 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
         .insert(
           slots.map(s => ({
             ...s,
-            workspace_id: workspaceId!,
+            workspace_id: workspaceId,
           }))
         );
       

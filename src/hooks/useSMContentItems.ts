@@ -82,11 +82,15 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateContentItemInput) => {
+      if (!workspaceId) {
+        throw new Error('Workspace not loaded. Please refresh the page.');
+      }
+      
       // Create content item
       const { data, error } = await supabase
         .from('sm_content_items')
         .insert({
-          workspace_id: workspaceId!,
+          workspace_id: workspaceId,
           schedule_slot_id: input.schedule_slot_id || null,
           campaign_id: input.campaign_id || null,
           platform: input.platform,

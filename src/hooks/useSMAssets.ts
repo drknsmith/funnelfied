@@ -86,6 +86,10 @@ export function useSMAssets() {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!workspaceId) {
+        throw new Error('Workspace not loaded. Please refresh the page.');
+      }
+      
       // Determine asset type
       const isVideo = file.type.startsWith('video/');
       const assetType = isVideo ? 'video' : 'image';
@@ -110,7 +114,7 @@ export function useSMAssets() {
       const { data, error } = await supabase
         .from('sm_assets')
         .insert({
-          workspace_id: workspaceId!,
+          workspace_id: workspaceId,
           asset_type: assetType,
           file_url: urlData.publicUrl,
           thumbnail_url: isVideo ? null : urlData.publicUrl, // For images, thumbnail is same as file
