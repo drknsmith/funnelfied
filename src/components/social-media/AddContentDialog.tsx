@@ -46,9 +46,6 @@ export function AddContentDialog({
   const { assets, uploadAsset, isUploading } = useSMAssets();
   const { generateCaption, isGenerating } = useSMCaptionGenerator();
   
-  // Get selected campaign for AI caption generation
-  const selectedCampaign = campaigns.find(c => c.id === campaignId);
-  
   // Form state
   const [scheduledDate, setScheduledDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [title, setTitle] = useState('');
@@ -57,6 +54,9 @@ export function AddContentDialog({
   const [caption, setCaption] = useState('');
   const [status, setStatus] = useState<ContentStatus>('idea');
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  
+  // Get selected campaign for AI caption generation
+  const selectedCampaign = campaigns.find(c => c.id === campaignId);
   
   // UI state
   const [showAssetUploader, setShowAssetUploader] = useState(false);
