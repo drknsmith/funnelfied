@@ -52,6 +52,16 @@ export function AssetGrid({ assets, onAssetClick }: AssetGridProps) {
             {asset.asset_type}
           </Badge>
 
+          {/* Usage count badge */}
+          {asset.usage_count > 0 && (
+            <Badge
+              variant="default"
+              className="absolute top-2 right-2 text-xs"
+            >
+              Used {asset.usage_count}x
+            </Badge>
+          )}
+
           {/* Hover overlay */}
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
             <div className="p-2 w-full">

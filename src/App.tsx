@@ -37,6 +37,7 @@ import SuperiorReport from "./pages/SuperiorReport";
 import SocialMedia from "./pages/SocialMedia";
 import ContentCalendar from "./pages/social-media/ContentCalendar";
 import SMCampaigns from "./pages/social-media/Campaigns";
+import SMContentList from "./pages/social-media/ContentList";
 import SMAssetLibrary from "./pages/social-media/AssetLibrary";
 import NotFound from "./pages/NotFound";
 
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="/social-media" element={<ProtectedRoute><SocialMedia /></ProtectedRoute>}>
                 <Route index element={<ContentCalendar />} />
                 <Route path="campaigns" element={<SMCampaigns />} />
+                <Route path="content" element={<SMContentList />} />
                 <Route path="assets" element={<SMAssetLibrary />} />
               </Route>
               <Route path="*" element={<NotFound />} />

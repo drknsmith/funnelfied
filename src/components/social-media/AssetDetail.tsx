@@ -11,11 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Image, Video, X } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Trash2, Image, Video } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useState, useEffect } from 'react';
 import type { SMAsset } from '@/hooks/useSMAssets';
 import { useSMAssets } from '@/hooks/useSMAssets';
+import { SM_PLATFORMS } from '@/lib/socialMediaConstants';
 
 interface AssetDetailProps {
   asset: SMAsset | null;
@@ -53,6 +55,14 @@ export function AssetDetail({ asset, onClose, onDelete }: AssetDetailProps) {
 
   const isVideo = asset.asset_type === 'video';
 
+  const getPlatformIcon = (platformValue: string | null) => {
+    if (!platformValue) return null;
+    const platform = SM_PLATFORMS.find(p => p.value === platformValue);
+    if (!platform) return null;
+    const Icon = platform.icon;
+    return <Icon className="h-4 w-4" style={{ color: platform.color }} />;
+  };
+
   return (
     <Dialog open={!!asset} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-xl">
@@ -89,7 +99,32 @@ export function AssetDetail({ asset, onClose, onDelete }: AssetDetailProps) {
             <Badge variant="secondary" className="capitalize">
               {asset.asset_type}
             </Badge>
+            {asset.usage_count > 0 && (
+              <Badge variant="outline">Used {asset.usage_count}x</Badge>
+            )}
           </div>
+
+          {/* Usage History */}
+          {asset.usage_details && asset.usage_details.length > 0 && (
+            <div className="space-y-2">
+              <Separator />
+              <Label>Used In ({asset.usage_details.length})</Label>
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {asset.usage_details.map((usage, idx) => (
+                  <div key={idx} className="text-sm flex items-center gap-2 p-2 bg-muted rounded">
+                    {getPlatformIcon(usage.platform)}
+                    <span className="flex-1 truncate">
+                      {usage.title || <span className="text-muted-foreground italic">Untitled</span>}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {usage.date ? format(parseISO(usage.date), 'MMM d, yyyy') : 'No date'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+            </div>
+          )}
 
           {/* Tags */}
           <div className="space-y-2">

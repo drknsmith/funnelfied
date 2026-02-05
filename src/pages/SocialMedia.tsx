@@ -2,12 +2,13 @@ import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { canUseSocialMedia } from '@/lib/workspaceFeatures';
 import AppLayout from '@/components/layout/AppLayout';
-import { CalendarDays, Megaphone, ImageIcon } from 'lucide-react';
+import { CalendarDays, Megaphone, ImageIcon, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
   { to: '/social-media', label: 'Content Calendar', icon: CalendarDays, exact: true },
   { to: '/social-media/campaigns', label: 'Campaigns', icon: Megaphone },
+  { to: '/social-media/content', label: 'Content', icon: FileText },
   { to: '/social-media/assets', label: 'Asset Library', icon: ImageIcon },
 ];
 
