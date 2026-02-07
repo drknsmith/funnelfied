@@ -96,9 +96,9 @@ export function CalendarWeekView({
                   )}
                   style={
                     hasContent && campaignColor
-                      ? { backgroundColor: `${campaignColor}20` }  // Full color tint
+                      ? { backgroundColor: `${campaignColor}40` }  // 25% opacity - visible color
                       : hasSlot && campaignColor
-                        ? { backgroundColor: `${campaignColor}08` }  // Very subtle muted tint
+                        ? { backgroundColor: `${campaignColor}18` }  // 9% opacity - muted but visible
                         : undefined
                   }
                   onClick={() => onCellClick(dateStr, platform)}
