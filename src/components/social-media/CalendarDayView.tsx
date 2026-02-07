@@ -59,12 +59,24 @@ export function CalendarDayView({
         const hasSlot = platformData?.hasSlot || false;
         const hasContent = platformContent.length > 0;
 
+        const campaignColor = platformData?.campaignColor;
+        
         return (
-          <div key={platform} className="border rounded-lg overflow-hidden">
+          <div 
+            key={platform} 
+            className="border rounded-lg overflow-hidden"
+            style={
+              hasContent && campaignColor
+                ? { backgroundColor: `${campaignColor}15` }
+                : hasSlot && campaignColor
+                  ? { backgroundColor: `${campaignColor}08` }
+                  : undefined
+            }
+          >
             {/* Platform header */}
             <div
-              className="flex items-center justify-between p-3 bg-muted"
-              style={{ borderLeft: `4px solid ${platformConfig?.color}` }}
+              className="flex items-center justify-between p-3 bg-muted/80"
+              style={{ borderLeft: `4px solid ${campaignColor || platformConfig?.color}` }}
             >
               <div className="flex items-center gap-2">
                 {Icon && <Icon className="h-5 w-5" style={{ color: platformConfig?.color }} />}
@@ -72,7 +84,19 @@ export function CalendarDayView({
                 <Badge variant="secondary" className="ml-2">
                   {platformContent.length} item(s)
                 </Badge>
-                {hasSlot && !hasContent && (
+                {platformData?.campaignName && (
+                  <Badge 
+                    variant="outline" 
+                    className="ml-1 text-xs"
+                    style={{ 
+                      backgroundColor: `${campaignColor}20`,
+                      borderColor: campaignColor,
+                    }}
+                  >
+                    {platformData.campaignName}
+                  </Badge>
+                )}
+                {hasSlot && !hasContent && !platformData?.campaignName && (
                   <Badge variant="outline" className="ml-1 text-xs">
                     Scheduled
                   </Badge>
