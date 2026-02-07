@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { SM_PLATFORMS, DAYS_OF_WEEK, RECURRENCE_FREQUENCIES, type SMPlatform, type RecurrenceFrequency, type RecurrenceRule } from '@/lib/socialMediaConstants';
+import { SM_PLATFORMS, DAYS_OF_WEEK, RECURRENCE_FREQUENCIES, WEEKS_OF_MONTH, type SMPlatform, type RecurrenceFrequency, type RecurrenceRule } from '@/lib/socialMediaConstants';
 import { useSMCampaigns, type SMCampaign, type CreateCampaignInput } from '@/hooks/useSMCampaigns';
 import { useSMScheduleSlots } from '@/hooks/useSMScheduleSlots';
 
@@ -51,6 +51,7 @@ export function CampaignForm({ open, onOpenChange, campaign }: CampaignFormProps
   const [platforms, setPlatforms] = useState<SMPlatform[]>([]);
   const [frequency, setFrequency] = useState<RecurrenceFrequency>('weekly');
   const [dayOfWeek, setDayOfWeek] = useState(1); // Monday
+  const [weekOfMonth, setWeekOfMonth] = useState(1); // Week 1 for monthly
   const [doDontGuidance, setDoDontGuidance] = useState('');
   const [defaultCtaStyle, setDefaultCtaStyle] = useState('');
   const [keywordTags, setKeywordTags] = useState('');
@@ -66,6 +67,7 @@ export function CampaignForm({ open, onOpenChange, campaign }: CampaignFormProps
       setPlatforms(campaign.platforms);
       setFrequency(campaign.recurrence_rule.frequency);
       setDayOfWeek(campaign.recurrence_rule.day_of_week);
+      setWeekOfMonth(campaign.recurrence_rule.week_of_month || 1);
       setDoDontGuidance(campaign.do_dont_guidance || '');
       setDefaultCtaStyle(campaign.default_cta_style || '');
       setKeywordTags(campaign.keyword_tags.join(', '));
@@ -76,6 +78,7 @@ export function CampaignForm({ open, onOpenChange, campaign }: CampaignFormProps
       setPlatforms([]);
       setFrequency('weekly');
       setDayOfWeek(1);
+      setWeekOfMonth(1);
       setDoDontGuidance('');
       setDefaultCtaStyle('');
       setKeywordTags('');
@@ -96,6 +99,7 @@ export function CampaignForm({ open, onOpenChange, campaign }: CampaignFormProps
     const recurrenceRule: RecurrenceRule = {
       frequency,
       day_of_week: dayOfWeek,
+      ...(frequency === 'monthly' && { week_of_month: weekOfMonth }),
     };
 
     const data: CreateCampaignInput = {
@@ -191,8 +195,8 @@ export function CampaignForm({ open, onOpenChange, campaign }: CampaignFormProps
             </div>
           </div>
 
-          {/* Frequency */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Frequency & Schedule */}
+          <div className={`grid gap-4 ${frequency === 'monthly' ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <div className="space-y-2">
               <Label htmlFor="frequency">Frequency</Label>
               <Select value={frequency} onValueChange={(v) => setFrequency(v as RecurrenceFrequency)}>
@@ -209,8 +213,30 @@ export function CampaignForm({ open, onOpenChange, campaign }: CampaignFormProps
               </Select>
             </div>
 
+            {/* Week of Month - only shown for monthly frequency */}
+            {frequency === 'monthly' && (
+              <div className="space-y-2">
+                <Label htmlFor="weekOfMonth">Week</Label>
+                <Select
+                  value={String(weekOfMonth)}
+                  onValueChange={(v) => setWeekOfMonth(parseInt(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WEEKS_OF_MONTH.map((w) => (
+                      <SelectItem key={w.value} value={String(w.value)}>
+                        {w.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="dayOfWeek">Default Day</Label>
+              <Label htmlFor="dayOfWeek">Day</Label>
               <Select
                 value={String(dayOfWeek)}
                 onValueChange={(v) => setDayOfWeek(parseInt(v))}

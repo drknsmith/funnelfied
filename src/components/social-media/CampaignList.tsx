@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useState } from 'react';
-import { SM_PLATFORMS, DAYS_OF_WEEK } from '@/lib/socialMediaConstants';
+import { SM_PLATFORMS, DAYS_OF_WEEK, WEEKS_OF_MONTH } from '@/lib/socialMediaConstants';
 import type { SMCampaign } from '@/hooks/useSMCampaigns';
 
 interface CampaignListProps {
@@ -114,7 +114,14 @@ export function CampaignList({ campaigns, onEdit, onDelete, onToggleActive }: Ca
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {dayOfWeek?.label || '-'}
+                  {recurrence.frequency === 'monthly' ? (
+                    <>
+                      {WEEKS_OF_MONTH.find(w => w.value === recurrence.week_of_month)?.label.split(' ')[0] || 'Week 1'},{' '}
+                      {dayOfWeek?.label || '-'}
+                    </>
+                  ) : (
+                    dayOfWeek?.label || '-'
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">

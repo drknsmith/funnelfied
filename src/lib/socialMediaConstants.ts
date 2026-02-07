@@ -18,12 +18,20 @@ export type ContentStatus = typeof CONTENT_STATUSES[number];
 export const SLOT_STATUSES = ['planned', 'ready', 'published', 'skipped'] as const;
 export type SlotStatus = typeof SLOT_STATUSES[number];
 
-export const RECURRENCE_FREQUENCIES = ['weekly', 'biweekly', 'custom'] as const;
+export const RECURRENCE_FREQUENCIES = ['weekly', 'biweekly', 'monthly', 'custom'] as const;
 export type RecurrenceFrequency = typeof RECURRENCE_FREQUENCIES[number];
+
+export const WEEKS_OF_MONTH = [
+  { value: 1, label: 'Week 1 (1st-7th)' },
+  { value: 2, label: 'Week 2 (8th-14th)' },
+  { value: 3, label: 'Week 3 (15th-21st)' },
+  { value: 4, label: 'Week 4 (22nd-28th)' },
+] as const;
 
 export interface RecurrenceRule {
   frequency: RecurrenceFrequency;
   day_of_week: number; // 0-6, Sunday-Saturday
+  week_of_month?: number; // 1-4 for monthly frequency
   custom_days?: number[]; // For custom frequency
 }
 
