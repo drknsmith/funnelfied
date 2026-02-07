@@ -16,6 +16,37 @@ function toLocalDateString(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Get the Nth occurrence of a specific weekday in a month.
+ * For example: 2nd Thursday of January 2024.
+ */
+function getNthWeekdayOfMonth(
+  baseDate: Date,
+  monthOffset: number,
+  dayOfWeek: number,  // 0-6 (Sun-Sat)
+  weekOfMonth: number // 1-4
+): Date | null {
+  // Get the first day of the target month
+  const targetMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + monthOffset, 1);
+  
+  // Find first occurrence of the target day of week in that month
+  let firstOccurrence = new Date(targetMonth);
+  while (firstOccurrence.getDay() !== dayOfWeek) {
+    firstOccurrence.setDate(firstOccurrence.getDate() + 1);
+  }
+  
+  // Add weeks to get to the Nth occurrence
+  const targetDate = new Date(firstOccurrence);
+  targetDate.setDate(targetDate.getDate() + (weekOfMonth - 1) * 7);
+  
+  // Verify it's still in the same month (Week 4 might overflow in short months)
+  if (targetDate.getMonth() !== targetMonth.getMonth()) {
+    return null;
+  }
+  
+  return targetDate;
+}
+
 export interface SMScheduleSlot {
   id: string;
   workspace_id: string;
@@ -159,7 +190,7 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
     campaignId: string,
     platforms: SMPlatform[],
     recurrenceRule: RecurrenceRule,
-    weeksAhead: number = 12
+    periodsAhead: number = 12
   ) => {
     if (!workspaceId) {
       throw new Error('Workspace not loaded. Please refresh the page.');
@@ -167,27 +198,51 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
     
     const slots: CreateSlotInput[] = [];
     const today = new Date();
-    const weekStart = startOfWeek(today);
     
-    for (let week = 0; week < weeksAhead; week++) {
-      // Determine if this week should have a slot based on frequency
-      const shouldSchedule = 
-        recurrenceRule.frequency === 'weekly' ||
-        (recurrenceRule.frequency === 'biweekly' && week % 2 === 0) ||
-        (recurrenceRule.frequency === 'custom' && recurrenceRule.custom_days?.includes(week));
-      
-      if (shouldSchedule) {
-        const slotDate = addDays(addWeeks(weekStart, week), recurrenceRule.day_of_week);
-        const dateStr = toLocalDateString(slotDate);
+    if (recurrenceRule.frequency === 'monthly') {
+      // Monthly: Find the Nth occurrence of day_of_week in each month
+      for (let monthOffset = 0; monthOffset < periodsAhead; monthOffset++) {
+        const targetDate = getNthWeekdayOfMonth(
+          today,
+          monthOffset,
+          recurrenceRule.day_of_week,
+          recurrenceRule.week_of_month || 1
+        );
         
-        // Create a slot for each platform
-        for (const platform of platforms) {
-          slots.push({
-            campaign_id: campaignId,
-            scheduled_date: dateStr,
-            platform,
-            status: 'planned',
-          });
+        if (targetDate) {
+          const dateStr = toLocalDateString(targetDate);
+          for (const platform of platforms) {
+            slots.push({
+              campaign_id: campaignId,
+              scheduled_date: dateStr,
+              platform,
+              status: 'planned',
+            });
+          }
+        }
+      }
+    } else {
+      // Weekly, biweekly, or custom
+      const weekStart = startOfWeek(today);
+      
+      for (let week = 0; week < periodsAhead; week++) {
+        const shouldSchedule = 
+          recurrenceRule.frequency === 'weekly' ||
+          (recurrenceRule.frequency === 'biweekly' && week % 2 === 0) ||
+          (recurrenceRule.frequency === 'custom' && recurrenceRule.custom_days?.includes(week));
+        
+        if (shouldSchedule) {
+          const slotDate = addDays(addWeeks(weekStart, week), recurrenceRule.day_of_week);
+          const dateStr = toLocalDateString(slotDate);
+          
+          for (const platform of platforms) {
+            slots.push({
+              campaign_id: campaignId,
+              scheduled_date: dateStr,
+              platform,
+              status: 'planned',
+            });
+          }
         }
       }
     }
