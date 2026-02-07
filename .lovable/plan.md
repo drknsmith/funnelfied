@@ -1,202 +1,98 @@
 
 
-# Add Monthly Frequency to Campaign Scheduling
+# Ensure Monthly Campaign Colors Display Correctly on All Calendar Views
 
-## Overview
+## Analysis
 
-Add a "Monthly" frequency option that allows users to specify:
-1. **Which week of the month** (Week 1, 2, 3, or 4)
-2. **Which day of the week** (Sunday through Saturday)
+After reviewing the code, the monthly frequency logic is correctly implemented. The system already:
+1. Creates schedule slots via `generateSlotsForCampaign` with `campaign_id` attached
+2. Fetches slots in `useSMCalendarData` and maps `campaignColor` from the campaign
+3. Applies color styling in each view component
 
-This enables scheduling like "First Monday of every month" or "Third Friday of every month".
+The monthly slots will display with the same color treatment as weekly/biweekly campaigns because they all use the same `campaign_id` → `campaignColor` mapping.
+
+However, there are **visual consistency issues** across views that should be addressed:
+
+| View | Content Color | Slot-Only Color | Issue |
+|------|--------------|-----------------|-------|
+| Month (PlatformStripes) | 80% opacity (`CC`) | 20% opacity (`33`) | Good contrast |
+| Week | 12% opacity (`20`) | 3% opacity (`08`) | Very subtle - hard to see |
+| Day | No background | No background | No campaign color on sections |
 
 ---
 
-## Current State
+## Solution: Improve Color Consistency Across All Views
 
-**Constants (`socialMediaConstants.ts`):**
-```tsx
-RECURRENCE_FREQUENCIES = ['weekly', 'biweekly', 'custom']
-```
+### 1. Week View - Increase Color Opacity
 
-**RecurrenceRule Interface:**
+**File: `src/components/social-media/CalendarWeekView.tsx`**
+
+Change the opacity values to match the month view for better visibility:
+
 ```tsx
-interface RecurrenceRule {
-  frequency: RecurrenceFrequency;
-  day_of_week: number;      // 0-6 (Sun-Sat)
-  custom_days?: number[];   // For custom frequency
+// Line 97-102: Current subtle colors
+style={
+  hasContent && campaignColor
+    ? { backgroundColor: `${campaignColor}20` }  // Too subtle
+    : hasSlot && campaignColor
+      ? { backgroundColor: `${campaignColor}08` }  // Barely visible
+      : undefined
+}
+
+// Change to:
+style={
+  hasContent && campaignColor
+    ? { backgroundColor: `${campaignColor}40` }  // 25% opacity - more visible
+    : hasSlot && campaignColor
+      ? { backgroundColor: `${campaignColor}18` }  // 9% opacity - visible muted
+      : undefined
 }
 ```
 
-**Database:** `recurrence_rule` is stored as JSONB, so no migration needed - just extend the TypeScript interface.
+### 2. Day View - Add Campaign Color to Section Headers
 
----
+**File: `src/components/social-media/CalendarDayView.tsx`**
 
-## Solution
-
-### 1. Update Constants
-
-**File: `src/lib/socialMediaConstants.ts`**
-
-Add 'monthly' to frequencies and add week_of_month options:
+Add campaign color background to each platform section when a slot/content exists:
 
 ```tsx
-export const RECURRENCE_FREQUENCIES = ['weekly', 'biweekly', 'monthly', 'custom'] as const;
-
-export const WEEKS_OF_MONTH = [
-  { value: 1, label: 'Week 1 (1st-7th)' },
-  { value: 2, label: 'Week 2 (8th-14th)' },
-  { value: 3, label: 'Week 3 (15th-21st)' },
-  { value: 4, label: 'Week 4 (22nd-28th)' },
-] as const;
-
-export interface RecurrenceRule {
-  frequency: RecurrenceFrequency;
-  day_of_week: number;        // 0-6 (Sun-Sat)
-  week_of_month?: number;     // 1-4 for monthly frequency
-  custom_days?: number[];     // For custom frequency
-}
-```
-
----
-
-### 2. Update Campaign Form
-
-**File: `src/components/social-media/CampaignForm.tsx`**
-
-Add week selector that appears when "Monthly" is selected:
-
-```tsx
-// Add state
-const [weekOfMonth, setWeekOfMonth] = useState(1);
-
-// In useEffect when loading campaign
-if (campaign?.recurrence_rule.week_of_month) {
-  setWeekOfMonth(campaign.recurrence_rule.week_of_month);
-}
-
-// Conditionally show week picker when monthly is selected
-{frequency === 'monthly' && (
-  <div className="space-y-2">
-    <Label>Week of Month</Label>
-    <Select value={String(weekOfMonth)} onValueChange={(v) => setWeekOfMonth(parseInt(v))}>
-      <SelectTrigger>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {WEEKS_OF_MONTH.map((w) => (
-          <SelectItem key={w.value} value={String(w.value)}>
-            {w.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-)}
-
-// Update recurrence rule creation
-const recurrenceRule: RecurrenceRule = {
-  frequency,
-  day_of_week: dayOfWeek,
-  ...(frequency === 'monthly' && { week_of_month: weekOfMonth }),
-};
-```
-
-**Layout change:** Use a responsive grid that shows:
-- Weekly/Biweekly: Frequency + Day (2 columns)
-- Monthly: Frequency + Week + Day (3 columns or stacked on mobile)
-
----
-
-### 3. Update Slot Generation Logic
-
-**File: `src/hooks/useSMScheduleSlots.ts`**
-
-Modify `generateSlotsForCampaign` to handle monthly frequency:
-
-```tsx
-const generateSlotsForCampaign = async (
-  campaignId: string,
-  platforms: SMPlatform[],
-  recurrenceRule: RecurrenceRule,
-  monthsAhead: number = 12  // Generate 12 months of slots
-) => {
-  const slots: CreateSlotInput[] = [];
-  
-  if (recurrenceRule.frequency === 'monthly') {
-    // Monthly: Find the Nth occurrence of day_of_week in each month
-    for (let monthOffset = 0; monthOffset < monthsAhead; monthOffset++) {
-      const targetDate = getNthWeekdayOfMonth(
-        new Date(),
-        monthOffset,
-        recurrenceRule.day_of_week,
-        recurrenceRule.week_of_month || 1
-      );
-      
-      if (targetDate) {
-        const dateStr = toLocalDateString(targetDate);
-        for (const platform of platforms) {
-          slots.push({
-            campaign_id: campaignId,
-            scheduled_date: dateStr,
-            platform,
-            status: 'planned',
-          });
-        }
-      }
-    }
-  } else {
-    // Existing weekly/biweekly logic
-    // ...
+// In the platform section container (around line 63)
+<div 
+  key={platform} 
+  className="border rounded-lg overflow-hidden"
+  style={
+    hasContent && platformData?.campaignColor
+      ? { backgroundColor: `${platformData.campaignColor}15` }  // Light tint for content
+      : hasSlot && platformData?.campaignColor
+        ? { backgroundColor: `${platformData.campaignColor}08` }  // Very subtle for slots
+        : undefined
   }
-};
-
-// Helper function to get Nth weekday of month
-function getNthWeekdayOfMonth(
-  baseDate: Date,
-  monthOffset: number,
-  dayOfWeek: number,  // 0-6
-  weekOfMonth: number // 1-4
-): Date | null {
-  const targetMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + monthOffset, 1);
-  
-  // Find first occurrence of the target day of week
-  let firstOccurrence = new Date(targetMonth);
-  while (firstOccurrence.getDay() !== dayOfWeek) {
-    firstOccurrence.setDate(firstOccurrence.getDate() + 1);
-  }
-  
-  // Add weeks to get to the Nth occurrence
-  const targetDate = new Date(firstOccurrence);
-  targetDate.setDate(targetDate.getDate() + (weekOfMonth - 1) * 7);
-  
-  // Verify it's still in the same month
-  if (targetDate.getMonth() !== targetMonth.getMonth()) {
-    return null; // Week 4 of short months might overflow
-  }
-  
-  return targetDate;
-}
+>
 ```
 
----
-
-### 4. Update Campaign List Display
-
-**File: `src/components/social-media/CampaignList.tsx`**
-
-Show week info for monthly campaigns in the "Default Day" column:
+Also update the header section to show the campaign color more prominently:
 
 ```tsx
-<TableCell>
-  {recurrence.frequency === 'monthly' ? (
-    <>
-      Week {recurrence.week_of_month || 1}, {dayOfWeek?.label || '-'}
-    </>
-  ) : (
-    dayOfWeek?.label || '-'
+// Platform header (around line 65-80)
+<div
+  className="flex items-center justify-between p-3 bg-muted"
+  style={{ 
+    borderLeft: `4px solid ${platformData?.campaignColor || platformConfig?.color}`,
+  }}
+>
+  {/* Show campaign name badge if from campaign */}
+  {platformData?.campaignName && (
+    <Badge 
+      variant="outline" 
+      className="ml-2"
+      style={{ 
+        backgroundColor: `${platformData.campaignColor}20`,
+        borderColor: platformData.campaignColor,
+      }}
+    >
+      {platformData.campaignName}
+    </Badge>
   )}
-</TableCell>
 ```
 
 ---
@@ -205,42 +101,36 @@ Show week info for monthly campaigns in the "Default Day" column:
 
 | File | Changes |
 |------|---------|
-| `src/lib/socialMediaConstants.ts` | Add 'monthly' to frequencies, add `WEEKS_OF_MONTH`, extend `RecurrenceRule` interface |
-| `src/components/social-media/CampaignForm.tsx` | Add week selector UI, handle monthly frequency state |
-| `src/hooks/useSMScheduleSlots.ts` | Add monthly slot generation logic with `getNthWeekdayOfMonth` helper |
-| `src/components/social-media/CampaignList.tsx` | Display week info for monthly campaigns |
+| `src/components/social-media/CalendarWeekView.tsx` | Increase background opacity for better visibility |
+| `src/components/social-media/CalendarDayView.tsx` | Add campaign color backgrounds and enhanced campaign badge |
 
 ---
 
-## User Experience
+## Visual Result
 
-### Create Campaign Flow
-1. User selects "Monthly" from Frequency dropdown
-2. A "Week of Month" selector appears with options:
-   - Week 1 (1st-7th)
-   - Week 2 (8th-14th)
-   - Week 3 (15th-21st)
-   - Week 4 (22nd-28th)
-3. User selects day of week (e.g., "Monday")
-4. Result: "First Monday of every month" schedule
+After these changes, all three views will have consistent campaign color treatment:
 
-### Visual Example
+**Month View:**
+- Stripes colored with campaign color (80% for content, 20% for slots)
 
-```
-Frequency:    [Monthly ▾]
-Week:         [Week 2 (8th-14th) ▾]
-Day:          [Thursday ▾]
+**Week View:**
+- Cell backgrounds tinted with campaign color (25% for content, 9% for slots)
+- More visible than before
 
-→ Creates slots for "Second Thursday of every month"
-```
+**Day View:**
+- Platform section backgrounds tinted with campaign color
+- Campaign name badge with colored border
+- Left border uses campaign color instead of just platform color
 
 ---
 
-## Edge Cases Handled
+## How Monthly Campaigns Will Display
 
-1. **Week 4 overflow**: Some months may not have a 4th occurrence of certain days (e.g., 4th Saturday in February). The helper function returns `null` and skips that month.
+Monthly campaigns created with the new frequency option will appear:
+1. On the exact date calculated (e.g., "2nd Thursday of each month")
+2. With the campaign's chosen color in all three views
+3. With light/faded color when only a slot exists (scheduled placeholder)
+4. With darker/fuller color when actual content is added
 
-2. **Existing campaigns**: The `week_of_month` field is optional, so existing weekly/biweekly campaigns continue working.
-
-3. **Edit mode**: When editing a monthly campaign, the week selector loads the saved `week_of_month` value.
+No changes needed to the slot generation or data fetching logic - it's already working correctly.
 
