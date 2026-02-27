@@ -125,7 +125,7 @@ export default function DealForm() {
 
     if (formData.stage !== 'signal_target') {
       if (!isTreneur && !formData.playbook_id) missing.push({ field: 'playbook_id', label: 'Assigned Playbook' });
-      if (!formData.primary_contact_id) missing.push({ field: 'primary_contact_id', label: 'Primary Stakeholder' });
+      if (!isTreneur && !formData.primary_contact_id) missing.push({ field: 'primary_contact_id', label: 'Primary Stakeholder' });
       // Only validate deal_size_range if shown (not for Treneur)
       if (showDealSizeRange && !formData.deal_size_range) {
         missing.push({ field: 'deal_size_range', label: 'Deal Size Range' });
@@ -314,7 +314,7 @@ export default function DealForm() {
 
                 <div className="space-y-2">
                   <Label>
-                    Primary Stakeholder {formData.stage !== 'signal_target' && '*'}
+                    Primary Stakeholder {!isTreneur && formData.stage !== 'signal_target' && '*'}
                   </Label>
                   <ContactSearchSelect
                     value={formData.primary_contact_id}
