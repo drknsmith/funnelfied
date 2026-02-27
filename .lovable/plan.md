@@ -1,41 +1,30 @@
 
 
-# Add Phone and Email Fields to Accounts
+# Make Primary Stakeholder Optional for Treneur Workspace
 
 ## Overview
 
-Add direct phone number and email address fields to the Account entity, independent of any contact. These fields will appear in both the Create/Edit Account dialog and on the Account Detail page.
+Remove the requirement for a primary stakeholder (contact) when creating or advancing deals in the Treneur workspace. The field remains available but is never mandatory.
 
 ## Changes
 
-### 1. Database Migration
+### 1. DealForm.tsx - Skip primary_contact_id validation for Treneur
 
-Add two new nullable text columns to the `accounts` table:
-- `phone` (text, nullable)
-- `email` (text, nullable)
+**File: `src/pages/DealForm.tsx`**
 
-### 2. Update Account Hook (`src/hooks/useAccounts.ts`)
+- **Line 128**: Wrap the `primary_contact_id` check so it only applies when NOT Treneur:
+  ```
+  if (!isTreneur && !formData.primary_contact_id) missing.push(...)
+  ```
+- **Line 317**: Remove the `*` asterisk from the "Primary Stakeholder" label for Treneur by changing the condition to also check `!isTreneur`
 
-Add `phone` and `email` to the `Account` interface so TypeScript recognizes the new fields.
+### 2. DealFormDialog.tsx - No changes needed
 
-### 3. Update Account Form Dialog (`src/components/accounts/AccountFormDialog.tsx`)
-
-Add phone and email input fields to the form:
-- Email input (type="email") with placeholder
-- Phone input (type="tel") with placeholder
-- Placed in a 2-column grid row after the Location field
-- Include in form state, useEffect sync, and submit handler
-
-### 4. Update Account Detail Page (`src/pages/AccountDetail.tsx`)
-
-Display the phone and email in the "Account Details" card with clickable `mailto:` and `tel:` links, similar to how trainer contact info is displayed.
+The dialog already treats `primary_contact_id` as optional (no Zod required rule, placeholder says "optional"). No changes required here.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| Database migration | Add `phone` and `email` columns to `accounts` |
-| `src/hooks/useAccounts.ts` | Add fields to `Account` interface |
-| `src/components/accounts/AccountFormDialog.tsx` | Add email and phone form inputs |
-| `src/pages/AccountDetail.tsx` | Display email and phone with icons |
+| `src/pages/DealForm.tsx` | Skip `primary_contact_id` validation + remove asterisk for Treneur |
 
