@@ -1,4 +1,4 @@
-import { DEAL_STAGES } from '@/hooks/useDeals';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 
@@ -8,11 +8,12 @@ interface StageTimelineProps {
 }
 
 export default function StageTimeline({ currentStage, onStageClick }: StageTimelineProps) {
-  const currentIndex = DEAL_STAGES.findIndex((s) => s.value === currentStage);
+  const { stages } = usePipelineStages();
+  const currentIndex = stages.findIndex((s) => s.value === currentStage);
 
   return (
     <div className="flex items-center gap-1 overflow-x-auto pb-2">
-      {DEAL_STAGES.map((stage, index) => {
+      {stages.map((stage, index) => {
         const isCompleted = index < currentIndex;
         const isCurrent = index === currentIndex;
         const isFuture = index > currentIndex;
@@ -47,7 +48,7 @@ export default function StageTimeline({ currentStage, onStageClick }: StageTimel
                 {stage.label}
               </span>
             </button>
-            {index < DEAL_STAGES.length - 1 && (
+            {index < stages.length - 1 && (
               <div
                 className={cn(
                   'h-0.5 w-4 transition-colors',

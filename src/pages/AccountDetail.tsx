@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAccount, useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
 import { useDeals } from '@/hooks/useDeals';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { useTrainers, usePullTrainers } from '@/hooks/useTrainers';
 import { useAuth } from '@/contexts/AuthContext';
 import AccountFormDialog from '@/components/accounts/AccountFormDialog';
@@ -24,6 +25,7 @@ export default function AccountDetail() {
   const { data: account, isLoading } = useAccount(id);
   const { contacts } = useContacts(id);
   const { deals } = useDeals();
+  const { stages } = usePipelineStages();
   const { data: trainers, isLoading: trainersLoading } = useTrainers(id);
   const pullTrainers = usePullTrainers();
   const [editOpen, setEditOpen] = useState(false);
@@ -301,21 +303,27 @@ export default function AccountDetail() {
                   <p className="text-muted-foreground">No deals yet</p>
                 ) : (
                   <div className="space-y-3">
-                    {accountDeals.map((deal) => (
-                      <div
-                        key={deal.id}
-                        className="cursor-pointer rounded-lg border border-border p-3 hover:bg-muted/50"
-                        onClick={() => navigate(`/deals/${deal.id}`)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline">{deal.stage.replace('_', ' ')}</Badge>
-                          <span className="text-sm text-muted-foreground">{deal.deal_size_range || '-'}</span>
+                    {accountDeals.map((deal) => {
+                      const stageLabel = stages.find(s => s.value === deal.stage)?.label || deal.stage.replace('_', ' ');
+                      return (
+                        <div
+                          key={deal.id}
+                          className="cursor-pointer rounded-lg border border-border p-3 hover:bg-muted/50"
+                          onClick={() => navigate(`/deals/${deal.id}`)}
+                        >
+                          {deal.deal_name && (
+                            <p className="font-medium text-sm mb-1">{deal.deal_name}</p>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline">{stageLabel}</Badge>
+                            <span className="text-sm text-muted-foreground">{deal.deal_size_range || '-'}</span>
+                          </div>
+                          {deal.next_action && (
+                            <p className="mt-2 text-sm">{deal.next_action}</p>
+                          )}
                         </div>
-                        {deal.next_action && (
-                          <p className="mt-2 text-sm">{deal.next_action}</p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
