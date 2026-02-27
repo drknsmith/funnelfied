@@ -1,39 +1,41 @@
 
 
-# Make Playbook Optional for Treneur Workspace
+# Add Phone and Email Fields to Accounts
 
 ## Overview
 
-In the Treneur workspace, remove the requirement that a playbook must be assigned before advancing a deal to stages beyond "Signal Target." The playbook field will remain available but entirely optional.
+Add direct phone number and email address fields to the Account entity, independent of any contact. These fields will appear in both the Create/Edit Account dialog and on the Account Detail page.
 
 ## Changes
 
-### 1. DealDetail.tsx - Skip playbook modal for Treneur
+### 1. Database Migration
 
-Currently, when moving from `signal_target` to any other stage without a playbook, a modal forces the user to pick one. For Treneur, skip this check and allow direct stage advancement.
+Add two new nullable text columns to the `accounts` table:
+- `phone` (text, nullable)
+- `email` (text, nullable)
 
-- Import `isTreneurWorkspace` and get `workspaceId` from `useAuth()`
-- Modify `handleStageChange`: only show the playbook modal if NOT Treneur workspace
+### 2. Update Account Hook (`src/hooks/useAccounts.ts`)
 
-### 2. DealForm.tsx - Remove playbook from validation for Treneur
+Add `phone` and `email` to the `Account` interface so TypeScript recognizes the new fields.
 
-Currently, `validateStageAdvance()` requires `playbook_id` for any stage past `signal_target`. For Treneur, skip this validation rule.
+### 3. Update Account Form Dialog (`src/components/accounts/AccountFormDialog.tsx`)
 
-- Import `isTreneurWorkspace` and get `workspaceId` from `useAuth()`
-- In `validateStageAdvance()`, wrap the `playbook_id` check: only enforce if NOT Treneur workspace
+Add phone and email input fields to the form:
+- Email input (type="email") with placeholder
+- Phone input (type="tel") with placeholder
+- Placed in a 2-column grid row after the Location field
+- Include in form state, useEffect sync, and submit handler
 
-### 3. PlaybookPanel.tsx - Remove warning banner for Treneur
+### 4. Update Account Detail Page (`src/pages/AccountDetail.tsx`)
 
-Currently shows a red "A playbook is required" warning when no playbook is assigned past Signal Target. For Treneur, hide this warning.
-
-- Import `isTreneurWorkspace` and get `workspaceId` from `useAuth()`
-- Change `needsPlaybook` logic: `const needsPlaybook = !isTreneur && !isSignalTarget && !deal.playbook_id`
+Display the phone and email in the "Account Details" card with clickable `mailto:` and `tel:` links, similar to how trainer contact info is displayed.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/DealDetail.tsx` | Conditionally skip playbook-required modal for Treneur |
-| `src/pages/DealForm.tsx` | Skip `playbook_id` validation for Treneur |
-| `src/components/deals/PlaybookPanel.tsx` | Hide "required" warning for Treneur |
+| Database migration | Add `phone` and `email` columns to `accounts` |
+| `src/hooks/useAccounts.ts` | Add fields to `Account` interface |
+| `src/components/accounts/AccountFormDialog.tsx` | Add email and phone form inputs |
+| `src/pages/AccountDetail.tsx` | Display email and phone with icons |
 
