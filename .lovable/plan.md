@@ -1,37 +1,46 @@
 
-
-# Fix Stage Display on Account Detail Page
+# Fix Stage Consistency Across All Deal Views
 
 ## Problem
 
-1. The **StageTimeline** component (used on the Deal Detail page) uses hardcoded `DEAL_STAGES` from `useDeals.ts` instead of the workspace-specific custom stages from `usePipelineStages`. For Treneur, this shows the wrong 9-stage pipeline.
+Multiple components use the hardcoded `DEAL_STAGES` constant from `useDeals.ts` instead of the dynamic workspace-specific stages from `usePipelineStages()`. This causes Treneur workspace users to see incorrect stage names (e.g., "Signal / Target" instead of "Target Identified") in stage dropdowns and labels throughout the deal UI.
 
-2. The **Account Detail** page shows deal stages as a raw badge with `deal.stage.replace('_', ' ')`, which doesn't match the proper stage labels and doesn't use the custom Treneur pipeline stages.
-
-3. Deals at the first stage (e.g., "Target Identified" for Treneur, or "Signal / Target" for default) may not appear on the main Deals pipeline page if their `stage` value doesn't match any column -- this needs verification, but the fix below ensures consistency.
+The main Deals Pipeline page correctly uses `usePipelineStages()`, but the following pages/components do not.
 
 ## Changes
 
-### 1. Update StageTimeline to use dynamic pipeline stages
+### 1. DealDetail.tsx -- Use dynamic stage label
 
-**File: `src/components/deals/StageTimeline.tsx`**
+**File: `src/pages/DealDetail.tsx`**
 
-- Replace the `DEAL_STAGES` import with `usePipelineStages` hook
-- Use the dynamic `stages` array instead of the hardcoded constant
-- This makes the timeline on the Deal Detail page match the main Deals pipeline page
+- Import `usePipelineStages` hook
+- Call `usePipelineStages()` to get the `stages` array
+- Replace `DEAL_STAGES.find(...)` on line 113 with `stages.find(...)` for the stage label
+- Remove `DEAL_STAGES` from the import if no longer used
 
-### 2. Update Account Detail deal list to show proper stage labels
+### 2. DealForm.tsx -- Use dynamic stages in dropdown and validation modal
 
-**File: `src/pages/AccountDetail.tsx`**
+**File: `src/pages/DealForm.tsx`**
 
-- Import and use `usePipelineStages` hook
-- Replace `deal.stage.replace('_', ' ')` with the proper label from the stages array
-- Also show the deal name as the primary text (currently missing -- only stage badge and size are shown)
+- Import `usePipelineStages` hook
+- Call `usePipelineStages()` to get the `stages` array
+- Replace `DEAL_STAGES.map(...)` in the stage Select dropdown (line 273) with `stages.map(...)`
+- Replace `DEAL_STAGES.find(...)` in the validation modal label (line 710) with `stages.find(...)`
+- Remove `DEAL_STAGES` from the `useDeals` import
+
+### 3. DealFormDialog.tsx -- Use dynamic stages in quick-create dropdown
+
+**File: `src/components/deals/DealFormDialog.tsx`**
+
+- Import `usePipelineStages` hook
+- Call `usePipelineStages()` to get the `stages` array
+- Replace `DEAL_STAGES.map(...)` in the stage Select (line 212) with `stages.map(...)`
+- Remove `DEAL_STAGES` from the `useDeals` import
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/deals/StageTimeline.tsx` | Use `usePipelineStages()` instead of hardcoded `DEAL_STAGES` |
-| `src/pages/AccountDetail.tsx` | Use `usePipelineStages()` for stage labels in deal list |
-
+| `src/pages/DealDetail.tsx` | Use `usePipelineStages()` for stage label |
+| `src/pages/DealForm.tsx` | Use `usePipelineStages()` for stage dropdown and validation modal |
+| `src/components/deals/DealFormDialog.tsx` | Use `usePipelineStages()` for stage dropdown |
