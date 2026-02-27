@@ -32,6 +32,8 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
     buying_motive: '',
     status: 'active',
     expansion_notes: '',
+    email: '',
+    phone: '',
   });
 
   useEffect(() => {
@@ -45,6 +47,8 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
         buying_motive: account.buying_motive || '',
         status: account.status,
         expansion_notes: account.expansion_notes || '',
+        email: (account as any).email || '',
+        phone: (account as any).phone || '',
       });
     } else {
       setFormData({
@@ -56,6 +60,8 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
         buying_motive: '',
         status: 'active',
         expansion_notes: '',
+        email: '',
+        phone: '',
       });
     }
   }, [account, open]);
@@ -72,6 +78,8 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
       buying_motive: formData.buying_motive || null,
       status: formData.status,
       expansion_notes: formData.expansion_notes || null,
+      email: formData.email || null,
+      phone: formData.phone || null,
     };
 
     if (isEdit && account) {
@@ -112,6 +120,29 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               placeholder="City, State (e.g., Atlanta, GA)"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="info@company.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="(555) 123-4567"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

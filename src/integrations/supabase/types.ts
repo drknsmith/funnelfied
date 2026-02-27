@@ -19,6 +19,7 @@ export type Database = {
           buying_motive: string | null
           created_at: string
           deal_type_default: string | null
+          email: string | null
           expansion_notes: string | null
           health_score: number | null
           id: string
@@ -27,6 +28,7 @@ export type Database = {
           location: string | null
           name: string
           owner_user_id: string | null
+          phone: string | null
           portfolio_size: string
           segment: string | null
           status: string
@@ -37,6 +39,7 @@ export type Database = {
           buying_motive?: string | null
           created_at?: string
           deal_type_default?: string | null
+          email?: string | null
           expansion_notes?: string | null
           health_score?: number | null
           id?: string
@@ -45,6 +48,7 @@ export type Database = {
           location?: string | null
           name: string
           owner_user_id?: string | null
+          phone?: string | null
           portfolio_size?: string
           segment?: string | null
           status?: string
@@ -55,6 +59,7 @@ export type Database = {
           buying_motive?: string | null
           created_at?: string
           deal_type_default?: string | null
+          email?: string | null
           expansion_notes?: string | null
           health_score?: number | null
           id?: string
@@ -63,6 +68,7 @@ export type Database = {
           location?: string | null
           name?: string
           owner_user_id?: string | null
+          phone?: string | null
           portfolio_size?: string
           segment?: string | null
           status?: string
