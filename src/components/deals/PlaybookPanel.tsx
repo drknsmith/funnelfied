@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/select';
 import { usePlaybooks, PLAYBOOK_DEAL_TYPES } from '@/hooks/usePlaybooks';
 import { DealWithRelations } from '@/hooks/useDeals';
+import { useAuth } from '@/contexts/AuthContext';
+import { isTreneurWorkspace } from '@/lib/workspaceFeatures';
 
 interface PlaybookPanelProps {
   deal: DealWithRelations;
@@ -48,9 +50,11 @@ export function PlaybookPanel({ deal, onUpdate, isUpdating }: PlaybookPanelProps
     onUpdate({ next_action_date: date || null });
   };
 
+  const { activeWorkspaceId } = useAuth();
+  const isTreneur = isTreneurWorkspace(activeWorkspaceId);
   const selectedPlaybook = playbooks.find(p => p.id === deal.playbook_id);
   const isSignalTarget = deal.stage === 'signal_target';
-  const needsPlaybook = !isSignalTarget && !deal.playbook_id;
+  const needsPlaybook = !isTreneur && !isSignalTarget && !deal.playbook_id;
 
   return (
     <Card>

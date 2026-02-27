@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useDeals, useDeal, DEAL_STAGES, DEAL_SIZES, OBJECTION_TYPES, PROBABILITY_LEVELS, Deal } from '@/hooks/useDeals';
 import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
+import { isTreneurWorkspace } from '@/lib/workspaceFeatures';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDealFiles } from '@/hooks/useDealFiles';
 import { usePlaybooks } from '@/hooks/usePlaybooks';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -39,6 +41,8 @@ export default function DealForm() {
   const { accounts } = useAccounts();
   const { proposalFiles, sitePhotos, uploadFile, deleteFile, isUploading, isDeleting, getFileUrl } = useDealFiles(id);
   const { dealTypes, showDealSizeRange, motiveLabel, motives, roleLabel, roles } = useDealFieldConfig();
+  const { activeWorkspaceId } = useAuth();
+  const isTreneur = isTreneurWorkspace(activeWorkspaceId);
 
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [missingFields, setMissingFields] = useState<MissingField[]>([]);
@@ -120,7 +124,7 @@ export default function DealForm() {
     const missing: MissingField[] = [];
 
     if (formData.stage !== 'signal_target') {
-      if (!formData.playbook_id) missing.push({ field: 'playbook_id', label: 'Assigned Playbook' });
+      if (!isTreneur && !formData.playbook_id) missing.push({ field: 'playbook_id', label: 'Assigned Playbook' });
       if (!formData.primary_contact_id) missing.push({ field: 'primary_contact_id', label: 'Primary Stakeholder' });
       // Only validate deal_size_range if shown (not for Treneur)
       if (showDealSizeRange && !formData.deal_size_range) {
