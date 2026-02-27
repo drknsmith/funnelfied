@@ -136,6 +136,24 @@ export default function AccountDetail() {
                   <p className="text-sm text-muted-foreground">Created</p>
                   <p className="font-medium">{new Date(account.created_at).toLocaleDateString()}</p>
                 </div>
+                {(account as any).email && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <a href={`mailto:${(account as any).email}`} className="font-medium flex items-center gap-1 hover:text-primary">
+                      <Mail className="h-3.5 w-3.5" />
+                      {(account as any).email}
+                    </a>
+                  </div>
+                )}
+                {(account as any).phone && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone</p>
+                    <a href={`tel:${(account as any).phone}`} className="font-medium flex items-center gap-1 hover:text-primary">
+                      <Phone className="h-3.5 w-3.5" />
+                      {(account as any).phone}
+                    </a>
+                  </div>
+                )}
                 {account.expansion_notes && (
                   <div className="sm:col-span-2">
                     <p className="text-sm text-muted-foreground">Expansion Notes</p>

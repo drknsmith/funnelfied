@@ -19,14 +19,18 @@ export interface Account {
   expansion_notes: string | null;
   health_score: number | null;
   owner_user_id: string | null;
+  phone: string | null;
+  email: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export type AccountInput = Omit<Account, 'id' | 'created_at' | 'updated_at' | 'lat' | 'lng' | 'health_score'> & {
+export type AccountInput = Omit<Account, 'id' | 'created_at' | 'updated_at' | 'lat' | 'lng' | 'health_score' | 'phone' | 'email'> & {
   lat?: number | null;
   lng?: number | null;
   health_score?: number | null;
+  phone?: string | null;
+  email?: string | null;
 };
 
 export function useAccounts() {
