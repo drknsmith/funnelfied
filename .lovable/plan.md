@@ -1,30 +1,37 @@
 
 
-# Make Primary Stakeholder Optional for Treneur Workspace
+# Fix Stage Display on Account Detail Page
 
-## Overview
+## Problem
 
-Remove the requirement for a primary stakeholder (contact) when creating or advancing deals in the Treneur workspace. The field remains available but is never mandatory.
+1. The **StageTimeline** component (used on the Deal Detail page) uses hardcoded `DEAL_STAGES` from `useDeals.ts` instead of the workspace-specific custom stages from `usePipelineStages`. For Treneur, this shows the wrong 9-stage pipeline.
+
+2. The **Account Detail** page shows deal stages as a raw badge with `deal.stage.replace('_', ' ')`, which doesn't match the proper stage labels and doesn't use the custom Treneur pipeline stages.
+
+3. Deals at the first stage (e.g., "Target Identified" for Treneur, or "Signal / Target" for default) may not appear on the main Deals pipeline page if their `stage` value doesn't match any column -- this needs verification, but the fix below ensures consistency.
 
 ## Changes
 
-### 1. DealForm.tsx - Skip primary_contact_id validation for Treneur
+### 1. Update StageTimeline to use dynamic pipeline stages
 
-**File: `src/pages/DealForm.tsx`**
+**File: `src/components/deals/StageTimeline.tsx`**
 
-- **Line 128**: Wrap the `primary_contact_id` check so it only applies when NOT Treneur:
-  ```
-  if (!isTreneur && !formData.primary_contact_id) missing.push(...)
-  ```
-- **Line 317**: Remove the `*` asterisk from the "Primary Stakeholder" label for Treneur by changing the condition to also check `!isTreneur`
+- Replace the `DEAL_STAGES` import with `usePipelineStages` hook
+- Use the dynamic `stages` array instead of the hardcoded constant
+- This makes the timeline on the Deal Detail page match the main Deals pipeline page
 
-### 2. DealFormDialog.tsx - No changes needed
+### 2. Update Account Detail deal list to show proper stage labels
 
-The dialog already treats `primary_contact_id` as optional (no Zod required rule, placeholder says "optional"). No changes required here.
+**File: `src/pages/AccountDetail.tsx`**
+
+- Import and use `usePipelineStages` hook
+- Replace `deal.stage.replace('_', ' ')` with the proper label from the stages array
+- Also show the deal name as the primary text (currently missing -- only stage badge and size are shown)
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/DealForm.tsx` | Skip `primary_contact_id` validation + remove asterisk for Treneur |
+| `src/components/deals/StageTimeline.tsx` | Use `usePipelineStages()` instead of hardcoded `DEAL_STAGES` |
+| `src/pages/AccountDetail.tsx` | Use `usePipelineStages()` for stage labels in deal list |
 
