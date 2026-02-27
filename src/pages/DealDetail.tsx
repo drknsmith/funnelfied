@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import AppLayout from '@/components/layout/AppLayout';
-import { useDeal, useDeals, DEAL_STAGES, DEAL_SIZES } from '@/hooks/useDeals';
+import { useDeal, useDeals, DEAL_SIZES } from '@/hooks/useDeals';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { useInteractions } from '@/hooks/useInteractions';
 import { useContacts } from '@/hooks/useContacts';
@@ -65,6 +66,7 @@ export default function DealDetail() {
   const { contacts } = useContacts();
   const { proposalFiles, uploadFile, deleteFile, getFileUrl, isUploading, isDeleting: isDeletingFile } = useDealFiles(id);
   const { dealTypes, showDealSizeRange, motiveLabel, roleLabel } = useDealFieldConfig();
+  const { stages } = usePipelineStages();
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
@@ -110,7 +112,7 @@ export default function DealDetail() {
     );
   }
 
-  const stageLabel = DEAL_STAGES.find((s) => s.value === deal.stage)?.label || deal.stage;
+  const stageLabel = stages.find((s) => s.value === deal.stage)?.label || deal.stage;
   const sizeLabel = DEAL_SIZES.find((s) => s.value === deal.deal_size_range)?.label || deal.deal_size_range;
   const typeLabel = dealTypes.find((t) => t.value === deal.deal_type)?.label || deal.deal_type;
   const dealContacts = contacts.filter((c) => c.account_id === deal.account_id);

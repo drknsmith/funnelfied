@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DEAL_STAGES, DEAL_SIZES, DealWithRelations } from '@/hooks/useDeals';
+import { DEAL_SIZES, DealWithRelations } from '@/hooks/useDeals';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useContacts } from '@/hooks/useContacts';
@@ -63,6 +64,7 @@ export default function DealFormDialog({
   const { accounts } = useAccounts();
   const { contacts } = useContacts();
   const { dealTypes, showDealSizeRange } = useDealFieldConfig();
+  const { stages } = usePipelineStages();
   const isEditing = !!deal;
 
   const form = useForm<FormData>({
@@ -209,7 +211,7 @@ export default function DealFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {DEAL_STAGES.map((stage) => (
+                        {stages.map((stage) => (
                           <SelectItem key={stage.value} value={stage.value}>
                             {stage.label}
                           </SelectItem>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import { useDeals, useDeal, DEAL_STAGES, DEAL_SIZES, OBJECTION_TYPES, PROBABILITY_LEVELS, Deal } from '@/hooks/useDeals';
+import { useDeals, useDeal, DEAL_SIZES, OBJECTION_TYPES, PROBABILITY_LEVELS, Deal } from '@/hooks/useDeals';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { isTreneurWorkspace } from '@/lib/workspaceFeatures';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,7 @@ export default function DealForm() {
   const { accounts } = useAccounts();
   const { proposalFiles, sitePhotos, uploadFile, deleteFile, isUploading, isDeleting, getFileUrl } = useDealFiles(id);
   const { dealTypes, showDealSizeRange, motiveLabel, motives, roleLabel, roles } = useDealFieldConfig();
+  const { stages } = usePipelineStages();
   const { activeWorkspaceId } = useAuth();
   const isTreneur = isTreneurWorkspace(activeWorkspaceId);
 
@@ -270,7 +272,7 @@ export default function DealForm() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEAL_STAGES.map((stage) => (
+                    {stages.map((stage) => (
                       <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -707,7 +709,7 @@ export default function DealForm() {
         open={validationModalOpen}
         onClose={() => setValidationModalOpen(false)}
         missingFields={missingFields}
-        targetStage={DEAL_STAGES.find((s) => s.value === formData.stage)?.label || formData.stage}
+        targetStage={stages.find((s) => s.value === formData.stage)?.label || formData.stage}
       />
     </AppLayout>
   );
