@@ -8,7 +8,7 @@ import { useInteractions } from '@/hooks/useInteractions';
 import { useContacts } from '@/hooks/useContacts';
 import { useDealFiles } from '@/hooks/useDealFiles';
 import { useAuth } from '@/contexts/AuthContext';
-import { canUseResearch } from '@/lib/workspaceFeatures';
+import { canUseResearch, isTreneurWorkspace } from '@/lib/workspaceFeatures';
 import StageTimeline from '@/components/deals/StageTimeline';
 import InteractionList from '@/components/deals/InteractionList';
 import InteractionFormDialog from '@/components/deals/InteractionFormDialog';
@@ -115,9 +115,11 @@ export default function DealDetail() {
   const typeLabel = dealTypes.find((t) => t.value === deal.deal_type)?.label || deal.deal_type;
   const dealContacts = contacts.filter((c) => c.account_id === deal.account_id);
 
+  const isTreneur = isTreneurWorkspace(activeWorkspaceId);
+
   const handleStageChange = (newStage: string) => {
-    // Check if moving from signal_target and no playbook assigned
-    if (deal.stage === 'signal_target' && newStage !== 'signal_target' && !deal.playbook_id) {
+    // Check if moving from signal_target and no playbook assigned (skip for Treneur)
+    if (!isTreneur && deal.stage === 'signal_target' && newStage !== 'signal_target' && !deal.playbook_id) {
       setPendingStageChange(newStage);
       setPlaybookModalOpen(true);
       return;
