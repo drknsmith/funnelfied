@@ -1,25 +1,18 @@
 
+# Replace Segment Column with Business Model
 
-# Fix Account Display Fields
+Since segment is already shown under the account name, the standalone Segment column is redundant. Replace it with Business Model (stored in `deal_type_default`).
 
-## Changes
+## Technical Details
 
-### 1. Accounts list page (`src/pages/Accounts.tsx`)
-- **Line 144**: Change the subtitle under the account name from `buying_motive` to `segment` so it shows the segment (e.g., "Boutique Gym") instead of the membership answer.
+**File: `src/pages/Accounts.tsx`**
 
-### 2. Account Detail page (`src/pages/AccountDetail.tsx`)
-- Update the "Account Details" card (lines 124-165) to show Treneur-specific labels when in the Treneur workspace:
-  - "Portfolio Size" stays the same
-  - "Default Deal Type" becomes **"Business Model"**
-  - "Buying Motive" becomes **"Require Client Memberships"**
-  - Add **"Segment"** as a visible field in the details card
-  - Add **"Status"** field (currently only shown in the header badge, will also appear in the details grid for completeness)
-- Non-Treneur workspaces keep existing labels unchanged.
+Two changes:
 
-### Technical Details
+1. **Line 129** -- Change the column header from "Segment" to "Business Model"
+2. **Line 148** -- Change the cell value from `account.segment` to `account.deal_type_default`, with the same `replace('_', '-')` formatting used on the detail page
 
-| File | Change |
-|------|--------|
-| `src/pages/Accounts.tsx` | Line 144: Replace `account.buying_motive` with `account.segment` for the subtitle text |
-| `src/pages/AccountDetail.tsx` | Lines 124-165: Add `isTreneurWorkspace` conditional to swap field labels; add Segment and Status fields to the details grid |
-
+| Line | Before | After |
+|------|--------|-------|
+| 129 | `Segment` | `Business Model` |
+| 148 | `account.segment \|\| '-'` | `account.deal_type_default?.replace('_', '-') \|\| '-'` |
