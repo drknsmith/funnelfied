@@ -1,46 +1,51 @@
 
 
-# Add "+ New Deal" Button to Account Detail Deals Section
+# Add More Contact Fields to Trainer Cards
 
-## Overview
-Add a "+ New Deal" button in the Deals card header on the Account Detail page. Clicking it navigates to the DealForm page (`/deals/new`) with the account pre-selected via a query parameter. The DealForm will read that parameter and auto-fill the account field.
+## What Changes
+Each trainer card in the "Nearby Trainers" section will show additional contact details (when available): Instagram page, website, email, phone number, and address. The AI that discovers trainers will also be updated to extract these new fields.
 
-## Changes
+## Plan
 
-### 1. AccountDetail.tsx -- Add the button
-- Add a `Plus` icon import
-- Add a `Button` next to the "Deals (N)" card title that navigates to `/deals/new?account_id={id}`
+### 1. Add new columns to the trainers database table
+Add three new nullable text columns:
+- `instagram_url` -- Instagram profile link
+- `website_url` -- Personal/business website link
+- `address` -- Physical address or location
 
-### 2. DealForm.tsx -- Read account_id from URL params
-- Import `useSearchParams`
-- Read `account_id` from the query string on mount
-- Pre-fill `formData.account_id` with that value when creating a new deal (not editing)
-- This uses the exact same DealForm workflow as the main "New Deal" button, just with the account pre-selected
+### 2. Update the trainer discovery logic (edge function)
+Modify the `trainer-miner` backend function to instruct the AI to also extract:
+- `instagram_url`
+- `website_url`
+- `address`
+
+These will be added to both the AI prompt instructions and the structured extraction schema, and persisted when inserting new trainers.
+
+### 3. Update the trainer card UI
+On the Account Detail page, add display rows for the new fields:
+- Instagram: linked icon + "Instagram" text, opens in new tab
+- Website: linked icon + domain text, opens in new tab
+- Address: displayed as plain text with a map pin icon
+
+The existing email, phone, and LinkedIn links are already displayed -- they will remain as-is.
+
+### 4. Update the TypeScript hook interface
+Add `instagram_url`, `website_url`, and `address` to the `Trainer` interface in `useTrainers.ts`.
 
 ## Technical Details
 
-**AccountDetail.tsx** (line ~295-299): Add button to CardHeader:
-```tsx
-<Button size="sm" onClick={() => navigate(`/deals/new?account_id=${id}`)}>
-  <Plus className="mr-2 h-4 w-4" />
-  New Deal
-</Button>
+**Database migration:**
+```sql
+ALTER TABLE public.trainers
+  ADD COLUMN instagram_url text,
+  ADD COLUMN website_url text,
+  ADD COLUMN address text;
 ```
 
-**DealForm.tsx** (lines ~35-62): Read query param and use it as default:
-```tsx
-const [searchParams] = useSearchParams();
-const preselectedAccountId = searchParams.get('account_id');
-
-// In useState initializer, set account_id from preselectedAccountId
-account_id: preselectedAccountId || '',
-```
-
-Also set the first stage from the dynamic `stages` array as default instead of hardcoded `'signal_target'`.
-
-## Files to Modify
-
+**Files to modify:**
 | File | Change |
 |------|--------|
-| `src/pages/AccountDetail.tsx` | Add "+ New Deal" button to Deals card header |
-| `src/pages/DealForm.tsx` | Read `account_id` query param and pre-fill account field |
+| Database migration | Add 3 new columns to `trainers` table |
+| `supabase/functions/trainer-miner/index.ts` | Add new fields to AI prompt, schema, and DB insert |
+| `src/hooks/useTrainers.ts` | Add new fields to `Trainer` interface |
+| `src/pages/AccountDetail.tsx` | Display Instagram, website, and address on trainer cards |
