@@ -13,17 +13,20 @@ import {
   isSameDay,
   isToday,
   isBefore,
+  startOfDay,
 } from 'date-fns';
 import AppLayout from '@/components/layout/AppLayout';
 import { useCalendarItems, CalendarItem } from '@/hooks/useCalendarItems';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { useDeals } from '@/hooks/useDeals';
 import { useContacts } from '@/hooks/useContacts';
+import { useInteractions } from '@/hooks/useInteractions';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ExternalLink, User, Briefcase, GripVertical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ExternalLink, User, Briefcase, GripVertical, Check, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -40,6 +43,8 @@ export default function CalendarPage() {
   const { stages } = usePipelineStages();
   const { updateDeal } = useDeals();
   const { updateContact } = useContacts();
+  const { createInteraction } = useInteractions();
+  const { workspaceId } = useAuth();
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -71,19 +76,25 @@ export default function CalendarPage() {
     return itemsByDate?.[dateStr] || [];
   };
 
+  const today = startOfDay(new Date());
+  
   const getEventClassName = (item: CalendarItem, date: Date) => {
-    const isPast = isBefore(date, new Date()) && !isToday(date);
+    const itemDate = startOfDay(date);
+    const isPast = isBefore(itemDate, today);
     const isContact = item.type === 'contact';
 
-    if (isContact) {
-      if (isPast) return 'bg-purple-700/20 text-purple-900 border-purple-700/30';
-      if (isToday(date)) return 'bg-purple-300/30 text-purple-800 border-purple-400/30';
-      return 'bg-purple-500/10 text-purple-700 border-purple-500/20';
-    } else {
-      if (isPast) return 'bg-destructive/20 text-destructive border-destructive/30';
-      if (isToday(date)) return 'bg-warning/20 text-warning-foreground border-warning/30';
-      return 'bg-primary/10 text-primary border-primary/20';
+    // Color coding: blue=past/completed, green=upcoming, red=overdue
+    if (isPast && !isToday(date)) {
+      // Overdue (red) - still has an action date in the past
+      return isContact 
+        ? 'bg-red-500/20 text-red-700 border-red-500/30' 
+        : 'bg-red-500/20 text-red-700 border-red-500/30';
     }
+    if (isToday(date)) {
+      return 'bg-green-500/20 text-green-700 border-green-500/30';
+    }
+    // Future = upcoming (green)
+    return 'bg-green-500/10 text-green-700 border-green-500/20';
   };
 
   const stageLabel = (stage?: string) => {
@@ -173,16 +184,20 @@ export default function CalendarPage() {
         {/* Legend */}
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded bg-primary/50" />
-            <span className="text-muted-foreground">Deal Follow-up</span>
+            <div className="h-3 w-3 rounded bg-blue-500/50" />
+            <span className="text-muted-foreground">Completed</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded bg-purple-500/50" />
-            <span className="text-muted-foreground">Contact Follow-up</span>
+            <div className="h-3 w-3 rounded bg-green-500/50" />
+            <span className="text-muted-foreground">Upcoming</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded bg-red-500/50" />
+            <span className="text-muted-foreground">Overdue</span>
           </div>
           <div className="flex items-center gap-2 ml-4">
             <GripVertical className="h-3 w-3 text-muted-foreground" />
-            <span className="text-muted-foreground">Drag items to reschedule</span>
+            <span className="text-muted-foreground">Drag to reschedule</span>
           </div>
         </div>
 
@@ -287,7 +302,7 @@ export default function CalendarPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   {selectedItem.type === 'contact' ? (
-                    <User className="h-5 w-5 text-purple-500" />
+                    <User className="h-5 w-5 text-muted-foreground" />
                   ) : (
                     <Briefcase className="h-5 w-5 text-primary" />
                   )}
@@ -338,10 +353,55 @@ export default function CalendarPage() {
                     </Badge>
                   </div>
                 </div>
-                <Button onClick={() => navigate(selectedItem.type === 'contact' ? `/contacts/${selectedItem.id}` : `/deals/${selectedItem.id}`)}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View {selectedItem.type === 'contact' ? 'Contact' : 'Deal'}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button onClick={() => navigate(selectedItem.type === 'contact' ? `/contacts/${selectedItem.id}` : `/deals/${selectedItem.id}`)}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View {selectedItem.type === 'contact' ? 'Contact' : 'Deal'}
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => {
+                      if (selectedItem.type === 'deal') {
+                        createInteraction({
+                          deal_id: selectedItem.id,
+                          contact_id: null,
+                          type: 'follow_up',
+                          summary: selectedItem.next_action || 'Completed action',
+                          occurred_at: new Date(selectedItem.next_action_date).toISOString(),
+                          objections: null,
+                          commitments: null,
+                          next_action: null,
+                          next_action_date: null,
+                          external_ref: null,
+                        });
+                        updateDeal({ id: selectedItem.id, next_action_date: null, next_action: null });
+                      } else {
+                        updateContact.mutate({ id: selectedItem.id, next_action_date: null, next_action: null });
+                      }
+                      toast.success('Marked as completed');
+                      setSelectedItem(null);
+                    }}
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    Completed
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (selectedItem.type === 'deal') {
+                        updateDeal({ id: selectedItem.id, next_action_date: null, next_action: null });
+                      } else {
+                        updateContact.mutate({ id: selectedItem.id, next_action_date: null, next_action: null });
+                      }
+                      toast.success('Action removed');
+                      setSelectedItem(null);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
