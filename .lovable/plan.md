@@ -1,46 +1,43 @@
 
-# Fix Stage Consistency Across All Deal Views
 
-## Problem
+# Add Drag-and-Drop and Card Styling to Treneur Pipeline
 
-Multiple components use the hardcoded `DEAL_STAGES` constant from `useDeals.ts` instead of the dynamic workspace-specific stages from `usePipelineStages()`. This causes Treneur workspace users to see incorrect stage names (e.g., "Signal / Target" instead of "Target Identified") in stage dropdowns and labels throughout the deal UI.
+## Overview
 
-The main Deals Pipeline page correctly uses `usePipelineStages()`, but the following pages/components do not.
+The Deals pipeline page (`Deals.tsx`) currently renders deal cards inline without drag-and-drop support. We need to add drag-and-drop between pipeline columns so moving a card updates the deal's stage in the database (reflecting on the Deal Detail stage progression). We also need to restyle cards with a gray background and blue outline on hover.
 
 ## Changes
 
-### 1. DealDetail.tsx -- Use dynamic stage label
+### 1. Deals.tsx -- Add drag-and-drop state and handlers
 
-**File: `src/pages/DealDetail.tsx`**
+**File: `src/pages/Deals.tsx`**
 
-- Import `usePipelineStages` hook
-- Call `usePipelineStages()` to get the `stages` array
-- Replace `DEAL_STAGES.find(...)` on line 113 with `stages.find(...)` for the stage label
-- Remove `DEAL_STAGES` from the import if no longer used
+- Add `useState` for `draggingDealId` tracking
+- Add `handleDragStart`, `handleDragOver`, `handleDrop` functions
+- `handleDrop` calls `updateDeal` mutation to persist the new stage to the database
+- Replace the inline column rendering with drag-event-aware containers (similar to `StageColumn` pattern but inline)
+- Add `onDragEnter`/`onDragLeave` state for visual drop-target highlighting
 
-### 2. DealForm.tsx -- Use dynamic stages in dropdown and validation modal
+### 2. Deals.tsx -- Restyle deal cards
 
-**File: `src/pages/DealForm.tsx`**
+- Change card class from `hover:shadow-md` to gray background with blue hover outline:
+  - Base: `bg-muted/50` (gray tint)
+  - Hover: `hover:ring-2 hover:ring-primary hover:ring-offset-1` (blue outline)
+- Make cards `draggable` with `cursor-grab` / `active:cursor-grabbing`
+- Add `opacity-50` when the card is being dragged
 
-- Import `usePipelineStages` hook
-- Call `usePipelineStages()` to get the `stages` array
-- Replace `DEAL_STAGES.map(...)` in the stage Select dropdown (line 273) with `stages.map(...)`
-- Replace `DEAL_STAGES.find(...)` in the validation modal label (line 710) with `stages.find(...)`
-- Remove `DEAL_STAGES` from the `useDeals` import
+### 3. DealCard.tsx -- Match card styling (consistency)
 
-### 3. DealFormDialog.tsx -- Use dynamic stages in quick-create dropdown
+- Update the existing `DealCard` component (used elsewhere) to also use the gray background + blue hover outline pattern, keeping visual consistency across the app.
 
-**File: `src/components/deals/DealFormDialog.tsx`**
+## Technical Detail
 
-- Import `usePipelineStages` hook
-- Call `usePipelineStages()` to get the `stages` array
-- Replace `DEAL_STAGES.map(...)` in the stage Select (line 212) with `stages.map(...)`
-- Remove `DEAL_STAGES` from the `useDeals` import
+The drag-and-drop uses native HTML5 drag events (already the pattern in `StageColumn.tsx` and `DealCard.tsx`). On drop, we call `updateDeal({ id, stage: newStage })` which persists to the database. Since the Deal Detail page reads the deal's `stage` field from the same database, the stage progression timeline will automatically reflect the change on next load.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/DealDetail.tsx` | Use `usePipelineStages()` for stage label |
-| `src/pages/DealForm.tsx` | Use `usePipelineStages()` for stage dropdown and validation modal |
-| `src/components/deals/DealFormDialog.tsx` | Use `usePipelineStages()` for stage dropdown |
+| `src/pages/Deals.tsx` | Add drag-and-drop handlers, update card styling |
+| `src/components/deals/DealCard.tsx` | Update card styling to match (gray bg, blue hover outline) |
+
