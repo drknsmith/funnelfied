@@ -126,7 +126,7 @@ export default function Accounts() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Segment</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Business Model</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Portfolio</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Actions</th>
@@ -145,7 +145,7 @@ export default function Accounts() {
                         <div className="text-sm text-muted-foreground">{account.segment}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{account.segment || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{account.deal_type_default?.replace('_', '-') || '-'}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       {account.portfolio_size} {account.portfolio_size === '1' ? 'site' : 'sites'}
                     </td>
