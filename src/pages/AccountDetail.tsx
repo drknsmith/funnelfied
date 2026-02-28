@@ -122,21 +122,27 @@ export default function AccountDetail() {
                 <CardTitle className="text-lg">Account Details</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
+                {isTreneurWorkspace && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Segment</p>
+                    <p className="font-medium">{account.segment || '-'}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground">Portfolio Size</p>
                   <p className="font-medium">{account.portfolio_size} {account.portfolio_size === '1' ? 'site' : 'sites'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Default Deal Type</p>
+                  <p className="text-sm text-muted-foreground">{isTreneurWorkspace ? 'Business Model' : 'Default Deal Type'}</p>
                   <p className="font-medium">{account.deal_type_default?.replace('_', '-') || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Buying Motive</p>
-                  <p className="font-medium">{account.buying_motive || '-'}</p>
+                  <p className="text-sm text-muted-foreground">{isTreneurWorkspace ? 'Status' : 'Created'}</p>
+                  <p className="font-medium">{isTreneurWorkspace ? (account.status || '-') : new Date(account.created_at).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="font-medium">{new Date(account.created_at).toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground">{isTreneurWorkspace ? 'Require Client Memberships' : 'Buying Motive'}</p>
+                  <p className="font-medium">{account.buying_motive || '-'}</p>
                 </div>
                 {(account as any).email && (
                   <div>
