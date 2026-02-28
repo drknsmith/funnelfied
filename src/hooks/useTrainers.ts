@@ -15,6 +15,9 @@ export interface Trainer {
   career_health_score: number | null;
   career_mentions: string | null;
   source_links: string[] | null;
+  instagram_url: string | null;
+  website_url: string | null;
+  address: string | null;
   created_at: string;
   updated_at: string;
 }

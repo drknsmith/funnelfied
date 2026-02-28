@@ -1354,11 +1354,13 @@ export type Database = {
       trainers: {
         Row: {
           account_id: string | null
+          address: string | null
           career_health_score: number | null
           career_mentions: string | null
           created_at: string
           email: string | null
           id: string
+          instagram_url: string | null
           lat: number | null
           linkedin_url: string | null
           lng: number | null
@@ -1366,15 +1368,18 @@ export type Database = {
           phone: string | null
           source_links: Json | null
           updated_at: string
+          website_url: string | null
           workspace_id: string
         }
         Insert: {
           account_id?: string | null
+          address?: string | null
           career_health_score?: number | null
           career_mentions?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          instagram_url?: string | null
           lat?: number | null
           linkedin_url?: string | null
           lng?: number | null
@@ -1382,15 +1387,18 @@ export type Database = {
           phone?: string | null
           source_links?: Json | null
           updated_at?: string
+          website_url?: string | null
           workspace_id: string
         }
         Update: {
           account_id?: string | null
+          address?: string | null
           career_health_score?: number | null
           career_mentions?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          instagram_url?: string | null
           lat?: number | null
           linkedin_url?: string | null
           lng?: number | null
@@ -1398,6 +1406,7 @@ export type Database = {
           phone?: string | null
           source_links?: Json | null
           updated_at?: string
+          website_url?: string | null
           workspace_id?: string
         }
         Relationships: [

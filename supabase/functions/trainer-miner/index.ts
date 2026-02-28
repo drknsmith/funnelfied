@@ -15,6 +15,9 @@ interface StructuredTrainer {
   email: string | null;
   phone: string | null;
   linkedin_url: string | null;
+  instagram_url: string | null;
+  website_url: string | null;
+  address: string | null;
   career_mentions: string | null;
   career_health_score: number;
   source_links: string[];
@@ -243,6 +246,9 @@ For each trainer found in ${cityName}, provide:
 - email: Email address if found
 - phone: Phone number if found  
 - linkedin_url: LinkedIn profile URL if found
+- instagram_url: Instagram profile URL if found (e.g. https://instagram.com/username)
+- website_url: Personal or business website URL if found
+- address: Physical address or location description if found
 - career_mentions: Any mentions about their career, experience, reviews, or sentiment (2-3 sentences)
 - career_health_score: INTEGER from 1-10 based on career stability:
   * 1-3 = RED (Career instability - job hunting, negative reviews, frequent job changes)
@@ -290,6 +296,9 @@ VALIDATION RULES:
                         email: { type: "string" },
                         phone: { type: "string" },
                         linkedin_url: { type: "string" },
+                        instagram_url: { type: "string" },
+                        website_url: { type: "string" },
+                        address: { type: "string" },
                         career_mentions: { type: "string" },
                         career_health_score: { 
                           type: "integer", 
@@ -430,6 +439,9 @@ VALIDATION RULES:
             email: trainer.email || null,
             phone: trainer.phone || null,
             linkedin_url: trainer.linkedin_url || null,
+            instagram_url: trainer.instagram_url || null,
+            website_url: trainer.website_url || null,
+            address: trainer.address || null,
             career_mentions: trainer.career_mentions || null,
             career_health_score: trainer.career_health_score,
             source_links: trainer.source_links || [],

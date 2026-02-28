@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { HealthScoreDot } from '@/components/ui/HealthScoreDot';
-import { ArrowLeft, Pencil, Users, Handshake, Loader2, UserSearch, Mail, Phone, Linkedin, ExternalLink, Plus } from 'lucide-react';
+import { ArrowLeft, Pencil, Users, Handshake, Loader2, UserSearch, Mail, Phone, Linkedin, ExternalLink, Plus, Instagram, Globe, MapPin } from 'lucide-react';
 
 // Treneur workspace ID
 const TRENEUR_WORKSPACE_ID = "14e69d30-13a2-45c0-bcea-0ebe6e638b47";
@@ -272,6 +272,34 @@ export default function AccountDetail() {
                                 <Linkedin className="h-3 w-3" />
                                 LinkedIn
                               </a>
+                            )}
+                            {trainer.instagram_url && (
+                              <a 
+                                href={trainer.instagram_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-foreground"
+                              >
+                                <Instagram className="h-3 w-3" />
+                                Instagram
+                              </a>
+                            )}
+                            {trainer.website_url && (
+                              <a 
+                                href={trainer.website_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-foreground"
+                              >
+                                <Globe className="h-3 w-3" />
+                                Website
+                              </a>
+                            )}
+                            {trainer.address && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {trainer.address}
+                              </span>
                             )}
                           </div>
 
