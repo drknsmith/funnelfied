@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useDeals, useDeal, DEAL_SIZES, OBJECTION_TYPES, PROBABILITY_LEVELS, Deal } from '@/hooks/useDeals';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
@@ -34,6 +34,8 @@ interface MissingField {
 export default function DealForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preselectedAccountId = !id ? searchParams.get('account_id') || '' : '';
   const isEdit = !!id;
 
   const { deal, isLoading: isDealLoading } = useDeal(id);
@@ -56,7 +58,7 @@ export default function DealForm() {
   const [notesOpen, setNotesOpen] = useState(false);
 
   const [formData, setFormData] = useState({
-    account_id: '',
+    account_id: preselectedAccountId,
     deal_name: '',
     deal_type: '',
     stage: 'signal_target',
