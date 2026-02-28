@@ -5,22 +5,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Account, useAccounts } from '@/hooks/useAccounts';
+import { useAuth } from '@/contexts/AuthContext';
+import { isTreneurWorkspace } from '@/lib/workspaceFeatures';
 import { Loader2 } from 'lucide-react';
 
+const SEGMENTS = ['Enterprise', 'Mid-Market', 'SMB'];
+const TRENEUR_SEGMENTS = ['Boutique Gym', 'Yoga Studio', 'Pilates Studio', 'Big Box Gym', 'Martial Arts/Boxing', 'Student Rec Center'];
+const PORTFOLIO_SIZES = ['1', '2-5', '6-20', '20+'];
+const DEAL_TYPES = ['portfolio', 'design_led', 'transactional', 'other'];
+const TRENEUR_BUSINESS_MODELS = ['Hire Trainers', 'Rent to Trainers', 'Hybrid'];
+const STATUSES = ['active', 'inactive', 'churned'];
+const MEMBERSHIP_OPTIONS = ['Yes', 'No', 'Unk'] as const;
 interface AccountFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: Account | null;
 }
 
-const SEGMENTS = ['Enterprise', 'Mid-Market', 'SMB'];
-const PORTFOLIO_SIZES = ['1', '2-5', '6-20', '20+'];
-const DEAL_TYPES = ['portfolio', 'design_led', 'transactional', 'other'];
-const STATUSES = ['active', 'inactive', 'churned'];
-
 export default function AccountFormDialog({ open, onOpenChange, account }: AccountFormDialogProps) {
   const { createAccount, updateAccount } = useAccounts();
+  const { activeWorkspaceId } = useAuth();
+  const isTreneur = isTreneurWorkspace(activeWorkspaceId);
   const isEdit = !!account;
 
   const [formData, setFormData] = useState({
@@ -156,7 +163,7 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
                   <SelectValue placeholder="Select segment" />
                 </SelectTrigger>
                 <SelectContent>
-                  {SEGMENTS.map((s) => (
+                  {(isTreneur ? TRENEUR_SEGMENTS : SEGMENTS).map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -183,17 +190,17 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="deal_type_default">Default Deal Type</Label>
+              <Label htmlFor="deal_type_default">{isTreneur ? 'Business Model' : 'Default Deal Type'}</Label>
               <Select
                 value={formData.deal_type_default}
                 onValueChange={(value) => setFormData({ ...formData, deal_type_default: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder={isTreneur ? 'Select model' : 'Select type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {DEAL_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t.replace('_', '-')}</SelectItem>
+                  {(isTreneur ? TRENEUR_BUSINESS_MODELS : DEAL_TYPES).map((t) => (
+                    <SelectItem key={t} value={t}>{isTreneur ? t : t.replace('_', '-')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -217,15 +224,34 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="buying_motive">Buying Motive</Label>
-            <Input
-              id="buying_motive"
-              value={formData.buying_motive}
-              onChange={(e) => setFormData({ ...formData, buying_motive: e.target.value })}
-              placeholder="New build, renovation, expansion..."
-            />
-          </div>
+          {isTreneur ? (
+            <div className="space-y-2">
+              <Label>Require Client Memberships</Label>
+              <div className="flex items-center gap-6 pt-1">
+                {MEMBERSHIP_OPTIONS.map((opt) => (
+                  <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={formData.buying_motive === opt}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, buying_motive: checked ? opt : '' })
+                      }
+                    />
+                    <span className="text-sm">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="buying_motive">Buying Motive</Label>
+              <Input
+                id="buying_motive"
+                value={formData.buying_motive}
+                onChange={(e) => setFormData({ ...formData, buying_motive: e.target.value })}
+                placeholder="New build, renovation, expansion..."
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="expansion_notes">Expansion Notes</Label>
