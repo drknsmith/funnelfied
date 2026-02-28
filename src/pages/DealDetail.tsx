@@ -55,25 +55,38 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-function InteractionCalendarCard({ interactions, deal }: { interactions: any[]; deal: any }) {
+function InteractionCalendarCard({ interactions, deal, onComplete, onDelete }: { 
+  interactions: any[]; 
+  deal: any;
+  onComplete: (date: string, summary: string) => void;
+  onDelete: () => void;
+}) {
   const today = startOfDay(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
-  const { pastDates, upcomingDates, missedDates } = useMemo(() => {
+  const { pastDates, upcomingDates, missedDates, allColoredDates, dateEvents } = useMemo(() => {
     const past: Date[] = [];
     const upcoming: Date[] = [];
     const missed: Date[] = [];
+    const events: Record<string, { type: 'past' | 'upcoming' | 'missed'; label: string }[]> = {};
 
-    // Categorize interactions by occurred_at
+    const addEvent = (date: Date, type: 'past' | 'upcoming' | 'missed', label: string) => {
+      const key = format(date, 'yyyy-MM-dd');
+      if (!events[key]) events[key] = [];
+      events[key].push({ type, label });
+    };
+
+    // Past interactions
     interactions.forEach((interaction: any) => {
       const occurredDate = startOfDay(parseISO(interaction.occurred_at));
       if (isBefore(occurredDate, today)) {
         past.push(occurredDate);
-      } else {
-        upcoming.push(occurredDate);
+        addEvent(occurredDate, 'past', interaction.summary || interaction.type || 'Interaction');
       }
     });
 
-    // Check for missed follow-ups: deal has a next_action_date in the past with no interaction on that date
+    // Deal's next_action_date as upcoming (green) or missed (red)
     if (deal.next_action_date) {
       const nextActionDate = startOfDay(parseISO(deal.next_action_date));
       if (isBefore(nextActionDate, today)) {
@@ -83,11 +96,15 @@ function InteractionCalendarCard({ interactions, deal }: { interactions: any[]; 
         });
         if (!hasInteractionOnDate) {
           missed.push(nextActionDate);
+          addEvent(nextActionDate, 'missed', deal.next_action || 'Scheduled action (missed)');
         }
+      } else {
+        upcoming.push(nextActionDate);
+        addEvent(nextActionDate, 'upcoming', deal.next_action || 'Scheduled action');
       }
     }
 
-    // Also check interaction next_action_dates that are past with no follow-up
+    // Interaction next_action_dates
     interactions.forEach((interaction: any) => {
       if (interaction.next_action_date) {
         const nad = startOfDay(parseISO(interaction.next_action_date));
@@ -98,13 +115,30 @@ function InteractionCalendarCard({ interactions, deal }: { interactions: any[]; 
           });
           if (!hasFollowUp) {
             missed.push(nad);
+            addEvent(nad, 'missed', interaction.next_action || 'Follow-up (missed)');
           }
+        } else {
+          upcoming.push(nad);
+          addEvent(nad, 'upcoming', interaction.next_action || 'Scheduled follow-up');
         }
       }
     });
 
-    return { pastDates: past, upcomingDates: upcoming, missedDates: missed };
-  }, [interactions, deal.next_action_date]);
+    const allColored = [...past, ...upcoming, ...missed];
+    return { pastDates: past, upcomingDates: upcoming, missedDates: missed, allColoredDates: allColored, dateEvents: events };
+  }, [interactions, deal.next_action_date, deal.next_action]);
+
+  const handleDayClick = (date: Date | undefined) => {
+    if (!date) return;
+    const key = format(date, 'yyyy-MM-dd');
+    if (dateEvents[key] && dateEvents[key].length > 0) {
+      setSelectedDate(date);
+      setPopoverOpen(true);
+    }
+  };
+
+  const selectedDateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
+  const selectedEvents = selectedDateKey ? (dateEvents[selectedDateKey] || []) : [];
 
   return (
     <Card>
@@ -116,7 +150,7 @@ function InteractionCalendarCard({ interactions, deal }: { interactions: any[]; 
         <div className="flex flex-wrap gap-3 mb-3 text-xs">
           <div className="flex items-center gap-1.5">
             <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-            <span className="text-muted-foreground">Past</span>
+            <span className="text-muted-foreground">Completed</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
@@ -129,6 +163,8 @@ function InteractionCalendarCard({ interactions, deal }: { interactions: any[]; 
         </div>
         <Calendar
           mode="single"
+          selected={selectedDate}
+          onSelect={handleDayClick}
           className="pointer-events-auto w-full"
           modifiers={{
             past: pastDates,
@@ -141,6 +177,59 @@ function InteractionCalendarCard({ interactions, deal }: { interactions: any[]; 
             missed: 'bg-red-500/20 text-red-700 font-semibold',
           }}
         />
+
+        {/* Event popover below calendar */}
+        {popoverOpen && selectedDate && selectedEvents.length > 0 && (
+          <div className="mt-3 rounded-md border bg-card p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">{format(selectedDate, 'MMM d, yyyy')}</p>
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setPopoverOpen(false)}>
+                ✕
+              </Button>
+            </div>
+            {selectedEvents.map((ev, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <div className={cn(
+                  'h-2.5 w-2.5 rounded-full mt-1 shrink-0',
+                  ev.type === 'past' && 'bg-blue-500',
+                  ev.type === 'upcoming' && 'bg-green-500',
+                  ev.type === 'missed' && 'bg-red-500',
+                )} />
+                <p className="text-sm flex-1">{ev.label}</p>
+              </div>
+            ))}
+            {/* Show action buttons for upcoming/missed events */}
+            {selectedEvents.some(e => e.type === 'upcoming' || e.type === 'missed') && (
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    const ev = selectedEvents.find(e => e.type === 'upcoming' || e.type === 'missed');
+                    onComplete(format(selectedDate, 'yyyy-MM-dd'), ev?.label || 'Completed action');
+                    setPopoverOpen(false);
+                    setSelectedDate(undefined);
+                  }}
+                >
+                  ✓ Completed
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => {
+                    onDelete();
+                    setPopoverOpen(false);
+                    setSelectedDate(undefined);
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -590,8 +679,28 @@ export default function DealDetail() {
               isUpdating={isUpdating}
             />
 
-            {/* Interaction Calendar */}
-            <InteractionCalendarCard interactions={interactions} deal={deal} />
+            <InteractionCalendarCard 
+              interactions={interactions} 
+              deal={deal}
+              onComplete={(date, summary) => {
+                createInteraction({
+                  deal_id: deal.id,
+                  contact_id: null,
+                  type: 'follow_up',
+                  summary,
+                  occurred_at: new Date(date).toISOString(),
+                  objections: null,
+                  commitments: null,
+                  next_action: null,
+                  next_action_date: null,
+                  external_ref: null,
+                });
+                updateDeal({ id: deal.id, next_action_date: null, next_action: null });
+              }}
+              onDelete={() => {
+                updateDeal({ id: deal.id, next_action_date: null, next_action: null });
+              }}
+            />
           </div>
         </div>
       </div>
