@@ -12,7 +12,7 @@ import { isTreneurWorkspace } from '@/lib/workspaceFeatures';
 import { Loader2 } from 'lucide-react';
 
 const SEGMENTS = ['Enterprise', 'Mid-Market', 'SMB'];
-const TRENEUR_SEGMENTS = ['Boutique Gym', 'Yoga Studio', 'Pilates Studio', 'Big Box Gym', 'Martial Arts/Boxing', 'Student Rec Center'];
+const TRENEUR_SEGMENTS = ['Boutique Gym', 'Yoga Studio', 'Pilates Studio', 'Big Box Gym', 'Martial Arts/Boxing', 'Student Rec Center', 'Corporate Wellness'];
 const PORTFOLIO_SIZES = ['1', '2-5', '6-20', '20+'];
 const DEAL_TYPES = ['portfolio', 'design_led', 'transactional', 'other'];
 const TRENEUR_BUSINESS_MODELS = ['Hire Trainers', 'Rent to Trainers', 'Hybrid'];
