@@ -1,81 +1,62 @@
 
 
-# Drag-and-Drop Calendar Items + Deal Interaction Calendar
+# Interactive Color-Coded Calendar with Actions
 
-## Overview
+## Problem
+1. The Deal Detail calendar doesn't show upcoming events from `next_action_date` -- it only shows past interaction dates
+2. Calendar dates aren't clickable -- no way to mark events as completed or delete them
+3. The main Calendar page lacks the same color coding (blue/green/red) as the Deal Detail page
 
-Two changes: (1) make the main Calendar page items draggable between days so dropping updates the `next_action_date` in the database, and (2) add a color-coded interaction calendar to the Deal Detail page showing all interactions for that deal.
+## Solution
 
----
+### Part 1: Fix Deal Detail Calendar to show upcoming events
 
-## Part 1: Drag-and-Drop on Calendar Page
+The `InteractionCalendarCard` will be updated to:
+- Show the deal's `next_action_date` as a **green** (upcoming) date on the calendar
+- Show interaction `next_action_date` values as upcoming green dates when they're in the future
+- Keep blue for past interactions and red for missed ones
 
-### What changes
+### Part 2: Make Deal Detail calendar dates clickable
 
-Calendar items (deal follow-ups and contact follow-ups) become draggable. When you drag an item to a different day, the `next_action_date` for that deal or contact updates in the database immediately.
+When clicking a colored date on the Deal Detail calendar, a popover will appear showing:
+- The event details (interaction summary or next action text)
+- A **"Completed"** button -- logs the interaction as completed (turns the date blue) by creating an interaction record with `occurred_at` set to that date, and clears the `next_action_date` from the deal
+- A **"Delete"** button -- removes the next action date from the deal (clears it entirely)
 
-### Technical approach
+### Part 3: Add color coding + click actions to main Calendar page
 
-**File: `src/pages/Calendar.tsx`**
+The main Calendar page will get:
+- Updated legend to include blue (Past/Completed), green (Upcoming), and red (Missed/Overdue) indicators
+- Color coding on calendar event items: blue for past completed items, green for upcoming, red for overdue (past date, still open)
+- When clicking an event, the detail panel will show **"Completed"** and **"Delete"** buttons
+  - **Completed**: Clears `next_action_date` from the deal/contact (marks it done), creating an interaction if it's a deal
+  - **Delete**: Clears `next_action_date` entirely
 
-- Add state for `draggingItem` and `dropTargetDate`
-- Make each event button `draggable`, with `onDragStart` storing item ID, type, and current date
-- Make each day cell a drop target with `onDragOver`, `onDrop`, `onDragEnter`, `onDragLeave`
-- On drop, call `updateDeal` or `updateContact` mutation to set `next_action_date` to the new date
-- Visual feedback: highlight the target day cell with a ring/border while dragging over it
-- Add `cursor-grab` / `active:cursor-grabbing` to draggable items
+### Data flow synchronization
+Both pages query the same underlying data (`deals.next_action_date`, `interactions`), so completing or deleting on either page will automatically reflect on the other after cache invalidation via React Query.
 
-**File: `src/hooks/useCalendarItems.ts`**
+## Technical Details
 
-- No changes needed -- the hook already returns `type` (deal/contact) and `id`, which is enough to call the right mutation
-
-**Mutations used:**
-- `useDeals().updateDeal({ id, next_action_date })` for deal items
-- `useContacts().updateContact({ id, next_action_date })` for contact items
-
-Both hooks are already available and handle cache invalidation.
-
----
-
-## Part 2: Deal Detail Interaction Calendar
-
-### What changes
-
-On the Deal Detail page, add a visual calendar in the right column (below PlaybookPanel) that highlights dates where interactions occurred. A color-coded legend appears above the calendar:
-
-- **Blue** -- Past interactions (occurred before today)
-- **Green** -- Upcoming interactions (scheduled for today or future)
-- **Red** -- Missed interactions (past interactions with a `next_action_date` that was missed, or overdue scheduled items)
-
-Actually, since interactions have an `occurred_at` date, the logic will be:
-- **Blue** -- Interactions that already happened (`occurred_at` is before today)
-- **Green** -- Interactions scheduled for today or in the future (`occurred_at` is today or later)
-- **Red** -- Interactions where `next_action_date` was set but is in the past and no follow-up was logged (missed follow-ups)
-
-The calendar uses the existing `<Calendar>` component (react-day-picker) with `modifiers` and `modifiersClassNames` to color specific dates.
-
-### Technical approach
-
-**File: `src/pages/DealDetail.tsx`**
-
-- Add a new Card below the PlaybookPanel in the right column
-- Show a legend with 3 colored dots and labels
-- Render a `<Calendar>` component with:
-  - `modifiers={{ past: pastDates, upcoming: upcomingDates, missed: missedDates }}`
-  - `modifiersClassNames` mapping each modifier to the appropriate background color class
-- Compute dates from the `interactions` array (already fetched via `useInteractions(id)`)
-- Past = `occurred_at` before today
-- Upcoming = `occurred_at` today or later
-- Missed = deal's `next_action_date` is in the past and there's no interaction on that date
-
----
-
-## Files to Modify
+### Files to modify
 
 | File | Change |
 |------|--------|
-| `src/pages/Calendar.tsx` | Add HTML5 drag-and-drop on calendar items and day cells, call mutations on drop |
-| `src/pages/DealDetail.tsx` | Add interaction calendar card with color-coded legend in right column |
+| `src/pages/DealDetail.tsx` | Update `InteractionCalendarCard`: add deal `next_action_date` to green dates; make dates clickable via Popover showing event info + Completed/Delete buttons; Completed creates interaction + clears next_action_date; Delete clears next_action_date |
+| `src/pages/Calendar.tsx` | Update legend to blue/green/red; update `getEventClassName` to use blue for past, green for upcoming, red for overdue; add Completed + Delete buttons to selected item panel; Completed clears next_action_date + creates interaction; Delete clears next_action_date |
+| `src/hooks/useCalendarItems.ts` | No changes needed -- already returns all required data |
 
-No database changes needed -- all data already exists.
+### Color scheme (unified across both pages)
+- **Blue** -- Past/Completed interactions (occurred_at before today)
+- **Green** -- Upcoming actions (next_action_date today or future)
+- **Red** -- Missed/Overdue (next_action_date in the past, no interaction recorded)
+
+### Completed action workflow
+1. When user clicks "Completed" on a deal event:
+   - Call `createInteraction` with `{ deal_id, type: 'follow_up', summary: next_action, occurred_at: that_date }`
+   - Call `updateDeal({ id, next_action_date: null, next_action: null })`
+   - Invalidate both `interactions` and `deals` query caches
+2. When user clicks "Completed" on a contact event:
+   - Call `updateContact({ id, next_action_date: null, next_action: null })`
+3. When user clicks "Delete":
+   - Call `updateDeal/updateContact({ id, next_action_date: null, next_action: null })`
 
