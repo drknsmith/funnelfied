@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useDeals, DealWithRelations } from '@/hooks/useDeals';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Loader2, Handshake, X } from 'lucide-react';
 import { subDays, startOfDay, isBefore, isToday } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const FILTER_LABELS: Record<string, string> = {
   'actions-today': 'Actions Today',
@@ -18,8 +19,10 @@ const FILTER_LABELS: Record<string, string> = {
 export default function Deals() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { deals, isLoading } = useDeals();
+  const { deals, isLoading, updateDeal } = useDeals();
   const { stages, isLoading: stagesLoading } = usePipelineStages();
+  const [draggingDealId, setDraggingDealId] = useState<string | null>(null);
+  const [dropTargetStage, setDropTargetStage] = useState<string | null>(null);
   
   const filter = searchParams.get('filter');
 
@@ -60,6 +63,42 @@ export default function Deals() {
 
   const clearFilter = () => {
     setSearchParams({});
+  };
+
+  const handleDragStart = (e: React.DragEvent, deal: DealWithRelations) => {
+    e.dataTransfer.setData('dealId', deal.id);
+    e.dataTransfer.setData('currentStage', deal.stage);
+    setDraggingDealId(deal.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDragEnter = (stageValue: string) => {
+    setDropTargetStage(stageValue);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDropTargetStage(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStage: string) => {
+    e.preventDefault();
+    const dealId = e.dataTransfer.getData('dealId');
+    const currentStage = e.dataTransfer.getData('currentStage');
+    setDraggingDealId(null);
+    setDropTargetStage(null);
+    if (dealId && currentStage !== targetStage) {
+      updateDeal({ id: dealId, stage: targetStage });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggingDealId(null);
+    setDropTargetStage(null);
   };
 
   if (isLoading || stagesLoading) {
@@ -130,11 +169,26 @@ export default function Deals() {
                   <h3 className="font-semibold text-foreground">{stage.label}</h3>
                   <Badge variant="secondary">{stage.deals.length}</Badge>
                 </div>
-                <div className="space-y-3 min-h-[200px] rounded-lg bg-muted/30 p-2">
+                <div
+                  className={cn(
+                    'space-y-3 min-h-[200px] rounded-lg bg-muted/30 p-2 transition-colors',
+                    dropTargetStage === stage.value && 'bg-primary/10 ring-2 ring-primary/30'
+                  )}
+                  onDragOver={handleDragOver}
+                  onDragEnter={() => handleDragEnter(stage.value)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, stage.value)}
+                >
                   {stage.deals.map((deal) => (
                     <Card
                       key={deal.id}
-                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, deal)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        'cursor-grab active:cursor-grabbing transition-all bg-muted/50 hover:ring-2 hover:ring-primary hover:ring-offset-1',
+                        draggingDealId === deal.id && 'opacity-50 scale-95'
+                      )}
                       onClick={() => navigate(`/deals/${deal.id}`)}
                     >
                       <CardContent className="p-3">

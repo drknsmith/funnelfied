@@ -46,7 +46,7 @@ export default function DealCard({ deal, onClick, onDragStart, isDragging }: Dea
       onDragStart={(e) => onDragStart(e, deal)}
       onClick={onClick}
       className={cn(
-        'cursor-grab active:cursor-grabbing hover:shadow-md transition-all',
+        'cursor-grab active:cursor-grabbing transition-all bg-muted/50 hover:ring-2 hover:ring-primary hover:ring-offset-1',
         isDragging && 'opacity-50 scale-95'
       )}
     >
