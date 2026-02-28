@@ -141,8 +141,8 @@ export default function Accounts() {
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-foreground">{account.name}</div>
-                      {account.buying_motive && (
-                        <div className="text-sm text-muted-foreground">{account.buying_motive}</div>
+                      {account.segment && (
+                        <div className="text-sm text-muted-foreground">{account.segment}</div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{account.segment || '-'}</td>
