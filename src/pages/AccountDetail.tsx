@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { HealthScoreDot } from '@/components/ui/HealthScoreDot';
-import { ArrowLeft, Pencil, Users, Handshake, Loader2, UserSearch, Mail, Phone, Linkedin, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Pencil, Users, Handshake, Loader2, UserSearch, Mail, Phone, Linkedin, ExternalLink, Plus } from 'lucide-react';
 
 // Treneur workspace ID
 const TRENEUR_WORKSPACE_ID = "14e69d30-13a2-45c0-bcea-0ebe6e638b47";
@@ -297,6 +297,10 @@ export default function AccountDetail() {
                   <Handshake className="h-5 w-5" />
                   Deals ({accountDeals.length})
                 </CardTitle>
+                <Button size="sm" onClick={() => navigate(`/deals/new?account_id=${id}`)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Deal
+                </Button>
               </CardHeader>
               <CardContent>
                 {accountDeals.length === 0 ? (
