@@ -1,18 +1,18 @@
 
-# Replace Segment Column with Business Model
+# Add "Corporate Wellness" Segment Option
 
-Since segment is already shown under the account name, the standalone Segment column is redundant. Replace it with Business Model (stored in `deal_type_default`).
+A one-line change in `src/components/accounts/AccountFormDialog.tsx`.
 
 ## Technical Details
 
-**File: `src/pages/Accounts.tsx`**
+**File: `src/components/accounts/AccountFormDialog.tsx` (line 15)**
 
-Two changes:
+Update `TRENEUR_SEGMENTS` to include "Corporate Wellness":
 
-1. **Line 129** -- Change the column header from "Segment" to "Business Model"
-2. **Line 148** -- Change the cell value from `account.segment` to `account.deal_type_default`, with the same `replace('_', '-')` formatting used on the detail page
+```ts
+// Before
+const TRENEUR_SEGMENTS = ['Boutique Gym', 'Yoga Studio', 'Pilates Studio', 'Big Box Gym', 'Martial Arts/Boxing', 'Student Rec Center'];
 
-| Line | Before | After |
-|------|--------|-------|
-| 129 | `Segment` | `Business Model` |
-| 148 | `account.segment \|\| '-'` | `account.deal_type_default?.replace('_', '-') \|\| '-'` |
+// After
+const TRENEUR_SEGMENTS = ['Boutique Gym', 'Yoga Studio', 'Pilates Studio', 'Big Box Gym', 'Martial Arts/Boxing', 'Student Rec Center', 'Corporate Wellness'];
+```
