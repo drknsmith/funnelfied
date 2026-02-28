@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, isBefore, isToday, startOfDay, parseISO } from 'date-fns';
 import AppLayout from '@/components/layout/AppLayout';
 import { useDeal, useDeals, DEAL_SIZES } from '@/hooks/useDeals';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
@@ -54,6 +54,97 @@ import {
   Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+function InteractionCalendarCard({ interactions, deal }: { interactions: any[]; deal: any }) {
+  const today = startOfDay(new Date());
+
+  const { pastDates, upcomingDates, missedDates } = useMemo(() => {
+    const past: Date[] = [];
+    const upcoming: Date[] = [];
+    const missed: Date[] = [];
+
+    // Categorize interactions by occurred_at
+    interactions.forEach((interaction: any) => {
+      const occurredDate = startOfDay(parseISO(interaction.occurred_at));
+      if (isBefore(occurredDate, today)) {
+        past.push(occurredDate);
+      } else {
+        upcoming.push(occurredDate);
+      }
+    });
+
+    // Check for missed follow-ups: deal has a next_action_date in the past with no interaction on that date
+    if (deal.next_action_date) {
+      const nextActionDate = startOfDay(parseISO(deal.next_action_date));
+      if (isBefore(nextActionDate, today)) {
+        const hasInteractionOnDate = interactions.some((i: any) => {
+          const d = format(parseISO(i.occurred_at), 'yyyy-MM-dd');
+          return d === deal.next_action_date;
+        });
+        if (!hasInteractionOnDate) {
+          missed.push(nextActionDate);
+        }
+      }
+    }
+
+    // Also check interaction next_action_dates that are past with no follow-up
+    interactions.forEach((interaction: any) => {
+      if (interaction.next_action_date) {
+        const nad = startOfDay(parseISO(interaction.next_action_date));
+        if (isBefore(nad, today)) {
+          const hasFollowUp = interactions.some((i: any) => {
+            const d = format(parseISO(i.occurred_at), 'yyyy-MM-dd');
+            return d === interaction.next_action_date;
+          });
+          if (!hasFollowUp) {
+            missed.push(nad);
+          }
+        }
+      }
+    });
+
+    return { pastDates: past, upcomingDates: upcoming, missedDates: missed };
+  }, [interactions, deal.next_action_date]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">Interaction Timeline</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Legend */}
+        <div className="flex flex-wrap gap-3 mb-3 text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+            <span className="text-muted-foreground">Past</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <span className="text-muted-foreground">Upcoming</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+            <span className="text-muted-foreground">Missed</span>
+          </div>
+        </div>
+        <Calendar
+          mode="single"
+          className="pointer-events-auto w-full"
+          modifiers={{
+            past: pastDates,
+            upcoming: upcomingDates,
+            missed: missedDates,
+          }}
+          modifiersClassNames={{
+            past: 'bg-blue-500/20 text-blue-700 font-semibold',
+            upcoming: 'bg-green-500/20 text-green-700 font-semibold',
+            missed: 'bg-red-500/20 text-red-700 font-semibold',
+          }}
+        />
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -491,13 +582,16 @@ export default function DealDetail() {
             </Tabs>
           </div>
 
-          {/* Right Column - Playbook Panel */}
-          <div>
+          {/* Right Column - Playbook Panel + Interaction Calendar */}
+          <div className="space-y-6">
             <PlaybookPanel
               deal={deal}
               onUpdate={handlePlaybookPanelUpdate}
               isUpdating={isUpdating}
             />
+
+            {/* Interaction Calendar */}
+            <InteractionCalendarCard interactions={interactions} deal={deal} />
           </div>
         </div>
       </div>

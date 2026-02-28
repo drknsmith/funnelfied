@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   format,
@@ -17,12 +17,15 @@ import {
 import AppLayout from '@/components/layout/AppLayout';
 import { useCalendarItems, CalendarItem } from '@/hooks/useCalendarItems';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
+import { useDeals } from '@/hooks/useDeals';
+import { useContacts } from '@/hooks/useContacts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ExternalLink, User, Briefcase } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ExternalLink, User, Briefcase, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const MAX_VISIBLE_EVENTS = 3;
 
@@ -30,9 +33,13 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
+  const [dropTargetDate, setDropTargetDate] = useState<string | null>(null);
+  const dragItemRef = useRef<CalendarItem | null>(null);
 
   const { data: itemsByDate, isLoading } = useCalendarItems(currentDate);
   const { stages } = usePipelineStages();
+  const { updateDeal } = useDeals();
+  const { updateContact } = useContacts();
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -69,12 +76,10 @@ export default function CalendarPage() {
     const isContact = item.type === 'contact';
 
     if (isContact) {
-      // Purple for contacts
       if (isPast) return 'bg-purple-700/20 text-purple-900 border-purple-700/30';
       if (isToday(date)) return 'bg-purple-300/30 text-purple-800 border-purple-400/30';
       return 'bg-purple-500/10 text-purple-700 border-purple-500/20';
     } else {
-      // Blue/primary for deals
       if (isPast) return 'bg-destructive/20 text-destructive border-destructive/30';
       if (isToday(date)) return 'bg-warning/20 text-warning-foreground border-warning/30';
       return 'bg-primary/10 text-primary border-primary/20';
@@ -84,6 +89,60 @@ export default function CalendarPage() {
   const stageLabel = (stage?: string) => {
     if (!stage) return 'N/A';
     return stages.find((s) => s.value === stage)?.label || stage;
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, item: CalendarItem) => {
+    dragItemRef.current = item;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.id);
+    // Add a slight delay to allow the drag image to render
+    (e.target as HTMLElement).style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    (e.target as HTMLElement).style.opacity = '1';
+    setDropTargetDate(null);
+    dragItemRef.current = null;
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragEnter = (e: React.DragEvent, dateStr: string) => {
+    e.preventDefault();
+    setDropTargetDate(dateStr);
+  };
+
+  const handleDragLeave = (e: React.DragEvent, dateStr: string) => {
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    const currentTarget = e.currentTarget as HTMLElement;
+    if (!currentTarget.contains(relatedTarget)) {
+      if (dropTargetDate === dateStr) {
+        setDropTargetDate(null);
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, dateStr: string) => {
+    e.preventDefault();
+    setDropTargetDate(null);
+    const item = dragItemRef.current;
+    if (!item) return;
+
+    // Don't update if dropped on same date
+    if (item.next_action_date === dateStr) return;
+
+    if (item.type === 'deal') {
+      updateDeal({ id: item.id, next_action_date: dateStr });
+      toast.success(`Deal moved to ${format(new Date(dateStr), 'MMM d, yyyy')}`);
+    } else {
+      updateContact.mutate({ id: item.id, next_action_date: dateStr });
+      toast.success(`Contact moved to ${format(new Date(dateStr), 'MMM d, yyyy')}`);
+    }
+    dragItemRef.current = null;
   };
 
   return (
@@ -121,6 +180,10 @@ export default function CalendarPage() {
             <div className="h-3 w-3 rounded bg-purple-500/50" />
             <span className="text-muted-foreground">Contact Follow-up</span>
           </div>
+          <div className="flex items-center gap-2 ml-4">
+            <GripVertical className="h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground">Drag items to reschedule</span>
+          </div>
         </div>
 
         {/* Calendar Grid */}
@@ -147,19 +210,26 @@ export default function CalendarPage() {
               weeks.map((week, weekIndex) => (
                 <div key={weekIndex} className="grid grid-cols-7 border-b last:border-b-0">
                   {week.map((date, dayIndex) => {
+                    const dateStr = format(date, 'yyyy-MM-dd');
                     const items = getItemsForDate(date);
                     const visibleItems = items.slice(0, MAX_VISIBLE_EVENTS);
                     const hiddenCount = items.length - MAX_VISIBLE_EVENTS;
                     const isCurrentMonth = isSameMonth(date, currentDate);
+                    const isDropTarget = dropTargetDate === dateStr;
 
                     return (
                       <div
                         key={dayIndex}
                         className={cn(
-                          'min-h-[120px] border-r last:border-r-0 p-1',
+                          'min-h-[120px] border-r last:border-r-0 p-1 transition-colors',
                           !isCurrentMonth && 'bg-muted/30',
-                          isToday(date) && 'bg-primary/5'
+                          isToday(date) && 'bg-primary/5',
+                          isDropTarget && 'bg-primary/10 ring-2 ring-inset ring-primary/40'
                         )}
+                        onDragOver={handleDragOver}
+                        onDragEnter={(e) => handleDragEnter(e, dateStr)}
+                        onDragLeave={(e) => handleDragLeave(e, dateStr)}
+                        onDrop={(e) => handleDrop(e, dateStr)}
                       >
                         {/* Date Number */}
                         <div
@@ -177,9 +247,12 @@ export default function CalendarPage() {
                           {visibleItems.map((item) => (
                             <button
                               key={`${item.type}-${item.id}`}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, item)}
+                              onDragEnd={handleDragEnd}
                               onClick={() => setSelectedItem(item)}
                               className={cn(
-                                'w-full truncate rounded border px-1.5 py-0.5 text-left text-xs font-medium transition-colors hover:opacity-80 flex items-center gap-1',
+                                'w-full truncate rounded border px-1.5 py-0.5 text-left text-xs font-medium transition-colors hover:opacity-80 flex items-center gap-1 cursor-grab active:cursor-grabbing',
                                 getEventClassName(item, date),
                                 selectedItem?.id === item.id && selectedItem?.type === item.type && 'ring-2 ring-primary ring-offset-1'
                               )}
