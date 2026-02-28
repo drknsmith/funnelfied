@@ -1,43 +1,46 @@
 
 
-# Add Drag-and-Drop and Card Styling to Treneur Pipeline
+# Add "+ New Deal" Button to Account Detail Deals Section
 
 ## Overview
-
-The Deals pipeline page (`Deals.tsx`) currently renders deal cards inline without drag-and-drop support. We need to add drag-and-drop between pipeline columns so moving a card updates the deal's stage in the database (reflecting on the Deal Detail stage progression). We also need to restyle cards with a gray background and blue outline on hover.
+Add a "+ New Deal" button in the Deals card header on the Account Detail page. Clicking it navigates to the DealForm page (`/deals/new`) with the account pre-selected via a query parameter. The DealForm will read that parameter and auto-fill the account field.
 
 ## Changes
 
-### 1. Deals.tsx -- Add drag-and-drop state and handlers
+### 1. AccountDetail.tsx -- Add the button
+- Add a `Plus` icon import
+- Add a `Button` next to the "Deals (N)" card title that navigates to `/deals/new?account_id={id}`
 
-**File: `src/pages/Deals.tsx`**
+### 2. DealForm.tsx -- Read account_id from URL params
+- Import `useSearchParams`
+- Read `account_id` from the query string on mount
+- Pre-fill `formData.account_id` with that value when creating a new deal (not editing)
+- This uses the exact same DealForm workflow as the main "New Deal" button, just with the account pre-selected
 
-- Add `useState` for `draggingDealId` tracking
-- Add `handleDragStart`, `handleDragOver`, `handleDrop` functions
-- `handleDrop` calls `updateDeal` mutation to persist the new stage to the database
-- Replace the inline column rendering with drag-event-aware containers (similar to `StageColumn` pattern but inline)
-- Add `onDragEnter`/`onDragLeave` state for visual drop-target highlighting
+## Technical Details
 
-### 2. Deals.tsx -- Restyle deal cards
+**AccountDetail.tsx** (line ~295-299): Add button to CardHeader:
+```tsx
+<Button size="sm" onClick={() => navigate(`/deals/new?account_id=${id}`)}>
+  <Plus className="mr-2 h-4 w-4" />
+  New Deal
+</Button>
+```
 
-- Change card class from `hover:shadow-md` to gray background with blue hover outline:
-  - Base: `bg-muted/50` (gray tint)
-  - Hover: `hover:ring-2 hover:ring-primary hover:ring-offset-1` (blue outline)
-- Make cards `draggable` with `cursor-grab` / `active:cursor-grabbing`
-- Add `opacity-50` when the card is being dragged
+**DealForm.tsx** (lines ~35-62): Read query param and use it as default:
+```tsx
+const [searchParams] = useSearchParams();
+const preselectedAccountId = searchParams.get('account_id');
 
-### 3. DealCard.tsx -- Match card styling (consistency)
+// In useState initializer, set account_id from preselectedAccountId
+account_id: preselectedAccountId || '',
+```
 
-- Update the existing `DealCard` component (used elsewhere) to also use the gray background + blue hover outline pattern, keeping visual consistency across the app.
-
-## Technical Detail
-
-The drag-and-drop uses native HTML5 drag events (already the pattern in `StageColumn.tsx` and `DealCard.tsx`). On drop, we call `updateDeal({ id, stage: newStage })` which persists to the database. Since the Deal Detail page reads the deal's `stage` field from the same database, the stage progression timeline will automatically reflect the change on next load.
+Also set the first stage from the dynamic `stages` array as default instead of hardcoded `'signal_target'`.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/Deals.tsx` | Add drag-and-drop handlers, update card styling |
-| `src/components/deals/DealCard.tsx` | Update card styling to match (gray bg, blue hover outline) |
-
+| `src/pages/AccountDetail.tsx` | Add "+ New Deal" button to Deals card header |
+| `src/pages/DealForm.tsx` | Read `account_id` query param and pre-fill account field |
