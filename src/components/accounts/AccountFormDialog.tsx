@@ -17,7 +17,7 @@ const PORTFOLIO_SIZES = ['1', '2-5', '6-20', '20+'];
 const DEAL_TYPES = ['portfolio', 'design_led', 'transactional', 'other'];
 const TRENEUR_BUSINESS_MODELS = ['Hire Trainers', 'Rent to Trainers', 'Hybrid'];
 const STATUSES = ['active', 'inactive', 'churned'];
-const MEMBERSHIP_OPTIONS = ['Yes', 'No', 'Unk'] as const;
+const MEMBERSHIP_OPTIONS = ['Yes', 'No', 'Unknown'] as const;
 interface AccountFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
