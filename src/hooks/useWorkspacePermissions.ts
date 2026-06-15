@@ -71,7 +71,7 @@ export function useWorkspacePermissions() {
         // Update existing permission
         const { error } = await supabase
           .from('workspace_permissions')
-          .update({ [action]: newValue })
+          .update({ [action]: newValue } as never)
           .eq('id', existing.id);
 
         if (error) throw error;

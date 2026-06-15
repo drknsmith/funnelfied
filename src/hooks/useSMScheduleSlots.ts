@@ -140,7 +140,7 @@ export function useSMScheduleSlots(dateRange?: { start: string; end: string }) {
 
       const { data, error } = await supabase
         .from('sm_schedule_slots')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id)
         .select()
         .single();

@@ -152,7 +152,7 @@ export function useSMContentItems(dateRange?: { start: string; end: string }) {
 
       const { data, error } = await supabase
         .from('sm_content_items')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id)
         .select()
         .single();
