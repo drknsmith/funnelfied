@@ -115,7 +115,7 @@ export function useSMCampaigns() {
 
       const { data, error } = await supabase
         .from('sm_campaigns')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id)
         .select()
         .single();

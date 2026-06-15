@@ -148,7 +148,7 @@ export function useSMAssets() {
 
       const { data, error } = await supabase
         .from('sm_assets')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id)
         .select()
         .single();
