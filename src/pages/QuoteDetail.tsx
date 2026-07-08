@@ -189,13 +189,23 @@ export default function QuoteDetail() {
                   ))}
                 </SelectContent>
               </Select>
-              {(local.snapshot_contact_name || local.snapshot_contact_email || local.snapshot_contact_phone) && (
-                <div className="mt-2 text-sm text-muted-foreground space-y-0.5">
-                  <p><span className="font-medium text-foreground">{local.snapshot_contact_name || '—'}</span></p>
-                  {local.snapshot_contact_email && <p>{local.snapshot_contact_email}</p>}
-                  {local.snapshot_contact_phone && <p>{local.snapshot_contact_phone}</p>}
-                </div>
-              )}
+            </div>
+            <div>
+              <Label>Contact Email</Label>
+              <Input
+                type="email"
+                value={local.snapshot_contact_email ?? ''}
+                onChange={(e) => save({ snapshot_contact_email: e.target.value })}
+                placeholder="name@example.com"
+              />
+            </div>
+            <div>
+              <Label>Contact Phone</Label>
+              <Input
+                value={local.snapshot_contact_phone ?? ''}
+                onChange={(e) => save({ snapshot_contact_phone: e.target.value })}
+                placeholder="(555) 555-5555"
+              />
             </div>
             <div>
               <Label>Project Name</Label>
