@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useQuote, useQuoteContractorItems, useQuotes, Quote } from '@/hooks/useQuotes';
+import { useContacts } from '@/hooks/useContacts';
 import {
   PHASES,
   laborSubtotal,
@@ -39,6 +40,8 @@ export default function QuoteDetail() {
 
   const [local, setLocal] = useState<Quote | null>(null);
   useEffect(() => { if (quote) setLocal(quote); }, [quote]);
+  const accountId = (quote as any)?.deals?.account_id as string | undefined;
+  const { contacts: accountContacts } = useContacts(accountId);
 
   if (isLoading || !local) {
     return <AppLayout><div className="p-6">Loading…</div></AppLayout>;
@@ -161,27 +164,38 @@ export default function QuoteDetail() {
         <Card>
           <CardHeader><CardTitle className="text-sm">Client & Project</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Contact Name</Label>
-              <Input
-                value={local.snapshot_contact_name ?? ''}
-                onChange={(e) => save({ snapshot_contact_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Contact Email</Label>
-              <Input
-                type="email"
-                value={local.snapshot_contact_email ?? ''}
-                onChange={(e) => save({ snapshot_contact_email: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Contact Phone</Label>
-              <Input
-                value={local.snapshot_contact_phone ?? ''}
-                onChange={(e) => save({ snapshot_contact_phone: e.target.value })}
-              />
+            <div className="col-span-2">
+              <Label>Contact</Label>
+              <Select
+                value={local.contact_id ?? ''}
+                onValueChange={(v) => {
+                  const c = accountContacts.find((x) => x.id === v);
+                  save({
+                    contact_id: v,
+                    snapshot_contact_name: c?.name ?? null,
+                    snapshot_contact_email: c?.email ?? null,
+                    snapshot_contact_phone: c?.phone ?? null,
+                  } as any);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={accountContacts.length ? 'Select a contact' : 'No contacts on this account'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {accountContacts.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}{c.email ? ` — ${c.email}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(local.snapshot_contact_name || local.snapshot_contact_email || local.snapshot_contact_phone) && (
+                <div className="mt-2 text-sm text-muted-foreground space-y-0.5">
+                  <p><span className="font-medium text-foreground">{local.snapshot_contact_name || '—'}</span></p>
+                  {local.snapshot_contact_email && <p>{local.snapshot_contact_email}</p>}
+                  {local.snapshot_contact_phone && <p>{local.snapshot_contact_phone}</p>}
+                </div>
+              )}
             </div>
             <div>
               <Label>Project Name</Label>

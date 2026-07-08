@@ -203,7 +203,7 @@ export function useQuote(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('quotes')
-        .select('*, deals(id, deal_name, accounts(name)), contacts(name, email, phone)')
+        .select('*, deals(id, deal_name, account_id, accounts(name)), contacts(name, email, phone)')
         .eq('id', id)
         .single();
       if (error) throw error;
