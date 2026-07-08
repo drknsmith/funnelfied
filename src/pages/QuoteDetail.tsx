@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -107,7 +108,6 @@ export default function QuoteDetail() {
             <Field label="Contact Name" value={local.snapshot_contact_name} />
             <Field label="Contact Email" value={local.snapshot_contact_email} />
             <Field label="Contact Phone" value={local.snapshot_contact_phone} />
-            <Field label="Referral Source" value={local.snapshot_referral_source} />
             <Field label="Project Name" value={local.snapshot_project_name} />
             <Field label="Project Address" value={local.snapshot_project_address} />
           </CardContent>
@@ -156,6 +156,18 @@ export default function QuoteDetail() {
                       value={local.service_details?.[f.key] ?? ''}
                       onChange={(e) => saveDetail(f.key, e.target.value)}
                     />
+                  ) : f.type === 'select' ? (
+                    <Select
+                      value={local.service_details?.[f.key] ?? ''}
+                      onValueChange={(v) => saveDetail(f.key, v)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        {f.options?.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <Input
                       type={f.type}
@@ -344,10 +356,12 @@ export default function QuoteDetail() {
         </Card>
 
         <div className="flex justify-end">
-          <Button variant="destructive" onClick={() => {
-            if (confirm('Delete this quote?')) { deleteQuote(local.id); nav('/quotes'); }
+          <Button onClick={() => {
+            const { id: _id, created_at, updated_at, version_number, workspace_id, ...patch } = local as any;
+            updateQuote({ id: local.id, patch });
+            toast({ title: 'Quote saved' });
           }}>
-            <Trash2 className="mr-2 h-4 w-4" /> Delete Quote
+            Save
           </Button>
         </div>
       </div>
