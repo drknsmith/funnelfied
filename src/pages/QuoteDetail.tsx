@@ -86,6 +86,16 @@ export default function QuoteDetail() {
   const pillars: string[] = Array.isArray((local as any).sow_approach_pillars) ? (local as any).sow_approach_pillars : [];
   const PILLARS = ['Policy', 'People', 'Process', 'Product'];
 
+  function PolishButton({ field, current, onApply }: { field: 'executive_summary' | 'problem_statement' | 'proposed_approach'; current: string; onApply: (v: string) => void }) {
+    const busy = polishing === field;
+    return (
+      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => polish(field, current, onApply)}>
+        {busy ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+        Polish with AI
+      </Button>
+    );
+  }
+
   async function polish(field: 'executive_summary' | 'problem_statement' | 'proposed_approach', current: string, apply: (v: string) => void) {
     if (!current?.trim()) {
       toast({ title: 'Add some text first', description: 'Write a draft, then polish it with AI.' });
