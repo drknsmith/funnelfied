@@ -1,46 +1,39 @@
 
-## Goal
-
-Replace the current per-field "Polish with AI" model with a single AI trigger tied to **Generate SOW PDF**. On click, the AI receives the entire form state at once plus the full Service Knowledge Playbook, and produces the whole SOW body (Executive Summary, Problem Statement, Proposed Approach, Deliverables, Milestones, Terms & Conditions) in one cross-referenced pass. Rate & Billing Terms is never AI-touched.
-
-## One assumption to confirm
-
-The three freeform fields on the SOW editor — **Executive Summary**, **Problem Statement**, **Proposed Approach** — will stay in the editor as optional "salesperson notes" inputs. Generate SOW PDF will rewrite/expand whatever's there, or draft from scratch off the structured fields if left blank. If you want them removed entirely and everything generated from structured fields only, say so and I'll adjust the merge rule.
-
 ## Changes
 
-### 1. QuoteDetail editor (`src/pages/QuoteDetail.tsx`)
-- Remove the three per-field `PolishButton` instances and the `polish()` helper, `polishing` state, and `PolishButton` component itself.
-- Keep the Executive Summary / Problem Statement / Proposed Approach textareas as-is (salesperson notes) with updated placeholder copy ("Optional notes — the AI will expand and polish this when you Generate SOW PDF").
-- Keep the 4 P's pillar checkboxes; they are an emphasis instruction, distinct from Opportunity Type.
-- Keep the Deliverables and Milestones manual-add rows; they now feed the AI as primary content to refine (or the AI generates them when empty).
-- Change the "Generate SOW PDF" button to first call the new edge function, persist the AI output back onto the quote, then navigate to `/quotes/:id/preview?doc=sow`. Show a loading spinner while generating and toast on error (429 / 402 surfaced clearly).
+### 1. Milestone dates via an explicit "Process Milestones with AI" step (QuoteDetail.tsx)
 
-### 2. New edge function `generate-sow` (replaces `polish-sow-field`)
-- Input: `{ quoteId, workspaceId }`. Loads the quote, the full playbook (all sections including `terms_and_conditions`), and all `service_category` details in one go.
-- Builds a single prompt containing:
-  - Every structured field across Engagement, Design Details, Programming Details, Policy Details.
-  - The three freeform notes (if any) as primary content to expand.
-  - Existing Deliverables / Milestones rows (if any) as primary content to refine.
-  - Full Service Knowledge Playbook as the structural/consistency backstop.
-  - The section-to-repository mapping and merge rules from your spec (notes are primary; repository never verbatim; multi-component engagements group by component; funding-source-status cross-links to Engagement Type framing; compliance drivers trigger the ADA/non-architectural disclaimer worded to the specific driver; atypical pairings get flagged back rather than silently generated).
-- Model: `google/gemini-2.5-pro` via Lovable AI Gateway (large context, cross-section reasoning), structured JSON output with a schema of `{ executive_summary, problem_statement, proposed_approach, deliverables: [{name, description}], milestones: [{name, description, target_date}], terms_and_conditions, warnings: [string] }`.
-- Writes the returned fields back to the `quotes` row (adds a new `sow_terms_and_conditions` column). Returns `{ warnings }` to the client so atypical-pairing flags can toast.
-- Delete `supabase/functions/polish-sow-field/index.ts` and its `supabase/config.toml` entry.
+Problem: today, milestone `target_date` values are only set when the salesperson clicks **Generate SOW PDF** — the AI rewrites the whole milestones array in one shot, overwriting whatever names/dates the salesperson typed. That's why the dates in the preview timeline don't match what was entered in the form.
 
-### 3. Database
-- Add `sow_terms_and_conditions text` to `quotes` (nullable). Populated by the AI, rendered verbatim in the preview.
+Fix: add a dedicated, milestone-only AI pass the salesperson runs from the Milestones panel *before* Generate SOW PDF. It is scoped to milestones and never touches Executive Summary, Problem Statement, Proposed Approach, Deliverables, or Terms.
 
-### 4. Preview (`src/pages/QuotePreview.tsx`)
-- Add a **Terms and Conditions** section at the end of the SOW body, rendering `quote.sow_terms_and_conditions` when present.
-- Include it in the "Copy as Markdown" output.
-- Rate & Billing Terms section stays exactly as-is (form inputs only, no AI, no calculated total).
+- Add a **Process Milestones with AI** button in the Milestones panel header (next to "Add milestone"). Disabled until at least one milestone row exists OR Engagement Type + Timeline/Urgency are set (so the AI has something to anchor dates to).
+- On click: invoke a new edge function `suggest-milestones` with `{ quoteId, workspaceId }`. It receives the full form state (same shape as generate-sow) plus the current milestone rows and returns `{ milestones: [{ name, description, target_date }], warnings: [] }`.
+  - AI rules: refine/complete the salesperson's existing rows (preserve their names when present, fill in blanks, and set realistic `target_date`s based on Engagement Type phase structure + Timeline/Urgency, working forward from today's date passed in). If the list is empty, generate a suggested set from the active components + engagement type. Never invent dates outside the stated urgency window.
+- Response is written into a **review UI** (in-place edit of the milestone rows, not auto-saved): each returned row lands in the existing milestone inputs so the salesperson can adjust name/description/date before saving. A small "AI suggestions applied — review and Save" banner appears above the list until they click Save. Save persists to `quotes.sow_milestones` via the existing update path.
+- Update `generate-sow` so it **preserves the salesperson's `sow_milestones` verbatim** and no longer rewrites them. It still generates Executive Summary, Problem Statement, Proposed Approach, Deliverables, and Terms. The milestones panel is now the sole owner of milestone content. The system prompt and JSON schema drop the `milestones` field.
+- Preview timeline (`QuotePreview.tsx`) already reads `quote.sow_milestones` — no change needed; dates will now match because they are whatever the salesperson approved.
 
-### 5. Playbook already has `terms_and_conditions`
-- Confirmed added in prior turn — no schema change needed there. The edge function reads it and asks the AI to adapt it to the specific engagement (or emit verbatim if the playbook value is a hard legal block — the prompt will instruct "use playbook terms_and_conditions as the source; only lightly adapt scope-specific references, do not rewrite legal language").
+### 2. Remove duplicate project-context blocks from the SOW preview (QuotePreview.tsx)
+
+Remove the standalone "context" sections that render raw form inputs already folded into the AI-written SOW body. Specifically the SOW view should show only:
+
+- Header (project name, client, Red Loft contact, date, version)
+- Executive Summary
+- Problem Statement
+- Proposed Approach (+ 4 P's emphasis pills if any)
+- Deliverables
+- Milestones (timeline)
+- Terms and Conditions
+- Rate & Billing Terms (unchanged — form inputs only)
+
+Drop from the SOW preview: the Engagement/Component Details/Design Details/Programming Details/Policy Details raw dump blocks, and any "Salesperson Notes" or structured-field summary panels. Remove them from the "Copy as Markdown" output as well.
+
+I'll confirm the exact block names by reading `QuotePreview.tsx` before editing so nothing unrelated is removed.
 
 ## Technical notes
 
-- The `Generate SOW PDF` flow becomes: click → button shows spinner → invoke `generate-sow` → on success, invalidate the quote query so the preview reads fresh AI-written fields → navigate to preview. On failure, stay on the editor with an error toast.
-- Warnings array is surfaced as a non-blocking toast (e.g. "Design + Retainer is atypical — add rolling-pipeline justification to notes or switch Engagement Type").
-- Cost: one Gemini 2.5 Pro call per Generate SOW PDF click. Salesperson can re-click to regenerate.
+- New edge function `supabase/functions/suggest-milestones/index.ts`, registered in `supabase/config.toml`. Model: `google/gemini-2.5-flash` (cheaper/faster than pro; milestones-only task doesn't need pro-tier reasoning). JSON response format. Passes `today` (ISO date) into the prompt so the model has an anchor.
+- `generate-sow` edits: remove `milestones` from the JSON schema, the merge rules block, and the DB patch. Keep everything else identical.
+- No DB migration required — `sow_milestones` column already exists.
+- Client: new mutation hook in `QuoteDetail.tsx` (or inline) that calls `supabase.functions.invoke('suggest-milestones', ...)`, sets local milestone state, shows the "review and Save" banner, and toasts on 429/402. Save button reuses the existing `updateQuote` path.
