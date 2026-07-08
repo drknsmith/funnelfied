@@ -317,6 +317,10 @@ export type Database = {
           primary_contact_id: string | null
           primary_objection: string | null
           probability: number | null
+          project_city: string | null
+          project_state: string | null
+          project_street: string | null
+          project_zip: string | null
           proposal_link: string | null
           proposal_requested_date: string | null
           proposal_submitted_date: string | null
@@ -349,6 +353,10 @@ export type Database = {
           primary_contact_id?: string | null
           primary_objection?: string | null
           probability?: number | null
+          project_city?: string | null
+          project_state?: string | null
+          project_street?: string | null
+          project_zip?: string | null
           proposal_link?: string | null
           proposal_requested_date?: string | null
           proposal_submitted_date?: string | null
@@ -381,6 +389,10 @@ export type Database = {
           primary_contact_id?: string | null
           primary_objection?: string | null
           probability?: number | null
+          project_city?: string | null
+          project_state?: string | null
+          project_street?: string | null
+          project_zip?: string | null
           proposal_link?: string | null
           proposal_requested_date?: string | null
           proposal_submitted_date?: string | null
