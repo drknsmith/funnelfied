@@ -50,11 +50,7 @@ export function PlaybookPanel({ deal, onUpdate, isUpdating }: PlaybookPanelProps
     onUpdate({ next_action_date: date || null });
   };
 
-  const { activeWorkspaceId } = useAuth();
-  const isTreneur = isTreneurWorkspace(activeWorkspaceId);
   const selectedPlaybook = playbooks.find(p => p.id === deal.playbook_id);
-  const isSignalTarget = deal.stage === 'signal_target';
-  const needsPlaybook = !isTreneur && !isSignalTarget && !deal.playbook_id;
 
   return (
     <Card>
@@ -65,13 +61,6 @@ export function PlaybookPanel({ deal, onUpdate, isUpdating }: PlaybookPanelProps
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {needsPlaybook && (
-          <div className="flex items-start gap-2 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>A playbook is required for deals past Signal Target stage.</span>
-          </div>
-        )}
-
         <div className="space-y-2">
           <Label htmlFor="playbook">Assigned Playbook</Label>
           <Select
