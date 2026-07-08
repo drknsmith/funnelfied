@@ -1,26 +1,16 @@
 
-## Add Red Loft Contact to quotes
+## Make Client & Project fields editable
 
-### Database
-Add 4 nullable text columns to `public.quotes`:
-- `redloft_contact_name`
-- `redloft_contact_title`
-- `redloft_contact_email`
-- `redloft_contact_phone`
+The "Client & Project" card in `src/pages/QuoteDetail.tsx` currently uses a read-only `<Field>` component that just displays snapshot values. If a contact has no email/phone when the quote is created, those fields stay blank with no way to fix them.
 
-### `src/hooks/useQuotes.ts`
-Add the 4 fields to the `Quote` interface (`string | null`).
+Replace the five `<Field>` reads with editable `<Input>`s bound via `save({ ... })`, matching the pattern used in the new Red Loft Contact card:
+- Contact Name → `snapshot_contact_name`
+- Contact Email → `snapshot_contact_email` (type=email)
+- Contact Phone → `snapshot_contact_phone`
+- Project Name → `snapshot_project_name`
+- Project Address → `snapshot_project_address`
 
-### `src/pages/QuoteDetail.tsx`
-On the **SOW tab only**, insert a new Card above "Client & Project":
-- Title: "Red Loft Contact"
-- 2-col grid with Inputs bound via `save({ ... })`: Red Loft Contact Name, Title, Email, Phone Number.
-
-### `src/pages/QuotePreview.tsx`
-In the header grid (currently Prepared For / Project), add a third block "Red Loft Contact" showing name, title, email, phone. Render on **both** SOW and Invoice. Convert the header grid from `grid-cols-2` to `grid-cols-3`.
+Keep the 2-column grid layout. The `Field` helper can stay in the file if used elsewhere; otherwise it becomes dead code (safe to leave).
 
 ### Files changed
-- new migration
-- `src/hooks/useQuotes.ts`
 - `src/pages/QuoteDetail.tsx`
-- `src/pages/QuotePreview.tsx`
