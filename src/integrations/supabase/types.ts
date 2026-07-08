@@ -804,6 +804,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           default_nurture_tag: string | null
+          design_details: string | null
+          design_type: string | null
+          engagement_type: string | null
           exit_rule: string | null
           expansion_seed: string | null
           expedited: boolean | null
@@ -813,9 +816,13 @@ export type Database = {
           followup_day21_template: string | null
           followup_day3_template: string | null
           id: string
+          kind: string
           name: string
           objective: string | null
+          opportunity_types: string[] | null
           owner_user_id: string | null
+          policy_details: string | null
+          programming_details: string | null
           proof_asset_file_ref: string | null
           proof_asset_id: string | null
           proof_asset_label: string | null
@@ -833,6 +840,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_nurture_tag?: string | null
+          design_details?: string | null
+          design_type?: string | null
+          engagement_type?: string | null
           exit_rule?: string | null
           expansion_seed?: string | null
           expedited?: boolean | null
@@ -842,9 +852,13 @@ export type Database = {
           followup_day21_template?: string | null
           followup_day3_template?: string | null
           id?: string
+          kind?: string
           name: string
           objective?: string | null
+          opportunity_types?: string[] | null
           owner_user_id?: string | null
+          policy_details?: string | null
+          programming_details?: string | null
           proof_asset_file_ref?: string | null
           proof_asset_id?: string | null
           proof_asset_label?: string | null
@@ -862,6 +876,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_nurture_tag?: string | null
+          design_details?: string | null
+          design_type?: string | null
+          engagement_type?: string | null
           exit_rule?: string | null
           expansion_seed?: string | null
           expedited?: boolean | null
@@ -871,9 +888,13 @@ export type Database = {
           followup_day21_template?: string | null
           followup_day3_template?: string | null
           id?: string
+          kind?: string
           name?: string
           objective?: string | null
+          opportunity_types?: string[] | null
           owner_user_id?: string | null
+          policy_details?: string | null
+          programming_details?: string | null
           proof_asset_file_ref?: string | null
           proof_asset_id?: string | null
           proof_asset_label?: string | null
