@@ -129,7 +129,7 @@ export default function DealFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Deal' : 'Create Deal'}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Opportunity' : 'Create Opportunity'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -138,9 +138,9 @@ export default function DealFormDialog({
               name="deal_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Deal Name</FormLabel>
+                  <FormLabel>Opportunity Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter deal name (optional)" {...field} />
+                    <Input placeholder="Enter opportunity name (optional)" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -228,7 +228,7 @@ export default function DealFormDialog({
                 name="deal_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Deal Type</FormLabel>
+                    <FormLabel>Opportunity Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -256,7 +256,7 @@ export default function DealFormDialog({
                   name="deal_size_range"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Deal Size</FormLabel>
+                      <FormLabel>Opportunity Size</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -329,7 +329,7 @@ export default function DealFormDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Saving...' : isEditing ? 'Update Deal' : 'Create Deal'}
+                {isLoading ? 'Saving...' : isEditing ? 'Update Opportunity' : 'Create Opportunity'}
               </Button>
             </div>
           </form>

@@ -280,10 +280,10 @@ export default function DealDetail() {
         <div className="p-6">
           <Button variant="ghost" onClick={() => navigate('/deals')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Pipeline
+            Back to Opportunities
           </Button>
           <div className="mt-8 text-center">
-            <p className="text-muted-foreground">Deal not found</p>
+            <p className="text-muted-foreground">Opportunity not found</p>
           </div>
         </div>
       </AppLayout>
@@ -412,12 +412,12 @@ export default function DealDetail() {
               <TabsContent value="details" className="mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm font-medium">Deal Information</CardTitle>
+                    <CardTitle className="text-sm font-medium">Opportunity Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {deal.deal_name && (
                       <div>
-                        <p className="text-xs text-muted-foreground">Deal Name</p>
+                        <p className="text-xs text-muted-foreground">Opportunity Name</p>
                         <p className="text-sm font-medium">{deal.deal_name}</p>
                       </div>
                     )}
@@ -446,14 +446,32 @@ export default function DealDetail() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground">Deal Type</p>
+                        <p className="text-xs text-muted-foreground">Opportunity Type</p>
                         <p className="text-sm font-medium">{typeLabel || '-'}</p>
                       </div>
                       {showDealSizeRange && (
                         <div>
-                          <p className="text-xs text-muted-foreground">Deal Size</p>
+                          <p className="text-xs text-muted-foreground">Opportunity Size</p>
                           <p className="text-sm font-medium">{sizeLabel || '-'}</p>
                         </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground">Project Address</p>
+                      {((deal as any).project_street || (deal as any).project_city || (deal as any).project_state || (deal as any).project_zip) ? (
+                        <>
+                          <p className="text-sm font-medium">
+                            {[(deal as any).project_street, (deal as any).project_city, (deal as any).project_state, (deal as any).project_zip].filter(Boolean).join(', ')}
+                          </p>
+                          <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => navigate(`/deals/${deal.id}/edit`)}>
+                            Edit address
+                          </Button>
+                        </>
+                      ) : (
+                        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => navigate(`/deals/${deal.id}/edit`)}>
+                          + Add project address
+                        </Button>
                       )}
                     </div>
 
@@ -600,9 +618,9 @@ export default function DealDetail() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Deal</AlertDialogTitle>
+            <AlertDialogTitle>Delete Opportunity</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this deal? This action cannot be undone.
+              Are you sure you want to delete this opportunity? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
