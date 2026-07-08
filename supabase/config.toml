@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.validate-invitation]
 verify_jwt = false
+
+[functions.polish-sow-field]
+verify_jwt = true

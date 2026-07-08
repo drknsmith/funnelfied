@@ -1163,6 +1163,19 @@ export type Database = {
           snapshot_project_address: string | null
           snapshot_project_name: string | null
           snapshot_referral_source: string | null
+          sow_approach_pillars: string[] | null
+          sow_deliverables: Json
+          sow_estimated_hours_max: number | null
+          sow_estimated_hours_min: number | null
+          sow_executive_summary: string | null
+          sow_expense_threshold: number
+          sow_invoice_terms: string | null
+          sow_invoicing_cadence: string | null
+          sow_milestones: Json
+          sow_nte_amount: number | null
+          sow_nte_enabled: boolean
+          sow_problem_statement: string | null
+          sow_proposed_approach: string | null
           status: string
           timeline_urgency: string | null
           updated_at: string
@@ -1203,6 +1216,19 @@ export type Database = {
           snapshot_project_address?: string | null
           snapshot_project_name?: string | null
           snapshot_referral_source?: string | null
+          sow_approach_pillars?: string[] | null
+          sow_deliverables?: Json
+          sow_estimated_hours_max?: number | null
+          sow_estimated_hours_min?: number | null
+          sow_executive_summary?: string | null
+          sow_expense_threshold?: number
+          sow_invoice_terms?: string | null
+          sow_invoicing_cadence?: string | null
+          sow_milestones?: Json
+          sow_nte_amount?: number | null
+          sow_nte_enabled?: boolean
+          sow_problem_statement?: string | null
+          sow_proposed_approach?: string | null
           status?: string
           timeline_urgency?: string | null
           updated_at?: string
@@ -1243,6 +1269,19 @@ export type Database = {
           snapshot_project_address?: string | null
           snapshot_project_name?: string | null
           snapshot_referral_source?: string | null
+          sow_approach_pillars?: string[] | null
+          sow_deliverables?: Json
+          sow_estimated_hours_max?: number | null
+          sow_estimated_hours_min?: number | null
+          sow_executive_summary?: string | null
+          sow_expense_threshold?: number
+          sow_invoice_terms?: string | null
+          sow_invoicing_cadence?: string | null
+          sow_milestones?: Json
+          sow_nte_amount?: number | null
+          sow_nte_enabled?: boolean
+          sow_problem_statement?: string | null
+          sow_proposed_approach?: string | null
           status?: string
           timeline_urgency?: string | null
           updated_at?: string
