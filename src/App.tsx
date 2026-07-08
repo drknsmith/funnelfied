@@ -44,6 +44,7 @@ import Quotes from "./pages/Quotes";
 import QuoteNew from "./pages/QuoteNew";
 import QuoteDetail from "./pages/QuoteDetail";
 import QuotePreview from "./pages/QuotePreview";
+import ServiceKnowledgePlaybookForm from "./pages/ServiceKnowledgePlaybookForm";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,8 @@ const App = () => (
               <Route path="/interactions" element={<ProtectedRoute><Interactions /></ProtectedRoute>} />
               <Route path="/playbooks" element={<ProtectedRoute><Playbooks /></ProtectedRoute>} />
               <Route path="/playbooks/new" element={<ProtectedRoute><PlaybookForm /></ProtectedRoute>} />
+              <Route path="/playbooks/service-knowledge/new" element={<ProtectedRoute><ServiceKnowledgePlaybookForm /></ProtectedRoute>} />
+              <Route path="/playbooks/service-knowledge/:id/edit" element={<ProtectedRoute><ServiceKnowledgePlaybookForm /></ProtectedRoute>} />
               <Route path="/playbooks/:id" element={<ProtectedRoute><PlaybookDetail /></ProtectedRoute>} />
               <Route path="/playbooks/:id/edit" element={<ProtectedRoute><PlaybookForm /></ProtectedRoute>} />
               <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />

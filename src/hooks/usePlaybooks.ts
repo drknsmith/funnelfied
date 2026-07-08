@@ -28,13 +28,20 @@ export interface Playbook {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  kind: string;
+  opportunity_types: string[] | null;
+  engagement_type: string | null;
+  design_type: string | null;
+  design_details: string | null;
+  programming_details: string | null;
+  policy_details: string | null;
 }
 
 export interface PlaybookFormData {
   name: string;
   status: string;
-  associated_deal_type: string;
-  objective: string;
+  associated_deal_type?: string;
+  objective?: string;
   trigger?: string;
   first_message_email_template?: string;
   first_message_linkedin_template?: string;
@@ -46,9 +53,16 @@ export interface PlaybookFormData {
   followup_day10_template?: string;
   followup_day21_template?: string;
   expansion_seed?: string;
-  exit_rule: string;
+  exit_rule?: string;
   default_nurture_tag?: string;
   expedited?: boolean;
+  kind?: string;
+  opportunity_types?: string[] | null;
+  engagement_type?: string | null;
+  design_type?: string | null;
+  design_details?: string | null;
+  programming_details?: string | null;
+  policy_details?: string | null;
 }
 
 export const PLAYBOOK_DEAL_TYPES = [
@@ -80,6 +94,7 @@ interface UsePlaybooksOptions {
   search?: string;
   dealType?: string;
   status?: string;
+  kind?: string;
 }
 
 export function usePlaybooks(options: UsePlaybooksOptions = {}) {
@@ -104,6 +119,10 @@ export function usePlaybooks(options: UsePlaybooksOptions = {}) {
 
       if (options.dealType) {
         query = query.eq('associated_deal_type', options.dealType);
+      }
+
+      if (options.kind) {
+        query = query.eq('kind', options.kind);
       }
 
       if (options.search) {

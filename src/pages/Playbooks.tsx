@@ -66,16 +66,134 @@ export default function Playbooks() {
     return PLAYBOOK_DEAL_TYPES.find(t => t.value === value)?.label || value || '-';
   };
 
+  const communicationPlaybooks = playbooks.filter((p: any) => (p.kind ?? 'communication') === 'communication');
+  const serviceKnowledgePlaybooks = playbooks.filter((p: any) => p.kind === 'service_knowledge');
+
+  const renderTable = (rows: typeof playbooks, kind: 'communication' | 'service_knowledge') => (
+    <div className="border rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            {kind === 'communication' ? (
+              <>
+                <TableHead>Deal Type</TableHead>
+                <TableHead className="max-w-[300px]">Objective</TableHead>
+              </>
+            ) : (
+              <>
+                <TableHead>Opportunity Types</TableHead>
+                <TableHead>Engagement</TableHead>
+              </>
+            )}
+            <TableHead>Status</TableHead>
+            <TableHead>Updated</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((playbook: any) => (
+            <TableRow key={playbook.id}>
+              <TableCell className="font-medium">
+                <button
+                  onClick={() =>
+                    kind === 'service_knowledge'
+                      ? navigate(`/playbooks/service-knowledge/${playbook.id}/edit`)
+                      : navigate(`/playbooks/${playbook.id}`)
+                  }
+                  className="text-primary hover:underline text-left"
+                >
+                  {playbook.name}
+                </button>
+              </TableCell>
+              {kind === 'communication' ? (
+                <>
+                  <TableCell>
+                    <Badge variant="outline">{getDealTypeLabel(playbook.associated_deal_type)}</Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[300px]">
+                    <p className="truncate text-muted-foreground">{playbook.objective || '-'}</p>
+                  </TableCell>
+                </>
+              ) : (
+                <>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(playbook.opportunity_types ?? []).length === 0 ? (
+                        <span className="text-muted-foreground">-</span>
+                      ) : (
+                        (playbook.opportunity_types as string[]).map((t) => (
+                          <Badge key={t} variant="outline" className="capitalize">{t}</Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="capitalize text-muted-foreground">
+                    {playbook.engagement_type ? playbook.engagement_type.replace('_', '-') : '-'}
+                  </TableCell>
+                </>
+              )}
+              <TableCell>
+                <Badge variant={playbook.status === 'active' ? 'default' : 'secondary'}>
+                  {playbook.status}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {format(new Date(playbook.updated_at), 'MMM d, yyyy')}
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">Actions</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() =>
+                        kind === 'service_knowledge'
+                          ? navigate(`/playbooks/service-knowledge/${playbook.id}/edit`)
+                          : navigate(`/playbooks/${playbook.id}`)
+                      }
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        kind === 'service_knowledge'
+                          ? navigate(`/playbooks/service-knowledge/${playbook.id}/edit`)
+                          : navigate(`/playbooks/${playbook.id}/edit`)
+                      }
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDuplicate(playbook.id)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleArchive(playbook.id)}
+                      disabled={playbook.status === 'archived'}
+                    >
+                      <Archive className="h-4 w-4 mr-2" />
+                      Archive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   return (
     <AppLayout>
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground">Playbooks</h1>
-          <Button onClick={() => navigate('/playbooks/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Playbook
-          </Button>
         </div>
 
         {/* Search and Filters */}
@@ -126,93 +244,43 @@ export default function Playbooks() {
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
-        ) : playbooks.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg bg-muted/20">
-            <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No playbooks yet.</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first playbook to get started with structured outreach.
-            </p>
-            <Button onClick={() => navigate('/playbooks/new')}>
-              Create your first playbook
-            </Button>
-          </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Deal Type</TableHead>
-                  <TableHead className="max-w-[300px]">Objective</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {playbooks.map((playbook) => (
-                  <TableRow key={playbook.id}>
-                    <TableCell className="font-medium">
-                      <button
-                        onClick={() => navigate(`/playbooks/${playbook.id}`)}
-                        className="text-primary hover:underline text-left"
-                      >
-                        {playbook.name}
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getDealTypeLabel(playbook.associated_deal_type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[300px]">
-                      <p className="truncate text-muted-foreground">
-                        {playbook.objective || '-'}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={playbook.status === 'active' ? 'default' : 'secondary'}>
-                        {playbook.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(playbook.updated_at), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            Actions
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => navigate(`/playbooks/${playbook.id}`)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/playbooks/${playbook.id}/edit`)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDuplicate(playbook.id)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleArchive(playbook.id)}
-                            disabled={playbook.status === 'archived'}
-                          >
-                            <Archive className="h-4 w-4 mr-2" />
-                            Archive
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="space-y-10">
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-foreground">Communication Playbook</h2>
+                <Button onClick={() => navigate('/playbooks/new')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Communication Playbook
+                </Button>
+              </div>
+              {communicationPlaybooks.length === 0 ? (
+                <div className="text-center py-10 border rounded-lg bg-muted/20">
+                  <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No communication playbooks yet.</p>
+                </div>
+              ) : (
+                renderTable(communicationPlaybooks, 'communication')
+              )}
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-foreground">Service Knowledge Playbook</h2>
+                <Button onClick={() => navigate('/playbooks/service-knowledge/new')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create a Service Knowledge Playbook
+                </Button>
+              </div>
+              {serviceKnowledgePlaybooks.length === 0 ? (
+                <div className="text-center py-10 border rounded-lg bg-muted/20">
+                  <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No service knowledge playbooks yet.</p>
+                </div>
+              ) : (
+                renderTable(serviceKnowledgePlaybooks, 'service_knowledge')
+              )}
+            </section>
           </div>
         )}
       </div>
