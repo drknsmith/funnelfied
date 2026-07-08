@@ -1,0 +1,1 @@
+ALTER TABLE public.playbooks ADD COLUMN IF NOT EXISTS terms_and_conditions text;

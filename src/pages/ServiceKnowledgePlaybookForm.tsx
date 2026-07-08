@@ -24,6 +24,7 @@ type SKForm = {
   design_details: string;
   programming_details: string;
   policy_details: string;
+  terms_and_conditions: string;
 };
 
 const EMPTY: SKForm = {
@@ -38,6 +39,7 @@ const EMPTY: SKForm = {
   design_details: '',
   programming_details: '',
   policy_details: '',
+  terms_and_conditions: '',
 };
 
 export default function ServiceKnowledgePlaybookForm() {
@@ -79,6 +81,7 @@ export default function ServiceKnowledgePlaybookForm() {
         design_details: (existing as any).design_details || '',
         programming_details: (existing as any).programming_details || '',
         policy_details: (existing as any).policy_details || '',
+        terms_and_conditions: (existing as any).terms_and_conditions || '',
       });
     }
   }, [existing]);
@@ -212,6 +215,18 @@ export default function ServiceKnowledgePlaybookForm() {
             <CardHeader><CardTitle>6. Policy Details</CardTitle></CardHeader>
             <CardContent>
               <Textarea rows={6} value={form.policy_details} onChange={(e) => update({ policy_details: e.target.value })} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>7. Terms and Conditions</CardTitle></CardHeader>
+            <CardContent>
+              <Textarea
+                rows={8}
+                value={form.terms_and_conditions}
+                onChange={(e) => update({ terms_and_conditions: e.target.value })}
+                placeholder="Standard terms and conditions to append at the end of every SOW."
+              />
             </CardContent>
           </Card>
 

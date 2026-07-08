@@ -835,6 +835,7 @@ export type Database = {
           proof_asset_url: string | null
           secondary_proof_asset_id: string | null
           status: string
+          terms_and_conditions: string | null
           trigger: string | null
           updated_at: string
           updated_by: string | null
@@ -876,6 +877,7 @@ export type Database = {
           proof_asset_url?: string | null
           secondary_proof_asset_id?: string | null
           status?: string
+          terms_and_conditions?: string | null
           trigger?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -917,6 +919,7 @@ export type Database = {
           proof_asset_url?: string | null
           secondary_proof_asset_id?: string | null
           status?: string
+          terms_and_conditions?: string | null
           trigger?: string | null
           updated_at?: string
           updated_by?: string | null
