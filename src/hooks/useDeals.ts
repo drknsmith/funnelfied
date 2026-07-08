@@ -57,6 +57,12 @@ export const TRENEUR_DEAL_TYPES = [
   { value: 'trainer_signup', label: 'Trainer Sign-up' },
 ] as const;
 
+export const REDLOFT_DEAL_TYPES = [
+  { value: 'programming', label: 'Programming' },
+  { value: 'design', label: 'Design' },
+  { value: 'policy', label: 'Policy' },
+] as const;
+
 export const TRENEUR_PARTNERSHIP_MOTIVES = [
   { value: 'maximize_revenue', label: 'Maximize revenue' },
   { value: 'new_revenue_opportunity', label: 'New revenue opportunity' },
