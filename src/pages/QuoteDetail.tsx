@@ -373,12 +373,7 @@ export default function QuoteDetail() {
                 rows={4}
                 value={local.sow_executive_summary ?? ''}
                 onChange={(e) => save({ sow_executive_summary: e.target.value } as any)}
-                placeholder="A short executive overview of this engagement."
-              />
-              <PolishButton
-                field="executive_summary"
-                current={local.sow_executive_summary ?? ''}
-                onApply={(v) => save({ sow_executive_summary: v } as any)}
+                placeholder="Optional notes — the AI will expand and polish this when you Generate SOW PDF."
               />
             </div>
 
@@ -388,12 +383,7 @@ export default function QuoteDetail() {
                 rows={4}
                 value={local.sow_problem_statement ?? ''}
                 onChange={(e) => save({ sow_problem_statement: e.target.value } as any)}
-                placeholder="What is the client trying to solve?"
-              />
-              <PolishButton
-                field="problem_statement"
-                current={local.sow_problem_statement ?? ''}
-                onApply={(v) => save({ sow_problem_statement: v } as any)}
+                placeholder="Optional notes — the AI will expand and polish this when you Generate SOW PDF."
               />
             </div>
 
@@ -403,7 +393,7 @@ export default function QuoteDetail() {
                 rows={5}
                 value={local.sow_proposed_approach ?? ''}
                 onChange={(e) => save({ sow_proposed_approach: e.target.value } as any)}
-                placeholder="How will Red Loft approach this? Reference the 4 P's below where applicable."
+                placeholder="Optional notes — the AI will expand this and apply the 4 P's tags below when you Generate SOW PDF."
               />
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs text-muted-foreground">4 P's pillars:</span>
@@ -424,11 +414,6 @@ export default function QuoteDetail() {
                   );
                 })}
               </div>
-              <PolishButton
-                field="proposed_approach"
-                current={local.sow_proposed_approach ?? ''}
-                onApply={(v) => save({ sow_proposed_approach: v } as any)}
-              />
             </div>
 
             {/* Deliverables */}
