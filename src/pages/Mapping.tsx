@@ -14,6 +14,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { canUseMapping, TRENEUR_WORKSPACE_ID } from '@/lib/workspaceFeatures';
 import { toast } from 'sonner';
+import { escapeHtml } from '@/lib/escapeHtml';
 
 type ViewMode = 'lead' | 'facility' | 'trainer';
 
@@ -211,14 +212,14 @@ function MappingContent() {
 
           const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
             <div style="padding: 8px;">
-              <h3 style="font-weight: 600; margin-bottom: 4px;">${lead.project_name}</h3>
-              <p style="font-size: 12px; color: #666; margin-bottom: 4px;">${lead.company}</p>
-              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${lead.location}</p>
-              ${lead.health_score ? `<p style="font-size: 12px;"><strong>Health Score:</strong> ${lead.health_score}/10</p>` : ''}
-              ${lead.facility_type ? `<p style="font-size: 12px;"><strong>Type:</strong> ${lead.facility_type}</p>` : ''}
-              <span style="display: inline-block; margin-top: 6px; padding: 2px 8px; background: #e5e7eb; border-radius: 3px; font-size: 11px; text-transform: capitalize;">${lead.status}</span>
+              <h3 style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(lead.project_name)}</h3>
+              <p style="font-size: 12px; color: #666; margin-bottom: 4px;">${escapeHtml(lead.company)}</p>
+              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${escapeHtml(lead.location)}</p>
+              ${lead.health_score ? `<p style="font-size: 12px;"><strong>Health Score:</strong> ${Number(lead.health_score)}/10</p>` : ''}
+              ${lead.facility_type ? `<p style="font-size: 12px;"><strong>Type:</strong> ${escapeHtml(lead.facility_type)}</p>` : ''}
+              <span style="display: inline-block; margin-top: 6px; padding: 2px 8px; background: #e5e7eb; border-radius: 3px; font-size: 11px; text-transform: capitalize;">${escapeHtml(lead.status)}</span>
               <button 
-                onclick="window.location.href='/leads/${lead.id}'"
+                onclick="window.location.href='/leads/${encodeURIComponent(lead.id)}'"
                 style="margin-top: 8px; display: block; padding: 4px 12px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
               >
                 View Lead
@@ -264,11 +265,11 @@ function MappingContent() {
             <div style="padding: 4px 0; border-bottom: 1px solid #eee;">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span style="width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); background-color: ${lead.health_score ? getHealthHexColor(lead.health_score) : '#6b7280'};"></span>
-                <strong style="font-size: 12px;">${lead.project_name}</strong>
+                <strong style="font-size: 12px;">${escapeHtml(lead.project_name)}</strong>
               </div>
-              <p style="font-size: 11px; color: #666; margin: 2px 0;">${lead.company}</p>
+              <p style="font-size: 11px; color: #666; margin: 2px 0;">${escapeHtml(lead.company)}</p>
               <button 
-                onclick="window.location.href='/leads/${lead.id}'"
+                onclick="window.location.href='/leads/${encodeURIComponent(lead.id)}'"
                 style="margin-top: 4px; padding: 2px 8px; background: #8b5cf6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;"
               >
                 View
@@ -317,11 +318,11 @@ function MappingContent() {
 
           const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
             <div style="padding: 8px;">
-              <h3 style="font-weight: 600; margin-bottom: 4px;">${account.name}</h3>
-              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${account.location || account.segment || 'No location'}</p>
-              ${account.health_score ? `<p style="font-size: 12px;"><strong>Health Score:</strong> ${account.health_score}/10</p>` : ''}
+              <h3 style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(account.name)}</h3>
+              <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${escapeHtml(account.location || account.segment || 'No location')}</p>
+              ${account.health_score ? `<p style="font-size: 12px;"><strong>Health Score:</strong> ${Number(account.health_score)}/10</p>` : ''}
               <button 
-                onclick="window.location.href='/accounts/${account.id}'"
+                onclick="window.location.href='/accounts/${encodeURIComponent(account.id)}'"
                 style="margin-top: 8px; padding: 4px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
               >
                 View Account
@@ -361,12 +362,12 @@ function MappingContent() {
             <div style="padding: 6px 0; border-bottom: 1px solid #eee;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="width: 10px; height: 10px; border-radius: 2px; background-color: ${account.health_score ? getHealthHexColor(account.health_score) : '#6b7280'};"></span>
-                <strong style="font-size: 13px;">${account.name}</strong>
-                ${account.health_score ? `<span style="font-size: 11px; color: #666;">(${account.health_score}/10)</span>` : ''}
+                <strong style="font-size: 13px;">${escapeHtml(account.name)}</strong>
+                ${account.health_score ? `<span style="font-size: 11px; color: #666;">(${Number(account.health_score)}/10)</span>` : ''}
               </div>
               <div style="margin-top: 4px; display: flex; gap: 4px;">
                 <button 
-                  onclick="window.location.href='/accounts/${account.id}'"
+                  onclick="window.location.href='/accounts/${encodeURIComponent(account.id)}'"
                   style="padding: 2px 8px; background: #3b82f6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;"
                 >
                   View
@@ -416,8 +417,8 @@ function MappingContent() {
 
           const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
             <div style="padding: 8px;">
-              <h3 style="font-weight: 600; margin-bottom: 4px;">${trainer.name}</h3>
-              ${trainer.career_health_score ? `<p style="font-size: 12px;"><strong>Career Score:</strong> ${trainer.career_health_score}/10</p>` : ''}
+              <h3 style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(trainer.name)}</h3>
+              ${trainer.career_health_score ? `<p style="font-size: 12px;"><strong>Career Score:</strong> ${Number(trainer.career_health_score)}/10</p>` : ''}
             </div>
           `);
 
@@ -452,8 +453,8 @@ function MappingContent() {
             <div style="padding: 4px 0; border-bottom: 1px solid #eee;">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${trainer.career_health_score ? getHealthHexColor(trainer.career_health_score) : '#6b7280'};"></span>
-                <strong style="font-size: 12px;">${trainer.name}</strong>
-                ${trainer.career_health_score ? `<span style="font-size: 10px; color: #666;">(${trainer.career_health_score}/10)</span>` : ''}
+                <strong style="font-size: 12px;">${escapeHtml(trainer.name)}</strong>
+                ${trainer.career_health_score ? `<span style="font-size: 10px; color: #666;">(${Number(trainer.career_health_score)}/10)</span>` : ''}
               </div>
             </div>
           `).join('');

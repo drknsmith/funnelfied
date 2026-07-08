@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Map as MapIcon, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { MultifamilyComp, FitnessComp } from '@/hooks/useProposalComps';
+import { escapeHtml } from '@/lib/escapeHtml';
 
 interface ProposalMapProps {
   mapCenter?: { lat: number; lng: number };
@@ -89,7 +90,7 @@ export function ProposalMap({
 
       const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
         `<div class="p-2">
-          <h3 class="font-bold">${communityName || 'Community'}</h3>
+          <h3 class="font-bold">${escapeHtml(communityName || 'Community')}</h3>
           <p class="text-sm text-gray-600">Subject Property</p>
         </div>`
       );
@@ -118,10 +119,10 @@ export function ProposalMap({
 
       const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
         `<div class="p-2">
-          <h3 class="font-bold">${comp.name}</h3>
-          <p class="text-sm text-gray-600">${comp.address}</p>
+          <h3 class="font-bold">${escapeHtml(comp.name)}</h3>
+          <p class="text-sm text-gray-600">${escapeHtml(comp.address)}</p>
           <p class="text-sm">${comp.distance.toFixed(1)} miles away</p>
-          <p class="text-sm text-gray-500">${comp.inferredClass}</p>
+          <p class="text-sm text-gray-500">${escapeHtml(comp.inferredClass)}</p>
         </div>`
       );
 
@@ -149,11 +150,11 @@ export function ProposalMap({
 
       const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
         `<div class="p-2">
-          <h3 class="font-bold">${comp.name}</h3>
-          <p class="text-sm text-gray-600">${comp.address}</p>
+          <h3 class="font-bold">${escapeHtml(comp.name)}</h3>
+          <p class="text-sm text-gray-600">${escapeHtml(comp.address)}</p>
           <p class="text-sm">${comp.distance.toFixed(1)} miles away</p>
-          <p class="text-sm text-gray-500">${comp.type}</p>
-          <p class="text-xs mt-1">${comp.focusTags.join(', ')}</p>
+          <p class="text-sm text-gray-500">${escapeHtml(comp.type)}</p>
+          <p class="text-xs mt-1">${escapeHtml(comp.focusTags.join(', '))}</p>
         </div>`
       );
 
