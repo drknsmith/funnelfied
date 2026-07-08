@@ -152,7 +152,7 @@ function getPageType(pathname: string): ScribeContext['pageType'] {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { profile, role, signOut, workspaceName, availableWorkspaces, switchWorkspace, activeWorkspaceId } = useAuth();
+  const { profile, role, signOut, workspaceName, availableWorkspaces, switchWorkspace, activeWorkspaceId, workspaceId } = useAuth();
   const { viewMode, setViewMode, canToggleViewMode } = useViewMode();
   const navigate = useNavigate();
   const location = useLocation();
@@ -168,6 +168,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   
   // Fetch deal data if on deal page
   const { deal } = useDeal(dealId || '');
+  const featureWorkspaceId = workspaceId || activeWorkspaceId;
   
   // Build Scribe context
   const scribeContext: ScribeContext = useMemo(() => ({
@@ -176,8 +177,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     currentPage: location.pathname,
     pageType: getPageType(location.pathname),
     deal: dealId ? deal : undefined,
-    workspaceId: profile?.workspace_id || null,
-  }), [profile?.full_name, profile?.workspace_id, role, location.pathname, dealId, deal]);
+    workspaceId: featureWorkspaceId,
+  }), [profile?.full_name, featureWorkspaceId, role, location.pathname, dealId, deal]);
   
   // Sidebar collapse state with localStorage persistence
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -268,13 +269,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" collapsed={isCollapsed} />
               <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
               <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
-              {canUseMapping(activeWorkspaceId) && (
+              {canUseMapping(featureWorkspaceId) && (
                 <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
               )}
-{canUseResearch(activeWorkspaceId) && (
+              {canUseResearch(featureWorkspaceId) && (
                 <NavItem to="/research" icon={<FileBarChart className="h-4 w-4" />} label="Research" collapsed={isCollapsed} />
               )}
-              {canUseSocialMedia(activeWorkspaceId) && (
+              {canUseSocialMedia(featureWorkspaceId) && (
                 <NavItem to="/social-media" icon={<Share2 className="h-4 w-4" />} label="Social Media" collapsed={isCollapsed} />
               )}
             </nav>

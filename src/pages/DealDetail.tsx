@@ -238,8 +238,9 @@ function InteractionCalendarCard({ interactions, deal, onComplete, onDelete }: {
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { activeWorkspaceId } = useAuth();
-  const showResearchTab = canUseResearch(activeWorkspaceId);
+  const { activeWorkspaceId, workspaceId } = useAuth();
+  const featureWorkspaceId = workspaceId || activeWorkspaceId;
+  const showResearchTab = canUseResearch(featureWorkspaceId);
   const { deal, isLoading } = useDeal(id!);
   const { updateDeal, deleteDeal, isUpdating, isDeleting } = useDeals();
   const { interactions, createInteraction, deleteInteraction, isCreating, isDeleting: isDeletingInteraction } = useInteractions(id);
