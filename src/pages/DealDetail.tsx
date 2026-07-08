@@ -18,6 +18,8 @@ import { PlaybookPanel } from '@/components/deals/PlaybookPanel';
 import { MessagesTab } from '@/components/deals/MessagesTab';
 import { ResearchTab } from '@/components/deals/ResearchTab';
 import { DealFileUpload } from '@/components/deals/DealFileUpload';
+import { ContractorProposalUploads } from '@/components/proposal/ContractorProposalUploads';
+import { QuoteVersionsPanel } from '@/components/quotes/QuoteVersionsPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -541,18 +543,22 @@ export default function DealDetail() {
               )}
 
               <TabsContent value="proposal" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Proposal</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-                      <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm font-medium text-foreground mb-1">Proposal details coming from the Proposal page</p>
-                      <p className="text-xs">This section will be populated from the new Proposal page on the left menu. It will be editable here once generated.</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="space-y-4">
+                  <QuoteVersionsPanel dealId={deal.id} />
+                  <ContractorProposalUploads dealId={deal.id} />
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium">Proposal</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
+                        <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm font-medium text-foreground mb-1">Proposal details</p>
+                        <p className="text-xs">Additional proposal fields will populate here from the Quote Tool.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
