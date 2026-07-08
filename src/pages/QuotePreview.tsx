@@ -240,6 +240,13 @@ export default function QuotePreview() {
           </section>
         )}
 
+        {termsAndConditions && (
+          <section>
+            <h2 className="sow-h2">Terms and Conditions</h2>
+            <p className="sow-body whitespace-pre-wrap">{termsAndConditions}</p>
+          </section>
+        )}
+
         {categories.map((cat) => {
           const fields = SERVICE_DETAIL_FIELDS[cat] ?? [];
           const catDetails = (quote.service_details?.[cat] as Record<string, any>) || {};
