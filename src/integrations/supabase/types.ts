@@ -190,6 +190,7 @@ export type Database = {
           notes: string | null
           owner_user_id: string | null
           phone: string | null
+          referred_by: string | null
           role_type: string | null
           title: string | null
           updated_at: string
@@ -207,6 +208,7 @@ export type Database = {
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          referred_by?: string | null
           role_type?: string | null
           title?: string | null
           updated_at?: string
@@ -224,6 +226,7 @@ export type Database = {
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          referred_by?: string | null
           role_type?: string | null
           title?: string | null
           updated_at?: string
