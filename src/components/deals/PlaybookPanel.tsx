@@ -12,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { usePlaybooks, PLAYBOOK_DEAL_TYPES } from '@/hooks/usePlaybooks';
+import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
 import { DealWithRelations } from '@/hooks/useDeals';
 
 interface PlaybookPanelProps {
@@ -23,6 +25,7 @@ interface PlaybookPanelProps {
 
 export function PlaybookPanel({ deal, onUpdate, isUpdating }: PlaybookPanelProps) {
   const { playbooks } = usePlaybooks({ status: 'active' });
+  const { dealTypes } = useDealFieldConfig();
   const [localNextAction, setLocalNextAction] = useState(deal.next_action || '');
   const [localNextActionDate, setLocalNextActionDate] = useState(deal.next_action_date || '');
 
@@ -80,23 +83,28 @@ export function PlaybookPanel({ deal, onUpdate, isUpdating }: PlaybookPanelProps
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="deal-type">Deal Type</Label>
-          <Select
-            value={deal.deal_type?.[0] || ''}
-            onValueChange={(value) => onUpdate({ deal_type: value ? [value] : null })}
-            disabled={isUpdating}
-          >
-            <SelectTrigger id="deal-type">
-              <SelectValue placeholder="Select deal type" />
-            </SelectTrigger>
-            <SelectContent>
-              {PLAYBOOK_DEAL_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
+          <Label>Opportunity Type</Label>
+          <div className="flex flex-col gap-2">
+            {dealTypes.map((type) => {
+              const current = deal.deal_type ?? [];
+              const checked = current.includes(type.value);
+              return (
+                <label key={type.value} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={checked}
+                    disabled={isUpdating}
+                    onCheckedChange={(v) => {
+                      const next = v
+                        ? [...current, type.value]
+                        : current.filter((x) => x !== type.value);
+                      onUpdate({ deal_type: next.length ? next : null });
+                    }}
+                  />
                   {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <div className="space-y-2">
