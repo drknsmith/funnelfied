@@ -52,12 +52,12 @@ export interface QuoteContractorItem {
 }
 
 export function useQuotes(dealId?: string) {
-  const { profile } = useAuth();
+  const { workspaceId } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
 
   const list = useQuery({
-    queryKey: ['quotes', profile?.workspace_id, dealId ?? 'all'],
+    queryKey: ['quotes', workspaceId, dealId ?? 'all'],
     queryFn: async () => {
       let q = (supabase as any)
         .from('quotes')
@@ -68,7 +68,7 @@ export function useQuotes(dealId?: string) {
       if (error) throw error;
       return data as (Quote & { deals?: any })[];
     },
-    enabled: !!profile?.workspace_id,
+    enabled: !!workspaceId,
   });
 
   const createQuote = useMutation({
@@ -79,7 +79,7 @@ export function useQuotes(dealId?: string) {
       snapshot?: Partial<Quote>;
       cloneFromId?: string;
     }) => {
-      if (!profile?.workspace_id) throw new Error('No workspace');
+      if (!workspaceId) throw new Error('No workspace');
       const { data: { user } } = await supabase.auth.getUser();
 
       // Determine next version number for this deal
@@ -112,7 +112,7 @@ export function useQuotes(dealId?: string) {
         id: undefined,
         created_at: undefined,
         updated_at: undefined,
-        workspace_id: profile.workspace_id,
+        workspace_id: workspaceId,
         owner_user_id: user?.id ?? null,
         deal_id: payload.deal_id,
         contact_id: payload.contact_id ?? base.contact_id ?? null,
@@ -132,7 +132,7 @@ export function useQuotes(dealId?: string) {
       if (cloneItems.length) {
         const rows = cloneItems.map((i) => ({
           quote_id: inserted.id,
-          workspace_id: profile.workspace_id,
+          workspace_id: workspaceId,
           contractor_type: i.contractor_type,
           vendor_name: i.vendor_name,
           flat_fee: i.flat_fee,
@@ -206,7 +206,7 @@ export function useQuote(id: string | undefined) {
 }
 
 export function useQuoteContractorItems(quoteId: string | undefined) {
-  const { profile } = useAuth();
+  const { workspaceId } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -226,12 +226,12 @@ export function useQuoteContractorItems(quoteId: string | undefined) {
 
   const addItem = useMutation({
     mutationFn: async () => {
-      if (!profile?.workspace_id || !quoteId) throw new Error('missing context');
+      if (!workspaceId || !quoteId) throw new Error('missing context');
       const { data, error } = await (supabase as any)
         .from('quote_contractor_items')
         .insert({
           quote_id: quoteId,
-          workspace_id: profile.workspace_id,
+          workspace_id: workspaceId,
           contractor_type: 'fitness_equipment',
           sort_order: (list.data?.length ?? 0),
         })

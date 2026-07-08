@@ -1,23 +1,17 @@
-## Fix: Quote Tool shows no inputs
+## Fix: "new row violates row-level security" on quote create
 
-**Problem:** Clicking **New Quote** lands on `/quotes/new`, which only has an Opportunity selector and a "Create Quote" button. All the actual inputs (hourly rate, phase hours, contractors, discount, service-specific fields, totals) live on the *next* page (`/quotes/:id`), so it looks like the tool is empty.
+**Root cause:** `src/hooks/useQuotes.ts` uses `profile.workspace_id` for inserts. For a super_admin with a workspace override (you're viewing Red Loft while your profile lives in Superior), that sends `workspace_id = 000…0001` even though the deal belongs to Red Loft `54d6…ac1f`. RLS correctly rejects the row.
 
-**Fix:** Collapse the two-step flow so you always land directly on the full editable quote.
+Project memory rule: **always use `workspaceId` from `useAuth()`**, never `profile.workspace_id`.
 
-### Changes
+### Change
+- In `src/hooks/useQuotes.ts`, replace `profile.workspace_id` with `workspaceId` from `useAuth()` in:
+  - `createQuote` (insert `workspace_id: workspaceId`, and clone-items insert)
+  - `useQuoteContractorItems.addItem`
+  - the list `queryKey` and `enabled` gate
+  - `useQuote` list gate
 
-1. **From an Opportunity** (`New Quote` button on a deal): auto-create a draft quote immediately and navigate straight to `/quotes/:id` — no picker screen.
-   - Update `QuoteVersionsPanel` so the button calls `createQuote(...)` with the deal's snapshot data (contact, project name, address, referral source) and then navigates to the new quote's detail page.
-
-2. **From the Quote Tool list** (`/quotes` → New Quote):
-   - Rework `/quotes/new` so the Opportunity selector auto-creates the draft the moment an Opportunity is chosen (no separate "Create" click), then redirects to `/quotes/:id`.
-   - Or, if you prefer one click, keep the Create button but make it clear this is only picking the Opportunity — the inputs come next. I'll go with auto-create on select for the smoothest experience.
-
-3. **Detail page polish** (`/quotes/:id`): add a small helper line under the header — "Fill in the sections below. Changes save automatically." — so it's obvious this is where the work happens.
+No DB migration, no policy change. Frontend-only fix.
 
 ### Files touched
-- `src/components/quotes/QuoteVersionsPanel.tsx` — button auto-creates + navigates
-- `src/pages/QuoteNew.tsx` — auto-create on Opportunity select
-- `src/pages/QuoteDetail.tsx` — add helper subtitle
-
-No schema changes, no new fields. Purely a UX fix.
+- `src/hooks/useQuotes.ts`
