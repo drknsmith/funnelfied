@@ -82,8 +82,8 @@ export function PlaybookPanel({ deal, onUpdate, isUpdating }: PlaybookPanelProps
         <div className="space-y-2">
           <Label htmlFor="deal-type">Deal Type</Label>
           <Select
-            value={deal.deal_type || ''}
-            onValueChange={(value) => onUpdate({ deal_type: value || null })}
+            value={deal.deal_type?.[0] || ''}
+            onValueChange={(value) => onUpdate({ deal_type: value ? [value] : null })}
             disabled={isUpdating}
           >
             <SelectTrigger id="deal-type">

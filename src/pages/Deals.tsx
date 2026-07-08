@@ -41,7 +41,7 @@ export default function Deals() {
         });
       case 'high-leverage':
         return deals.filter(
-          (d) => d.status === 'open' && ['portfolio', 'design_led'].includes(d.deal_type || '')
+          (d) => d.status === 'open' && (d.deal_type ?? []).some((t) => ['portfolio', 'design_led'].includes(t))
         );
       case 'stalled':
         return deals.filter((d) => {

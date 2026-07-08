@@ -294,7 +294,9 @@ export default function DealDetail() {
 
   const stageLabel = stages.find((s) => s.value === deal.stage)?.label || deal.stage;
   const sizeLabel = DEAL_SIZES.find((s) => s.value === deal.deal_size_range)?.label || deal.deal_size_range;
-  const typeLabel = dealTypes.find((t) => t.value === deal.deal_type)?.label || deal.deal_type;
+  const typeLabels = (deal.deal_type ?? [])
+    .map((v) => dealTypes.find((t) => t.value === v)?.label || v)
+    .join(', ');
   const dealContacts = contacts.filter((c) => c.account_id === deal.account_id);
 
   const handleStageChange = (newStage: string) => {
@@ -449,7 +451,7 @@ export default function DealDetail() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground">Opportunity Type</p>
-                        <p className="text-sm font-medium">{typeLabel || '-'}</p>
+                        <p className="text-sm font-medium">{typeLabels || '-'}</p>
                       </div>
                       {showDealSizeRange && (
                         <div>

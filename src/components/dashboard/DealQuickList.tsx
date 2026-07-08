@@ -23,7 +23,7 @@ export default function DealQuickList({ deals, type, maxItems = 5 }: DealQuickLi
         const days = differenceInDays(new Date(), new Date(deal.last_meaningful_activity_date));
         return `${days} days since activity`;
       case 'high-leverage':
-        return deal.deal_type === 'portfolio' ? 'Portfolio' : 'Design-Led';
+        return (deal.deal_type ?? []).includes('portfolio') ? 'Portfolio' : 'Design-Led';
       default:
         return '';
     }
