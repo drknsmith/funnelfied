@@ -626,15 +626,6 @@ export default function QuoteDetail() {
           </CardContent>
         </Card>
 
-            <div className="flex justify-end">
-              <Button onClick={() => {
-                const { id: _id, created_at, updated_at, version_number, workspace_id, deals, contacts, ...patch } = local as any;
-                updateQuote({ id: local.id, patch });
-                toast({ title: 'Quote saved' });
-              }}>
-                Save
-              </Button>
-            </div>
           </TabsContent>
 
           <TabsContent value="invoice" className="space-y-6 mt-4">
@@ -649,6 +640,16 @@ export default function QuoteDetail() {
             {renderTotalsCard()}
           </TabsContent>
         </Tabs>
+
+        <div className="flex justify-center pt-6">
+          <Button onClick={() => {
+            const { id: _id, created_at, updated_at, version_number, workspace_id, deals, contacts, ...patch } = local as any;
+            updateQuote({ id: local.id, patch });
+            toast({ title: 'Quote saved' });
+          }}>
+            Save
+          </Button>
+        </div>
       </div>
     </AppLayout>
   );
