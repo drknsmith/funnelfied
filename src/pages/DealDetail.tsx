@@ -18,7 +18,6 @@ import { PlaybookPanel } from '@/components/deals/PlaybookPanel';
 import { MessagesTab } from '@/components/deals/MessagesTab';
 import { ResearchTab } from '@/components/deals/ResearchTab';
 import { PlaybookRequiredModal } from '@/components/deals/PlaybookRequiredModal';
-import { DealFileUpload } from '@/components/deals/DealFileUpload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -252,8 +251,6 @@ export default function DealDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [playbookModalOpen, setPlaybookModalOpen] = useState(false);
-  const [pendingStageChange, setPendingStageChange] = useState<string | null>(null);
   
   // Proposal tab state
   const [proposalLink, setProposalLink] = useState('');
@@ -301,27 +298,7 @@ export default function DealDetail() {
   const isTreneur = isTreneurWorkspace(activeWorkspaceId);
 
   const handleStageChange = (newStage: string) => {
-    // Check if moving from signal_target and no playbook assigned (skip for Treneur)
-    if (!isTreneur && deal.stage === 'signal_target' && newStage !== 'signal_target' && !deal.playbook_id) {
-      setPendingStageChange(newStage);
-      setPlaybookModalOpen(true);
-      return;
-    }
-    
     updateDeal({ id: deal.id, stage: newStage, last_meaningful_activity_date: new Date().toISOString().split('T')[0] });
-  };
-
-  const handlePlaybookConfirm = (playbookId: string) => {
-    if (pendingStageChange) {
-      updateDeal({
-        id: deal.id,
-        playbook_id: playbookId,
-        stage: pendingStageChange,
-        last_meaningful_activity_date: new Date().toISOString().split('T')[0],
-      });
-      setPendingStageChange(null);
-      setPlaybookModalOpen(false);
-    }
   };
 
   const handleUpdateDeal = (data: any) => {
