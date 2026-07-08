@@ -47,16 +47,18 @@ export default function QuoteDetail() {
     updateQuote({ id: local.id, patch });
   };
 
-  const saveDetail = (key: string, value: any) => {
-    const details = { ...(local.service_details || {}), [key]: value };
-    save({ service_details: details });
+  const saveDetail = (category: string, key: string, value: any) => {
+    const all = { ...(local.service_details || {}) };
+    const catObj = { ...(all[category] || {}), [key]: value };
+    all[category] = catObj;
+    save({ service_details: all });
   };
 
   const labor = laborSubtotal(local);
   const disc = discountAmount(local);
   const contractors = contractorSubtotal(items);
   const total = grandTotal(local, items);
-  const detailFields = local.service_category ? SERVICE_DETAIL_FIELDS[local.service_category] ?? [] : [];
+  const categories = local.service_category ?? [];
 
   return (
     <AppLayout>
@@ -67,13 +69,13 @@ export default function QuoteDetail() {
               <ArrowLeft className="mr-1 h-4 w-4" /> Back
             </Button>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-semibold">Quote v{local.version_number}</h1>
-                {local.service_category && (
-                  <Badge variant="secondary">
-                    {SERVICE_CATEGORY_LABELS[local.service_category] ?? local.service_category}
+                {categories.map((c) => (
+                  <Badge key={c} variant="secondary">
+                    {SERVICE_CATEGORY_LABELS[c] ?? c}
                   </Badge>
-                )}
+                ))}
               </div>
               <Link to={`/deals/${local.deal_id}`} className="text-xs text-primary hover:underline">
                 View Opportunity →
@@ -140,46 +142,51 @@ export default function QuoteDetail() {
           </CardContent>
         </Card>
 
-        {detailFields.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">
-                {SERVICE_CATEGORY_LABELS[local.service_category!] ?? 'Service'} Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {detailFields.map((f) => (
-                <div key={f.key}>
-                  <Label>{f.label}</Label>
-                  {f.type === 'textarea' ? (
-                    <Textarea
-                      value={local.service_details?.[f.key] ?? ''}
-                      onChange={(e) => saveDetail(f.key, e.target.value)}
-                    />
-                  ) : f.type === 'select' ? (
-                    <Select
-                      value={local.service_details?.[f.key] ?? ''}
-                      onValueChange={(v) => saveDetail(f.key, v)}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        {f.options?.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      type={f.type}
-                      value={local.service_details?.[f.key] ?? ''}
-                      onChange={(e) => saveDetail(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
-                    />
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+        {categories.map((cat) => {
+          const fields = SERVICE_DETAIL_FIELDS[cat] ?? [];
+          if (fields.length === 0) return null;
+          const catDetails = (local.service_details?.[cat] as Record<string, any>) || {};
+          return (
+            <Card key={cat}>
+              <CardHeader>
+                <CardTitle className="text-sm">
+                  {SERVICE_CATEGORY_LABELS[cat] ?? cat} Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {fields.map((f) => (
+                  <div key={f.key}>
+                    <Label>{f.label}</Label>
+                    {f.type === 'textarea' ? (
+                      <Textarea
+                        value={catDetails[f.key] ?? ''}
+                        onChange={(e) => saveDetail(cat, f.key, e.target.value)}
+                      />
+                    ) : f.type === 'select' ? (
+                      <Select
+                        value={catDetails[f.key] ?? ''}
+                        onValueChange={(v) => saveDetail(cat, f.key, v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          {f.options?.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        type={f.type}
+                        value={catDetails[f.key] ?? ''}
+                        onChange={(e) => saveDetail(cat, f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          );
+        })}
 
         <Card>
           <CardHeader><CardTitle className="text-sm">Labor Pricing</CardTitle></CardHeader>
