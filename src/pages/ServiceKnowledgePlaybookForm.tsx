@@ -193,6 +193,8 @@ export default function ServiceKnowledgePlaybookForm() {
                 <TextareaBox label="New Construction" value={form.dtype_new_construction} onChange={(v) => update({ dtype_new_construction: v })} />
                 <TextareaBox label="Retrofit" value={form.dtype_retrofit} onChange={(v) => update({ dtype_retrofit: v })} />
               </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader><CardTitle>4. Design Details</CardTitle></CardHeader>
