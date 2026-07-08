@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Printer, Copy, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Plus, Printer, Copy, Trash2, Loader2 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +41,8 @@ export default function QuoteDetail() {
   const { updateQuote, deleteQuote } = useQuotes();
   const { items, addItem, updateItem, deleteItem } = useQuoteContractorItems(id);
   const { workspaceId } = useAuth();
-  const [polishing, setPolishing] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const qc = useQueryClient();
 
   const [local, setLocal] = useState<Quote | null>(null);
   useEffect(() => { if (quote) setLocal(quote); }, [quote]);
@@ -86,37 +88,25 @@ export default function QuoteDetail() {
   const pillars: string[] = Array.isArray((local as any).sow_approach_pillars) ? (local as any).sow_approach_pillars : [];
   const PILLARS = ['Policy', 'People', 'Process', 'Product'];
 
-  function PolishButton({ field, current, onApply }: { field: 'executive_summary' | 'problem_statement' | 'proposed_approach'; current: string; onApply: (v: string) => void }) {
-    const busy = polishing === field;
-    return (
-      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => polish(field, current, onApply)}>
-        {busy ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-        Polish with AI
-      </Button>
-    );
-  }
-
-  async function polish(field: 'executive_summary' | 'problem_statement' | 'proposed_approach', current: string, apply: (v: string) => void) {
-    if (!current?.trim()) {
-      toast({ title: 'Add some text first', description: 'Write a draft, then polish it with AI.' });
-      return;
-    }
-    setPolishing(field);
+  async function generateSow() {
+    setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('polish-sow-field', {
-        body: { field, text: current, workspaceId },
+      const { data, error } = await supabase.functions.invoke('generate-sow', {
+        body: { quoteId: local!.id, workspaceId },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      const polished = (data as any)?.polished as string;
-      if (polished) {
-        apply(polished);
-        toast({ title: 'Polished with AI' });
-      }
+      const warnings: string[] = Array.isArray((data as any)?.warnings) ? (data as any).warnings : [];
+      warnings.forEach((w) =>
+        toast({ title: 'Heads up', description: w }),
+      );
+      toast({ title: 'SOW generated' });
+      await qc.invalidateQueries({ queryKey: ['quote', local!.id] });
+      nav(`/quotes/${local!.id}/preview?doc=sow`);
     } catch (e: any) {
-      toast({ title: 'AI polish failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+      toast({ title: 'SOW generation failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
     } finally {
-      setPolishing(null);
+      setGenerating(false);
     }
   }
 
@@ -169,8 +159,13 @@ export default function QuoteDetail() {
 
           <TabsContent value="sow" className="space-y-6 mt-4">
             <div className="flex justify-end">
-              <Button onClick={() => nav(`/quotes/${local.id}/preview?doc=sow`)}>
-                <Printer className="mr-2 h-4 w-4" /> Generate SOW PDF
+              <Button onClick={generateSow} disabled={generating}>
+                {generating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Printer className="mr-2 h-4 w-4" />
+                )}
+                Generate SOW PDF
               </Button>
             </div>
 
@@ -381,12 +376,7 @@ export default function QuoteDetail() {
                 rows={4}
                 value={local.sow_executive_summary ?? ''}
                 onChange={(e) => save({ sow_executive_summary: e.target.value } as any)}
-                placeholder="A short executive overview of this engagement."
-              />
-              <PolishButton
-                field="executive_summary"
-                current={local.sow_executive_summary ?? ''}
-                onApply={(v) => save({ sow_executive_summary: v } as any)}
+                placeholder="Optional notes — the AI will expand and polish this when you Generate SOW PDF."
               />
             </div>
 
@@ -396,12 +386,7 @@ export default function QuoteDetail() {
                 rows={4}
                 value={local.sow_problem_statement ?? ''}
                 onChange={(e) => save({ sow_problem_statement: e.target.value } as any)}
-                placeholder="What is the client trying to solve?"
-              />
-              <PolishButton
-                field="problem_statement"
-                current={local.sow_problem_statement ?? ''}
-                onApply={(v) => save({ sow_problem_statement: v } as any)}
+                placeholder="Optional notes — the AI will expand and polish this when you Generate SOW PDF."
               />
             </div>
 
@@ -411,7 +396,7 @@ export default function QuoteDetail() {
                 rows={5}
                 value={local.sow_proposed_approach ?? ''}
                 onChange={(e) => save({ sow_proposed_approach: e.target.value } as any)}
-                placeholder="How will Red Loft approach this? Reference the 4 P's below where applicable."
+                placeholder="Optional notes — the AI will expand this and apply the 4 P's tags below when you Generate SOW PDF."
               />
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs text-muted-foreground">4 P's pillars:</span>
@@ -432,11 +417,6 @@ export default function QuoteDetail() {
                   );
                 })}
               </div>
-              <PolishButton
-                field="proposed_approach"
-                current={local.sow_proposed_approach ?? ''}
-                onApply={(v) => save({ sow_proposed_approach: v } as any)}
-              />
             </div>
 
             {/* Deliverables */}
