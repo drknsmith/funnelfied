@@ -361,6 +361,266 @@ export default function QuoteDetail() {
             {renderDiscountCard()}
             {renderTotalsCard()}
 
+        {/* ===== Statement of Work authoring ===== */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>Statement of Work</span>
+              <span className="text-xs font-mono text-muted-foreground">Ref: {sowReference}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>Executive Summary</Label>
+              <Textarea
+                rows={4}
+                value={local.sow_executive_summary ?? ''}
+                onChange={(e) => save({ sow_executive_summary: e.target.value } as any)}
+                placeholder="A short executive overview of this engagement."
+              />
+              <PolishButton
+                field="executive_summary"
+                current={local.sow_executive_summary ?? ''}
+                onApply={(v) => save({ sow_executive_summary: v } as any)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Problem Statement</Label>
+              <Textarea
+                rows={4}
+                value={local.sow_problem_statement ?? ''}
+                onChange={(e) => save({ sow_problem_statement: e.target.value } as any)}
+                placeholder="What is the client trying to solve?"
+              />
+              <PolishButton
+                field="problem_statement"
+                current={local.sow_problem_statement ?? ''}
+                onApply={(v) => save({ sow_problem_statement: v } as any)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Proposed Approach</Label>
+              <Textarea
+                rows={5}
+                value={local.sow_proposed_approach ?? ''}
+                onChange={(e) => save({ sow_proposed_approach: e.target.value } as any)}
+                placeholder="How will Red Loft approach this? Reference the 4 P's below where applicable."
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs text-muted-foreground">4 P's pillars:</span>
+                {PILLARS.map((p) => {
+                  const key = p.toLowerCase();
+                  const on = pillars.includes(key);
+                  return (
+                    <label key={p} className="flex items-center gap-1 text-xs">
+                      <Checkbox
+                        checked={on}
+                        onCheckedChange={(v) => {
+                          const next = v ? [...pillars, key] : pillars.filter((x) => x !== key);
+                          save({ sow_approach_pillars: next } as any);
+                        }}
+                      />
+                      {p}
+                    </label>
+                  );
+                })}
+              </div>
+              <PolishButton
+                field="proposed_approach"
+                current={local.sow_proposed_approach ?? ''}
+                onApply={(v) => save({ sow_proposed_approach: v } as any)}
+              />
+            </div>
+
+            {/* Deliverables */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Deliverables</Label>
+                <Button type="button" size="sm" variant="outline" onClick={() => save({ sow_deliverables: [...deliverables, { name: '', description: '' }] } as any)}>
+                  <Plus className="mr-1 h-3 w-3" /> Add
+                </Button>
+              </div>
+              {deliverables.length === 0 && <p className="text-xs text-muted-foreground">No deliverables yet.</p>}
+              {deliverables.map((d, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                  <Input
+                    className="col-span-4"
+                    placeholder="Name"
+                    value={d.name}
+                    onChange={(e) => {
+                      const next = [...deliverables];
+                      next[i] = { ...next[i], name: e.target.value };
+                      save({ sow_deliverables: next } as any);
+                    }}
+                  />
+                  <Textarea
+                    className="col-span-7"
+                    rows={2}
+                    placeholder="Short description"
+                    value={d.description}
+                    onChange={(e) => {
+                      const next = [...deliverables];
+                      next[i] = { ...next[i], description: e.target.value };
+                      save({ sow_deliverables: next } as any);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="col-span-1"
+                    onClick={() => save({ sow_deliverables: deliverables.filter((_, j) => j !== i) } as any)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Milestones */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Milestones</Label>
+                <Button type="button" size="sm" variant="outline" onClick={() => save({ sow_milestones: [...milestones, { name: '', description: '', target_date: '' }] } as any)}>
+                  <Plus className="mr-1 h-3 w-3" /> Add
+                </Button>
+              </div>
+              {milestones.length === 0 && <p className="text-xs text-muted-foreground">No milestones yet.</p>}
+              {milestones.map((m, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                  <Input
+                    className="col-span-3"
+                    placeholder="Milestone name"
+                    value={m.name}
+                    onChange={(e) => {
+                      const next = [...milestones];
+                      next[i] = { ...next[i], name: e.target.value };
+                      save({ sow_milestones: next } as any);
+                    }}
+                  />
+                  <Textarea
+                    className="col-span-6"
+                    rows={2}
+                    placeholder="Description"
+                    value={m.description}
+                    onChange={(e) => {
+                      const next = [...milestones];
+                      next[i] = { ...next[i], description: e.target.value };
+                      save({ sow_milestones: next } as any);
+                    }}
+                  />
+                  <Input
+                    className="col-span-2"
+                    type="date"
+                    value={m.target_date}
+                    onChange={(e) => {
+                      const next = [...milestones];
+                      next[i] = { ...next[i], target_date: e.target.value };
+                      save({ sow_milestones: next } as any);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="col-span-1"
+                    onClick={() => save({ sow_milestones: milestones.filter((_, j) => j !== i) } as any)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ===== Rate & Billing Terms ===== */}
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Rate &amp; Billing Terms</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Hourly Rate (USD)</Label>
+              <Input
+                type="number"
+                value={local.hourly_rate}
+                onChange={(e) => save({ hourly_rate: Number(e.target.value) || 0 })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Also used in Labor Pricing above.</p>
+            </div>
+            <div>
+              <Label>Expense Pre-Approval Threshold (USD)</Label>
+              <Input
+                type="number"
+                value={(local as any).sow_expense_threshold ?? 250}
+                onChange={(e) => save({ sow_expense_threshold: Number(e.target.value) || 0 } as any)}
+              />
+            </div>
+            <div>
+              <Label>Estimated Hours (min)</Label>
+              <Input
+                type="number"
+                value={(local as any).sow_estimated_hours_min ?? ''}
+                onChange={(e) => save({ sow_estimated_hours_min: e.target.value ? Number(e.target.value) : null } as any)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">For planning only — not a cap.</p>
+            </div>
+            <div>
+              <Label>Estimated Hours (max)</Label>
+              <Input
+                type="number"
+                value={(local as any).sow_estimated_hours_max ?? ''}
+                onChange={(e) => save({ sow_estimated_hours_max: e.target.value ? Number(e.target.value) : null } as any)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">For planning only — not a cap.</p>
+            </div>
+            <div className="col-span-2 flex items-center gap-3">
+              <Switch
+                checked={!!(local as any).sow_nte_enabled}
+                onCheckedChange={(v) => save({ sow_nte_enabled: v } as any)}
+              />
+              <Label>Not-to-Exceed Cap</Label>
+              {(local as any).sow_nte_enabled && (
+                <Input
+                  type="number"
+                  className="max-w-xs"
+                  placeholder="Cap amount (USD)"
+                  value={(local as any).sow_nte_amount ?? ''}
+                  onChange={(e) => save({ sow_nte_amount: e.target.value ? Number(e.target.value) : null } as any)}
+                />
+              )}
+            </div>
+            <div>
+              <Label>Invoicing Cadence</Label>
+              <Select
+                value={(local as any).sow_invoicing_cadence ?? ''}
+                onValueChange={(v) => save({ sow_invoicing_cadence: v } as any)}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="biweekly">Biweekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Invoice Terms</Label>
+              <Select
+                value={(local as any).sow_invoice_terms ?? ''}
+                onValueChange={(v) => save({ sow_invoice_terms: v } as any)}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="net15">Net 15</SelectItem>
+                  <SelectItem value="net30">Net 30</SelectItem>
+                  <SelectItem value="net45">Net 45</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
             <div className="flex justify-end">
               <Button onClick={() => {
                 const { id: _id, created_at, updated_at, version_number, workspace_id, deals, contacts, ...patch } = local as any;
