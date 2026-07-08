@@ -124,6 +124,41 @@ export default function QuoteDetail() {
             </div>
 
         <Card>
+          <CardHeader><CardTitle className="text-sm">Red Loft Contact</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Red Loft Contact Name</Label>
+              <Input
+                value={local.redloft_contact_name ?? ''}
+                onChange={(e) => save({ redloft_contact_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Title</Label>
+              <Input
+                value={local.redloft_contact_title ?? ''}
+                onChange={(e) => save({ redloft_contact_title: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={local.redloft_contact_email ?? ''}
+                onChange={(e) => save({ redloft_contact_email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Phone Number</Label>
+              <Input
+                value={local.redloft_contact_phone ?? ''}
+                onChange={(e) => save({ redloft_contact_phone: e.target.value })}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader><CardTitle className="text-sm">Client & Project</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-2 gap-4 text-sm">
             <Field label="Contact Name" value={local.snapshot_contact_name} />

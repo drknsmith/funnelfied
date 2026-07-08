@@ -71,12 +71,19 @@ export default function QuotePreview() {
           </p>
         </header>
 
-        <section className="grid grid-cols-2 gap-4 text-sm">
+        <section className="grid grid-cols-3 gap-4 text-sm">
           <div>
             <p className="text-xs uppercase text-slate-500">Prepared For</p>
             <p className="font-medium">{quote.snapshot_contact_name || '—'}</p>
             <p className="text-slate-600">{quote.snapshot_contact_email}</p>
             <p className="text-slate-600">{quote.snapshot_contact_phone}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase text-slate-500">Red Loft Contact</p>
+            <p className="font-medium">{quote.redloft_contact_name || '—'}</p>
+            {quote.redloft_contact_title && <p className="text-slate-600">{quote.redloft_contact_title}</p>}
+            <p className="text-slate-600">{quote.redloft_contact_email}</p>
+            <p className="text-slate-600">{quote.redloft_contact_phone}</p>
           </div>
           <div className="text-right">
             <p className="text-xs uppercase text-slate-500">Project</p>
