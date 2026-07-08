@@ -1,49 +1,56 @@
-## Editable signature names on the SOW
+## Move signature block after T&C Section 3 — Acceptance
 
-Today, the signature block lives inside the playbook's Terms and Conditions text, so the company name and contact name are baked in and can't be swapped per client. This plan adds per-SOW editable signatory fields and a dedicated signature block that renders after Terms and Conditions.
+Today the SOW preview renders the entire `sow_terms_and_conditions` text as one block, then appends the Signatures section underneath. The user's playbook T&C contains numbered sections, and Section 3 is "Acceptance"; the signature lines should appear right after that section, before any later sections (e.g., Section 4).
 
-### 1. Add signature fields to the quote
-New columns on `quotes` (all optional text):
-- `sow_signature_provider_company` — defaults to "Red Loft Consulting"
-- `sow_signature_provider_name` — defaults to `redloft_contact_name`
-- `sow_signature_provider_title` — defaults to `redloft_contact_title`
-- `sow_signature_client_company` — defaults to the account/project company
-- `sow_signature_client_name` — defaults to `snapshot_contact_name`
-- `sow_signature_client_title` — optional, blank by default
+### 1. Split Terms & Conditions at the Acceptance section boundary
 
-Defaults are only applied on first load if the field is empty, so edits stick.
-
-### 2. New "Signatures" section at the bottom of the SOW form
-In `QuoteDetail.tsx`, add a collapsible panel after Terms and Conditions with two side-by-side groups:
+In `QuotePreview.tsx`, parse `termsAndConditions` to locate the Acceptance section and the following section:
 
 ```text
-Provider (Red Loft)          Client
--------------------          ------
-Company [__________]         Company [__________]
-Name    [__________]         Name    [__________]
-Title   [__________]         Title   [__________]
+### 3. Acceptance
+...
+
+### 4. Limitation of Liability
+...
 ```
 
-Each input saves via the existing `save({...})` path. A small "Reset to defaults" link repopulates from the snapshot/contact fields.
+Use a tolerant regex that matches common heading styles:
+- `^\s*(?:###?\s*)?3[.\)]?\s*[-–—.]?\s*Acceptance\s*$`
+- `^\s*Section\s+3[.:\)]?\s*Acceptance\s*$`
 
-### 3. Render the signature block in the SOW preview
-In `QuotePreview.tsx`, after the Terms and Conditions section, render a two-column signature block:
+Then find the next numbered section heading after it (e.g., `4.`, `Section 4`, `### 4.`) to determine where Acceptance ends. Split the text into:
+- `termsBeforeSignatures` — everything up to and including the Acceptance section
+- `termsAfterSignatures` — any remaining sections after Acceptance
+
+If no Acceptance section is found, fall back to the current behavior: signatures render after the full T&C block.
+
+### 2. Update the SOW preview layout
+
+Replace the single T&C + Signatures sequence with:
 
 ```text
-______________________          ______________________
-Name / Title                    Name / Title
-Company                         Company
-Date: __________                Date: __________
+Terms and Conditions
+  <termsBeforeSignatures>
+
+Signatures
+  <provider signature block>
+  <client signature block>
+
+<termsAfterSignatures>   (only if Acceptance was found and followed by more sections)
 ```
 
-Also append it to the "Copy as Markdown" output.
+### 3. Update "Copy as Markdown" export
 
-### 4. Playbook Terms and Conditions guidance
-No schema change to playbooks. The playbook's T&C text should stop containing hard-coded signature lines; the signature block is now owned by the SOW. The `generate-sow` edge function already copies T&C verbatim — no change needed, but we'll trim any trailing `Signed by:` / `By:` lines from the copied T&C on the client side before display so old playbook text doesn't double up with the new block.
+Apply the same split logic in `copyMarkdown()` so the exported Markdown places the Signatures block after Section 3 Acceptance and before any following sections.
 
-### Technical notes
-- Migration adds the six `sow_signature_*` text columns to `quotes` (nullable, no default at DB level; defaults resolved in UI).
-- No RLS changes — existing quote policies cover the new columns.
-- `QuoteDetail.tsx`: new section + local state hydration with defaults.
-- `QuotePreview.tsx`: new `<section>` after T&C, plus markdown export update.
-- No changes to `generate-sow` or `suggest-milestones`.
+### 4. No database or edge-function changes
+
+This is a client-side rendering change only. The `sow_terms_and_conditions` field stays a single text blob; we just split it at render/export time.
+
+### Files changed
+- `src/pages/QuotePreview.tsx`
+
+### Edge cases handled
+- T&C without an Acceptance section → signatures stay at the end.
+- Acceptance is the last section → signatures follow it as the final element.
+- Mixed heading styles (Markdown, plain text, "Section 3.") are detected with a combined regex.

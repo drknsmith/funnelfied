@@ -18,6 +18,29 @@ import {
 const TERMS_LABEL: Record<string, string> = { net15: 'Net 15', net30: 'Net 30', net45: 'Net 45' };
 const CADENCE_LABEL: Record<string, string> = { monthly: 'monthly', biweekly: 'biweekly' };
 
+function splitTermsAtAcceptance(text: string): { before: string; after: string } | null {
+  if (!text) return null;
+  const acceptanceRe = /^\s*(?:(?:###?|Section)\s*)?3[.:\)]?\s*[-–—.]?\s*Acceptance\s*$/i;
+  const sectionRe = /^\s*(?:(?:###?|Section)\s*)?\d+[.:\)]\s*[-–—.]?\s*[A-Z].{0,80}$/i;
+  const lines = text.split('\n');
+  let acceptanceIndex = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (acceptanceRe.test(lines[i])) {
+      acceptanceIndex = i;
+      break;
+    }
+  }
+  if (acceptanceIndex === -1) return null;
+  let splitIndex = lines.length;
+  for (let i = acceptanceIndex + 1; i < lines.length; i++) {
+    if (sectionRe.test(lines[i])) {
+      splitIndex = i;
+      break;
+    }
+  }
+  return { before: lines.slice(0, splitIndex).join('\n'), after: lines.slice(splitIndex).join('\n') };
+}
+
 export default function QuotePreview() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -65,6 +88,10 @@ export default function QuotePreview() {
   const sigClientCompany = (quote as any).sow_signature_client_company || (quote as any).snapshot_account_name || quote.snapshot_project_name || '';
   const sigClientName = (quote as any).sow_signature_client_name || quote.snapshot_contact_name || '';
   const sigClientTitle = (quote as any).sow_signature_client_title || '';
+
+  const termsSplit = useMemo(() => splitTermsAtAcceptance(termsAndConditions), [termsAndConditions]);
+  const termsBeforeSignatures = termsSplit?.before ?? termsAndConditions;
+  const termsAfterSignatures = termsSplit?.after ?? '';
 
   const billingSentence = useMemo(() => {
     if (doc !== 'sow') return '';
