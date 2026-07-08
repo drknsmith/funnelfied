@@ -49,7 +49,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { canUseMapping, canUseProposalCreator, canUseSocialMedia } from '@/lib/workspaceFeatures';
+import { canUseMapping, canUseResearch, canUseSocialMedia } from '@/lib/workspaceFeatures';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
@@ -271,7 +271,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {canUseMapping(activeWorkspaceId) && (
                 <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
               )}
-{canUseProposalCreator(activeWorkspaceId) && (
+{canUseResearch(activeWorkspaceId) && (
                 <NavItem to="/research" icon={<FileBarChart className="h-4 w-4" />} label="Research" collapsed={isCollapsed} />
               )}
               {canUseSocialMedia(activeWorkspaceId) && (
