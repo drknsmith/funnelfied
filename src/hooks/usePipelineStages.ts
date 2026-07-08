@@ -5,13 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 // Default stages used by most workspaces
 export const DEFAULT_DEAL_STAGES = [
   { value: 'signal_target', label: 'Signal / Target' },
-  { value: 'outreach', label: 'Outreach' },
-  { value: 'discovery', label: 'Discovery' },
-  { value: 'proposal', label: 'Proposal' },
-  { value: 'negotiation', label: 'Negotiation' },
-  { value: 'closed_won', label: 'Closed Won' },
-  { value: 'closed_lost', label: 'Closed Lost' },
+  { value: 'contacted', label: 'Contacted' },
+  { value: 'discovery_scheduled', label: 'Discovery Scheduled' },
+  { value: 'discovery_done', label: 'Discovery Done' },
+  { value: 'proposal_out', label: 'Proposal Out' },
+  { value: 'decision', label: 'Decision / Negotiation' },
   { value: 'nurture', label: 'Nurture' },
+  { value: 'won', label: 'Won' },
+  { value: 'lost_archived', label: 'Lost / Archived' },
 ] as const;
 
 export type DealStage = {

@@ -41,7 +41,7 @@ export function DealSearchSelect({ value, onValueChange, disabled }: DealSearchS
         >
           {selectedDeal ? (
             <span className="truncate">
-              {selectedDeal.deal_name || 'Unnamed Deal'}
+              {selectedDeal.deal_name || 'Unnamed Opportunity'}
               {selectedDeal.accounts?.name && (
                 <span className="text-muted-foreground ml-1">
                   ({selectedDeal.accounts.name})
@@ -49,18 +49,18 @@ export function DealSearchSelect({ value, onValueChange, disabled }: DealSearchS
               )}
             </span>
           ) : (
-            'Select deal...'
+            'Select opportunity...'
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full min-w-[300px] p-0 z-50 bg-background" align="start">
         <Command>
-          <CommandInput placeholder="Search deals..." />
+          <CommandInput placeholder="Search opportunities..." />
           <CommandList>
             <CommandEmpty>
               <div className="p-2 text-center">
-                <p className="text-sm text-muted-foreground">No deal found.</p>
+                <p className="text-sm text-muted-foreground">No opportunity found.</p>
               </div>
             </CommandEmpty>
             <CommandGroup>
@@ -80,7 +80,7 @@ export function DealSearchSelect({ value, onValueChange, disabled }: DealSearchS
                     )}
                   />
                   <div className="flex flex-col">
-                    <span>{deal.deal_name || 'Unnamed Deal'}</span>
+                    <span>{deal.deal_name || 'Unnamed Opportunity'}</span>
                     {deal.accounts?.name && (
                       <span className="text-xs text-muted-foreground">
                         {deal.accounts.name}

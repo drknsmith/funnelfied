@@ -11,9 +11,9 @@ export const DEAL_STAGES = [
   { value: 'discovery_done', label: 'Discovery Done' },
   { value: 'proposal_out', label: 'Proposal Out' },
   { value: 'decision', label: 'Decision / Negotiation' },
+  { value: 'nurture', label: 'Nurture' },
   { value: 'won', label: 'Won' },
   { value: 'lost_archived', label: 'Lost / Archived' },
-  { value: 'nurture', label: 'Nurture' },
 ] as const;
 
 export const DEAL_SIZES = [
@@ -118,6 +118,10 @@ export interface Deal {
   internal_notes: string | null;
   playbook_assigned_at: string | null;
   playbook_assigned_by: string | null;
+  project_street: string | null;
+  project_city: string | null;
+  project_state: string | null;
+  project_zip: string | null;
   created_at: string;
   updated_at: string;
 }
