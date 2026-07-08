@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DEAL_SIZES, DealWithRelations } from '@/hooks/useDeals';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { useDealFieldConfig } from '@/hooks/useDealFieldConfig';
@@ -37,7 +38,7 @@ const formSchema = z.object({
   account_id: z.string().min(1, 'Account is required'),
   primary_contact_id: z.string().optional(),
   stage: z.string().min(1, 'Stage is required'),
-  deal_type: z.string().optional(),
+  deal_type: z.array(z.string()).optional(),
   deal_size_range: z.string().optional(),
   probability: z.coerce.number().min(0).max(100).optional(),
   next_action: z.string().optional(),
@@ -74,7 +75,7 @@ export default function DealFormDialog({
       account_id: '',
       primary_contact_id: '',
       stage: 'signal_target',
-      deal_type: '',
+      deal_type: [],
       deal_size_range: '',
       probability: 0,
       next_action: '',
@@ -92,7 +93,7 @@ export default function DealFormDialog({
         account_id: deal.account_id,
         primary_contact_id: deal.primary_contact_id || '',
         stage: deal.stage,
-        deal_type: deal.deal_type || '',
+        deal_type: deal.deal_type || [],
         deal_size_range: deal.deal_size_range || '',
         probability: deal.probability || 0,
         next_action: deal.next_action || '',
@@ -104,7 +105,7 @@ export default function DealFormDialog({
         account_id: '',
         primary_contact_id: '',
         stage: 'signal_target',
-        deal_type: '',
+        deal_type: [],
         deal_size_range: '',
         probability: 0,
         next_action: '',
@@ -118,7 +119,7 @@ export default function DealFormDialog({
       ...data,
       deal_name: data.deal_name || null,
       primary_contact_id: data.primary_contact_id || null,
-      deal_type: data.deal_type || null,
+      deal_type: data.deal_type && data.deal_type.length ? data.deal_type : null,
       deal_size_range: data.deal_size_range || null,
       next_action: data.next_action || null,
       next_action_date: data.next_action_date || null,
@@ -226,26 +227,40 @@ export default function DealFormDialog({
               <FormField
                 control={form.control}
                 name="deal_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Opportunity Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {dealTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const value = field.value ?? [];
+                  return (
+                    <FormItem>
+                      <FormLabel>Opportunity Type</FormLabel>
+                      <div className="rounded-md border p-3 space-y-2">
+                        {dealTypes.map((type) => {
+                          const checked = value.includes(type.value);
+                          return (
+                            <div key={type.value} className="flex items-center gap-2">
+                              <Checkbox
+                                id={`dfd-dtype-${type.value}`}
+                                checked={checked}
+                                onCheckedChange={(v) => {
+                                  const next = v
+                                    ? [...value, type.value]
+                                    : value.filter((t: string) => t !== type.value);
+                                  field.onChange(next);
+                                }}
+                              />
+                              <FormLabel
+                                htmlFor={`dfd-dtype-${type.value}`}
+                                className="cursor-pointer font-normal"
+                              >
+                                {type.label}
+                              </FormLabel>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 

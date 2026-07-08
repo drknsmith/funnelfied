@@ -209,7 +209,7 @@ export function ConvertToDealModal({ open, onOpenChange, lead }: ConvertToDealMo
         .insert({
           account_id: accountId,
           deal_name: dealName,
-          deal_type: dealType,
+          deal_type: dealType ? [dealType] : [],
           stage: 'signal_target',
           status: 'open',
           workspace_id: profile.workspace_id,

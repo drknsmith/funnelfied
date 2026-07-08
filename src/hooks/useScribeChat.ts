@@ -11,7 +11,7 @@ interface DealContext {
   deal_name: string | null;
   account_name: string;
   stage: string;
-  deal_type: string | null;
+  deal_type: string[] | null;
   playbook_name: string | null;
   contact_name: string | null;
   deal_size: string | null;

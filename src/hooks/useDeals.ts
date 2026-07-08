@@ -103,7 +103,7 @@ export interface Deal {
   deal_name: string | null;
   primary_contact_id: string | null;
   playbook_id: string | null;
-  deal_type: string | null;
+  deal_type: string[] | null;
   stage: string;
   deal_size_range: string | null;
   probability: number | null;

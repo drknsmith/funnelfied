@@ -1,9 +1,20 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, Trash2 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useQuotes } from '@/hooks/useQuotes';
 import {
   contractorSubtotal,
@@ -32,7 +43,8 @@ function QuoteRowTotal({ quoteId, ...quote }: any) {
 
 export default function Quotes() {
   const navigate = useNavigate();
-  const { quotes, isLoading } = useQuotes();
+  const { quotes, isLoading, deleteQuote } = useQuotes();
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   return (
     <AppLayout>
@@ -65,35 +77,73 @@ export default function Quotes() {
             ) : (
               <div className="divide-y">
                 {quotes.map((q: any) => (
-                  <button
+                  <div
                     key={q.id}
-                    onClick={() => navigate(`/quotes/${q.id}`)}
-                    className="w-full flex items-center justify-between py-3 text-left hover:bg-muted/40 px-2 rounded"
+                    className="w-full flex items-center justify-between py-3 hover:bg-muted/40 px-2 rounded"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate(`/quotes/${q.id}`)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium">
                           {q.deals?.deal_name || q.deals?.accounts?.name || 'Untitled Opportunity'}
                         </span>
                         <Badge variant="outline">v{q.version_number}</Badge>
-                        {q.service_category && (
-                          <Badge variant="secondary">
-                            {SERVICE_CATEGORY_LABELS[q.service_category] ?? q.service_category}
+                        {(q.service_category ?? []).map((c: string) => (
+                          <Badge key={c} variant="secondary">
+                            {SERVICE_CATEGORY_LABELS[c] ?? c}
                           </Badge>
-                        )}
+                        ))}
                         <Badge>{q.status}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Updated {new Date(q.updated_at).toLocaleDateString()}
                       </p>
+                    </button>
+                    <div className="flex items-center gap-3 pl-3">
+                      <QuoteRowTotal quoteId={q.id} {...q} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDelete(q.id);
+                        }}
+                        aria-label="Delete quote"
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
                     </div>
-                    <QuoteRowTotal quoteId={q.id} {...q} />
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+
+        <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this quote?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. The quote and its contractor line items will be
+                permanently removed.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (pendingDelete) deleteQuote(pendingDelete);
+                  setPendingDelete(null);
+                }}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

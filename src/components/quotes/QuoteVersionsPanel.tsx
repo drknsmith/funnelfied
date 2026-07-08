@@ -27,7 +27,7 @@ export function QuoteVersionsPanel({ dealId }: { dealId: string }) {
     const quote = await createQuote({
       deal_id: deal.id,
       contact_id: deal.primary_contact_id ?? null,
-      service_category: deal.deal_type ?? null,
+      service_category: (deal.deal_type as string[] | null) ?? null,
       snapshot: {
         snapshot_contact_name: contact?.name ?? null,
         snapshot_contact_email: contact?.email ?? null,

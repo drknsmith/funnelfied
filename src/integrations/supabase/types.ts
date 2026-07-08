@@ -310,7 +310,7 @@ export type Database = {
           created_at: string
           deal_name: string | null
           deal_size_range: string | null
-          deal_type: string | null
+          deal_type: string[] | null
           external_id: string | null
           id: string
           internal_notes: string | null
@@ -346,7 +346,7 @@ export type Database = {
           created_at?: string
           deal_name?: string | null
           deal_size_range?: string | null
-          deal_type?: string | null
+          deal_type?: string[] | null
           external_id?: string | null
           id?: string
           internal_notes?: string | null
@@ -382,7 +382,7 @@ export type Database = {
           created_at?: string
           deal_name?: string | null
           deal_size_range?: string | null
-          deal_type?: string | null
+          deal_type?: string[] | null
           external_id?: string | null
           id?: string
           internal_notes?: string | null
@@ -1107,7 +1107,7 @@ export type Database = {
           phase_revisions_hours: number
           phase_revisions_rounds: number
           phase_sourcing_hours: number
-          service_category: string | null
+          service_category: string[] | null
           service_details: Json
           snapshot_contact_email: string | null
           snapshot_contact_name: string | null
@@ -1141,7 +1141,7 @@ export type Database = {
           phase_revisions_hours?: number
           phase_revisions_rounds?: number
           phase_sourcing_hours?: number
-          service_category?: string | null
+          service_category?: string[] | null
           service_details?: Json
           snapshot_contact_email?: string | null
           snapshot_contact_name?: string | null
@@ -1175,7 +1175,7 @@ export type Database = {
           phase_revisions_hours?: number
           phase_revisions_rounds?: number
           phase_sourcing_hours?: number
-          service_category?: string | null
+          service_category?: string[] | null
           service_details?: Json
           snapshot_contact_email?: string | null
           snapshot_contact_name?: string | null

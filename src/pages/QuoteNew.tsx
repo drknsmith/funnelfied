@@ -43,7 +43,7 @@ export default function QuoteNew() {
     const quote = await createQuote({
       deal_id: (targetDeal as any).id,
       contact_id: (targetDeal as any).primary_contact_id ?? null,
-      service_category: (targetDeal as any).deal_type ?? null,
+      service_category: ((targetDeal as any).deal_type as string[] | null) ?? null,
       cloneFromId,
       snapshot: {
         snapshot_contact_name: (activeContact as any)?.name ?? null,
@@ -93,7 +93,7 @@ export default function QuoteNew() {
             </div>
             {deal && (
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>Service Category: <strong>{(deal as any).deal_type || '—'}</strong></p>
+                <p>Service Category: <strong>{((deal as any).deal_type as string[] | null)?.join(', ') || '—'}</strong></p>
                 <p>Contact: {(contact as any)?.name || '—'}</p>
                 <p className="italic">Creating draft quote…</p>
               </div>

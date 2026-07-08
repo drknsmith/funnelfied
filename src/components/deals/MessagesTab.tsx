@@ -43,7 +43,7 @@ export function MessagesTab({ deal }: MessagesTabProps) {
         account: deal.accounts,
         deal: {
           stage: deal.stage,
-          deal_type: deal.deal_type,
+          deal_type: deal.deal_type?.join(', ') ?? null,
           deal_size_range: deal.deal_size_range,
           next_action_date: deal.next_action_date,
         },

@@ -99,7 +99,7 @@ export function useDashboardMetrics(): DashboardMetrics {
 
     // High-Leverage: open deals with deal_type in ['portfolio', 'design_led']
     const highLeverageDeals = deals.filter(
-      (d) => d.status === 'open' && ['portfolio', 'design_led'].includes(d.deal_type || '')
+      (d) => d.status === 'open' && (d.deal_type ?? []).some((t) => ['portfolio', 'design_led'].includes(t))
     );
 
     // Stalled: open deals with no last_meaningful_activity_date OR activity > 14 days ago

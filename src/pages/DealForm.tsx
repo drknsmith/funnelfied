@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -60,7 +61,7 @@ export default function DealForm() {
   const [formData, setFormData] = useState({
     account_id: preselectedAccountId,
     deal_name: '',
-    deal_type: '',
+    deal_type: [] as string[],
     stage: 'signal_target',
     playbook_id: '',
     primary_contact_id: '',
@@ -86,7 +87,7 @@ export default function DealForm() {
 
   // Auto-generate deal name
   const selectedAccount = accounts.find((a) => a.id === formData.account_id);
-  const selectedDealType = dealTypes.find((t) => t.value === formData.deal_type);
+  const selectedDealType = dealTypes.find((t) => t.value === formData.deal_type[0]);
   const autoDealName = useMemo(() => {
     if (selectedAccount && selectedDealType) {
       return `${selectedAccount.name} – ${selectedDealType.label}`;
@@ -117,7 +118,7 @@ export default function DealForm() {
       setFormData({
         account_id: deal.account_id,
         deal_name: deal.deal_name || deal.accounts?.name || '',
-        deal_type: deal.deal_type || '',
+        deal_type: deal.deal_type || [],
         stage: deal.stage,
         playbook_id: deal.playbook_id || '',
         primary_contact_id: deal.primary_contact_id || '',
@@ -176,7 +177,7 @@ export default function DealForm() {
     const dealData = {
       account_id: formData.account_id,
       deal_name: formData.deal_name || null,
-      deal_type: formData.deal_type || null,
+      deal_type: formData.deal_type.length ? formData.deal_type : null,
       stage: formData.stage,
       playbook_id: formData.playbook_id || null,
       primary_contact_id: formData.primary_contact_id || null,
@@ -218,7 +219,7 @@ export default function DealForm() {
   };
 
   const isLoading = isCreating || isUpdating;
-  const canSubmit = formData.account_id && formData.deal_type;
+  const canSubmit = formData.account_id && formData.deal_type.length > 0;
 
   if (isEdit && isDealLoading) {
     return (
@@ -261,19 +262,28 @@ export default function DealForm() {
 
                 <div className="space-y-2">
                   <Label>Opportunity Type *</Label>
-                  <Select
-                    value={formData.deal_type}
-                    onValueChange={(value) => setFormData({ ...formData, deal_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select opportunity type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dealTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="rounded-md border p-3 space-y-2">
+                    {dealTypes.map((type) => {
+                      const checked = formData.deal_type.includes(type.value);
+                      return (
+                        <div key={type.value} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`dtype-${type.value}`}
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? [...formData.deal_type, type.value]
+                                : formData.deal_type.filter((t) => t !== type.value);
+                              setFormData({ ...formData, deal_type: next });
+                            }}
+                          />
+                          <Label htmlFor={`dtype-${type.value}`} className="cursor-pointer font-normal">
+                            {type.label}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

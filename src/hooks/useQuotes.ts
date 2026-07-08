@@ -11,7 +11,7 @@ export interface Quote {
   contact_id: string | null;
   version_number: number;
   status: string;
-  service_category: string | null;
+  service_category: string[] | null;
   engagement_type: string | null;
   timeline_urgency: string | null;
   decision_maker_count: number | null;
@@ -75,7 +75,7 @@ export function useQuotes(dealId?: string) {
     mutationFn: async (payload: {
       deal_id: string;
       contact_id?: string | null;
-      service_category?: string | null;
+      service_category?: string[] | null;
       snapshot?: Partial<Quote>;
       cloneFromId?: string;
     }) => {

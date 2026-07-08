@@ -31,16 +31,20 @@ export default function QuotePreview() {
   const disc = discountAmount(quote);
   const total = grandTotal(quote, items);
   const rate = Number(quote.hourly_rate) || 0;
-  const detailFields = quote.service_category ? SERVICE_DETAIL_FIELDS[quote.service_category] ?? [] : [];
+  const categories = quote.service_category ?? [];
 
   const gapKeys: Record<string, string> = {
     programming: 'programming_gaps',
     design: 'compliance_drivers',
     policy: 'policy_status',
   };
-  const problemStatement = quote.service_category
-    ? quote.service_details?.[gapKeys[quote.service_category] ?? ''] ?? ''
-    : '';
+  const problemStatement = categories
+    .map((c) => (quote.service_details?.[c] as any)?.[gapKeys[c]])
+    .filter(Boolean)
+    .join('\n\n');
+  const approachLabel = categories.length
+    ? categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c).join(' + ')
+    : 'consulting';
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -84,28 +88,32 @@ export default function QuotePreview() {
           <h2 className="text-sm font-semibold uppercase text-red-700 border-b pb-1 mb-2">Proposed Approach</h2>
           <p className="text-sm">
             Red Loft engages this work through our Process &amp; Product framework, delivering a{' '}
-            {SERVICE_CATEGORY_LABELS[quote.service_category ?? ''] ?? 'consulting'} engagement structured
+            {approachLabel} engagement structured
             around clear phases, defined deliverables, and measurable outcomes.
           </p>
         </section>
 
-        {detailFields.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold uppercase text-red-700 border-b pb-1 mb-2">Project Context</h2>
-            <dl className="text-sm space-y-1">
-              {detailFields.map((f) => {
-                const v = quote.service_details?.[f.key];
-                if (!v) return null;
-                return (
+        {categories.map((cat) => {
+          const fields = SERVICE_DETAIL_FIELDS[cat] ?? [];
+          const catDetails = (quote.service_details?.[cat] as Record<string, any>) || {};
+          const visible = fields.filter((f) => catDetails[f.key]);
+          if (visible.length === 0) return null;
+          return (
+            <section key={cat}>
+              <h2 className="text-sm font-semibold uppercase text-red-700 border-b pb-1 mb-2">
+                {SERVICE_CATEGORY_LABELS[cat] ?? cat} — Project Context
+              </h2>
+              <dl className="text-sm space-y-1">
+                {visible.map((f) => (
                   <div key={f.key} className="grid grid-cols-3 gap-2">
                     <dt className="text-slate-500">{f.label}</dt>
-                    <dd className="col-span-2">{String(v)}</dd>
+                    <dd className="col-span-2">{String(catDetails[f.key])}</dd>
                   </div>
-                );
-              })}
-            </dl>
-          </section>
-        )}
+                ))}
+              </dl>
+            </section>
+          );
+        })}
 
         {quote.timeline_urgency && (
           <section>
