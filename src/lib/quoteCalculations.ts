@@ -3,6 +3,8 @@ import type { Quote, QuoteContractorItem } from '@/hooks/useQuotes';
 export const PHASES = [
   { key: 'phase_consultation_hours', label: 'Initial Consultation' },
   { key: 'phase_concept_hours', label: 'Concept & Space Planning' },
+  { key: 'phase_program_creation_hours', label: 'Program Creation', requiresCategory: 'programming' as const },
+  { key: 'phase_policy_creation_hours', label: 'Policy Creation', requiresCategory: 'policy' as const },
   { key: 'phase_revisions_hours', label: 'Revisions' },
   { key: 'phase_sourcing_hours', label: 'Sourcing & Procurement' },
   { key: 'phase_pm_hours', label: 'Project Management' },
@@ -63,7 +65,7 @@ export const CONTRACTOR_TYPE_LABELS: Record<string, string> = {
 
 export const SERVICE_DETAIL_FIELDS: Record<
   string,
-  { key: string; label: string; type: 'text' | 'textarea' | 'number' | 'select'; options?: { value: string; label: string }[] }[]
+  { key: string; label: string; type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect'; options?: { value: string; label: string }[] }[]
 > = {
   programming: [
     { key: 'target_population', label: 'Target population type and approximate size', type: 'text' },
@@ -91,6 +93,16 @@ export const SERVICE_DETAIL_FIELDS: Record<
   policy: [
     { key: 'property_type', label: 'Property type and unit count', type: 'text' },
     { key: 'policy_status', label: 'Current policy status (none / informal / expired)', type: 'text' },
+    {
+      key: 'policy_types',
+      label: 'Policy Type',
+      type: 'multiselect',
+      options: [
+        { value: 'smoke_free', label: 'Smoke Free' },
+        { value: 'fitness_center_usage', label: 'Fitness Center Usage' },
+        { value: 'fitwel_compliance', label: 'Fitwel Compliance' },
+      ],
+    },
     { key: 'staff_sop_count', label: 'Staff count needing SOP training', type: 'number' },
     { key: 'funding_source', label: 'Funding source status (grant pending / secured / none)', type: 'text' },
     { key: 'notes', label: 'Additional notes', type: 'textarea' },

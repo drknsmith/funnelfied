@@ -19,6 +19,8 @@ export interface Quote {
   hourly_rate: number;
   phase_consultation_hours: number;
   phase_concept_hours: number;
+  phase_program_creation_hours: number;
+  phase_policy_creation_hours: number;
   phase_revisions_hours: number;
   phase_revisions_rounds: number;
   phase_sourcing_hours: number;
@@ -45,6 +47,8 @@ export interface QuoteContractorItem {
   contractor_type: string;
   vendor_name: string | null;
   flat_fee: number;
+  design_fee: number;
+  shipping_fee: number;
   markup_percentage: number;
   sort_order: number;
   created_at: string;

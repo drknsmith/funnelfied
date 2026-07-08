@@ -1036,10 +1036,12 @@ export type Database = {
         Row: {
           contractor_type: string
           created_at: string
+          design_fee: number
           flat_fee: number
           id: string
           markup_percentage: number
           quote_id: string
+          shipping_fee: number
           sort_order: number
           updated_at: string
           vendor_name: string | null
@@ -1048,10 +1050,12 @@ export type Database = {
         Insert: {
           contractor_type: string
           created_at?: string
+          design_fee?: number
           flat_fee?: number
           id?: string
           markup_percentage?: number
           quote_id: string
+          shipping_fee?: number
           sort_order?: number
           updated_at?: string
           vendor_name?: string | null
@@ -1060,10 +1064,12 @@ export type Database = {
         Update: {
           contractor_type?: string
           created_at?: string
+          design_fee?: number
           flat_fee?: number
           id?: string
           markup_percentage?: number
           quote_id?: string
+          shipping_fee?: number
           sort_order?: number
           updated_at?: string
           vendor_name?: string | null
@@ -1104,6 +1110,8 @@ export type Database = {
           phase_consultation_hours: number
           phase_handoff_hours: number
           phase_pm_hours: number
+          phase_policy_creation_hours: number
+          phase_program_creation_hours: number
           phase_revisions_hours: number
           phase_revisions_rounds: number
           phase_sourcing_hours: number
@@ -1138,6 +1146,8 @@ export type Database = {
           phase_consultation_hours?: number
           phase_handoff_hours?: number
           phase_pm_hours?: number
+          phase_policy_creation_hours?: number
+          phase_program_creation_hours?: number
           phase_revisions_hours?: number
           phase_revisions_rounds?: number
           phase_sourcing_hours?: number
@@ -1172,6 +1182,8 @@ export type Database = {
           phase_consultation_hours?: number
           phase_handoff_hours?: number
           phase_pm_hours?: number
+          phase_policy_creation_hours?: number
+          phase_program_creation_hours?: number
           phase_revisions_hours?: number
           phase_revisions_rounds?: number
           phase_sourcing_hours?: number
