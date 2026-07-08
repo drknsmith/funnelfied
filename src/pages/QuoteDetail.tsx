@@ -366,11 +366,6 @@ export default function QuoteDetail() {
           );
         })}
 
-            {renderLaborCard()}
-            {renderContractorCard()}
-            {renderDiscountCard()}
-            {renderTotalsCard()}
-
         {/* ===== Statement of Work authoring ===== */}
         <Card>
           <CardHeader>
@@ -557,7 +552,7 @@ export default function QuoteDetail() {
                 value={local.hourly_rate}
                 onChange={(e) => save({ hourly_rate: Number(e.target.value) || 0 })}
               />
-              <p className="text-xs text-muted-foreground mt-1">Also used in Labor Pricing above.</p>
+              <p className="text-xs text-muted-foreground mt-1">Also used on the Invoice tab.</p>
             </div>
             <div>
               <Label>Expense Pre-Approval Threshold (USD)</Label>
