@@ -9,7 +9,7 @@ import { useInteractions } from '@/hooks/useInteractions';
 import { useContacts } from '@/hooks/useContacts';
 import { useDealFiles } from '@/hooks/useDealFiles';
 import { useAuth } from '@/contexts/AuthContext';
-import { canUseResearch, isTreneurWorkspace } from '@/lib/workspaceFeatures';
+import { canUseResearch } from '@/lib/workspaceFeatures';
 import StageTimeline from '@/components/deals/StageTimeline';
 import InteractionList from '@/components/deals/InteractionList';
 import InteractionFormDialog from '@/components/deals/InteractionFormDialog';
@@ -294,8 +294,6 @@ export default function DealDetail() {
   const sizeLabel = DEAL_SIZES.find((s) => s.value === deal.deal_size_range)?.label || deal.deal_size_range;
   const typeLabel = dealTypes.find((t) => t.value === deal.deal_type)?.label || deal.deal_type;
   const dealContacts = contacts.filter((c) => c.account_id === deal.account_id);
-
-  const isTreneur = isTreneurWorkspace(activeWorkspaceId);
 
   const handleStageChange = (newStage: string) => {
     updateDeal({ id: deal.id, stage: newStage, last_meaningful_activity_date: new Date().toISOString().split('T')[0] });
