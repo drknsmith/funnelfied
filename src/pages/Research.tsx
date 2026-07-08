@@ -92,12 +92,22 @@ export default function Research() {
     getToken();
   }, []);
 
-  // Handle deal selection - auto-populate address from account location
+  // Handle opportunity selection - auto-populate project name and address
   const handleDealChange = (dealId: string, deal?: DealWithRelations) => {
     setSelectedDealId(dealId);
-    if (deal?.accounts?.location) {
-      setCommunityAddress(deal.accounts.location);
-    }
+    if (!deal) return;
+    // Project Name = opportunity/deal name (fallback to account name)
+    const nextName = deal.deal_name || deal.accounts?.name || '';
+    if (nextName) setCommunityName(nextName);
+    // Project Address = opportunity project address (fallback to account location)
+    const parts = [
+      (deal as any).project_street,
+      (deal as any).project_city,
+      (deal as any).project_state,
+      (deal as any).project_zip,
+    ].filter(Boolean);
+    const projectAddress = parts.length ? parts.join(', ') : (deal.accounts?.location || '');
+    if (projectAddress) setCommunityAddress(projectAddress);
   };
 
   // Computed outputs
