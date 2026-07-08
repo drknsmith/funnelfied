@@ -40,6 +40,19 @@ export interface Quote {
   redloft_contact_title: string | null;
   redloft_contact_email: string | null;
   redloft_contact_phone: string | null;
+  sow_executive_summary: string | null;
+  sow_problem_statement: string | null;
+  sow_proposed_approach: string | null;
+  sow_approach_pillars: string[] | null;
+  sow_deliverables: Array<{ name: string; description: string }>;
+  sow_milestones: Array<{ name: string; description: string; target_date: string }>;
+  sow_estimated_hours_min: number | null;
+  sow_estimated_hours_max: number | null;
+  sow_nte_enabled: boolean;
+  sow_nte_amount: number | null;
+  sow_invoicing_cadence: string | null;
+  sow_invoice_terms: string | null;
+  sow_expense_threshold: number;
   created_at: string;
   updated_at: string;
 }
