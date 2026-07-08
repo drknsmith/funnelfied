@@ -168,30 +168,14 @@ export default function ServiceKnowledgePlaybookForm() {
             <CardHeader><CardTitle>1. Opportunity Type</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
-                <InputBox label="Programming" value={form.opp_programming} onChange={(v) => update({ opp_programming: v })} />
-                <InputBox label="Design" value={form.opp_design} onChange={(v) => update({ opp_design: v })} />
-                <InputBox label="Policy" value={form.opp_policy} onChange={(v) => update({ opp_policy: v })} />
+                <TextareaBox label="Programming" value={form.opp_programming} onChange={(v) => update({ opp_programming: v })} />
+                <TextareaBox label="Design" value={form.opp_design} onChange={(v) => update({ opp_design: v })} />
+                <TextareaBox label="Policy" value={form.opp_policy} onChange={(v) => update({ opp_policy: v })} />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>2. Engagement Type</CardTitle></CardHeader>
-            <CardContent>
+...
               <div className="flex flex-wrap gap-4">
-                <InputBox label="One-time" value={form.eng_one_time} onChange={(v) => update({ eng_one_time: v })} />
-                <InputBox label="Retainer" value={form.eng_retainer} onChange={(v) => update({ eng_retainer: v })} />
-                <InputBox label="Phased" value={form.eng_phased} onChange={(v) => update({ eng_phased: v })} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>3. Design Type</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-4">
-                <InputBox label="New Construction" value={form.dtype_new_construction} onChange={(v) => update({ dtype_new_construction: v })} />
-                <InputBox label="Retrofit" value={form.dtype_retrofit} onChange={(v) => update({ dtype_retrofit: v })} />
+                <TextareaBox label="New Construction" value={form.dtype_new_construction} onChange={(v) => update({ dtype_new_construction: v })} />
+                <TextareaBox label="Retrofit" value={form.dtype_retrofit} onChange={(v) => update({ dtype_retrofit: v })} />
               </div>
             </CardContent>
           </Card>
