@@ -939,7 +939,7 @@ export type Database = {
           created_at: string
           deal_id: string | null
           demographics: Json | null
-          expires_at: string | null
+          expires_at: string
           fitness_comps: Json | null
           id: string
           map_center: Json | null
@@ -960,7 +960,7 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           demographics?: Json | null
-          expires_at?: string | null
+          expires_at?: string
           fitness_comps?: Json | null
           id?: string
           map_center?: Json | null
@@ -981,7 +981,7 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           demographics?: Json | null
-          expires_at?: string | null
+          expires_at?: string
           fitness_comps?: Json | null
           id?: string
           map_center?: Json | null
@@ -1596,21 +1596,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_workspace: { Args: never; Returns: string }
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_admin_or_above: { Args: never; Returns: boolean }
-      is_super_admin: { Args: never; Returns: boolean }
-      is_target_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       app_role: "super_admin" | "admin" | "moderator" | "user"

@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.validate_invitation_code(text, text);

@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.sm-caption-generator]
 verify_jwt = false
+
+[functions.validate-invitation]
+verify_jwt = false

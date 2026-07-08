@@ -50,7 +50,7 @@ export function useDealFiles(dealId: string | undefined) {
 
       // Upload to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${dealId}/${fileType}/${Date.now()}.${fileExt}`;
+      const fileName = `${profile.workspace_id}/${dealId}/${fileType}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('deal-files')
