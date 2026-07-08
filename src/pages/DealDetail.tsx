@@ -17,7 +17,7 @@ import DealFormDialog from '@/components/deals/DealFormDialog';
 import { PlaybookPanel } from '@/components/deals/PlaybookPanel';
 import { MessagesTab } from '@/components/deals/MessagesTab';
 import { ResearchTab } from '@/components/deals/ResearchTab';
-import { PlaybookRequiredModal } from '@/components/deals/PlaybookRequiredModal';
+import { DealFileUpload } from '@/components/deals/DealFileUpload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -705,16 +705,6 @@ export default function DealDetail() {
           stage: deal.stage,
           playbook_name: deal.playbooks?.name,
         }}
-      />
-
-      <PlaybookRequiredModal
-        open={playbookModalOpen}
-        onClose={() => {
-          setPlaybookModalOpen(false);
-          setPendingStageChange(null);
-        }}
-        onConfirm={handlePlaybookConfirm}
-        targetStage={pendingStageChange || ''}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
