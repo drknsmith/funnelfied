@@ -20,6 +20,7 @@ export default function QuoteNew() {
   const { createQuote, isCreating } = useQuotes();
 
   const [dealId, setDealId] = useState(preselectDealId);
+  const [creatingFor, setCreatingFor] = useState<string | null>(null);
   useEffect(() => setDealId(preselectDealId), [preselectDealId]);
 
   const deal = useMemo(() => deals.find((d: any) => d.id === dealId), [deals, dealId]);
@@ -28,32 +29,43 @@ export default function QuoteNew() {
     [contacts, deal]
   );
 
-  const handleCreate = async () => {
-    if (!deal) return;
+  const handleCreate = async (targetDeal = deal) => {
+    if (!targetDeal) return;
+    const activeContact = contacts.find((c: any) => c.id === (targetDeal as any).primary_contact_id);
     const projectAddress = [
-      (deal as any).project_street,
-      (deal as any).project_city,
-      (deal as any).project_state,
-      (deal as any).project_zip,
+      (targetDeal as any).project_street,
+      (targetDeal as any).project_city,
+      (targetDeal as any).project_state,
+      (targetDeal as any).project_zip,
     ]
       .filter(Boolean)
       .join(', ');
     const quote = await createQuote({
-      deal_id: (deal as any).id,
-      contact_id: (deal as any).primary_contact_id ?? null,
-      service_category: (deal as any).deal_type ?? null,
+      deal_id: (targetDeal as any).id,
+      contact_id: (targetDeal as any).primary_contact_id ?? null,
+      service_category: (targetDeal as any).deal_type ?? null,
       cloneFromId,
       snapshot: {
-        snapshot_contact_name: (contact as any)?.name ?? null,
-        snapshot_contact_email: (contact as any)?.email ?? null,
-        snapshot_contact_phone: (contact as any)?.phone ?? null,
-        snapshot_referral_source: (contact as any)?.referred_by ?? null,
-        snapshot_project_name: (deal as any).deal_name ?? null,
+        snapshot_contact_name: (activeContact as any)?.name ?? null,
+        snapshot_contact_email: (activeContact as any)?.email ?? null,
+        snapshot_contact_phone: (activeContact as any)?.phone ?? null,
+        snapshot_referral_source: (activeContact as any)?.referred_by ?? null,
+        snapshot_project_name: (targetDeal as any).deal_name ?? null,
         snapshot_project_address: projectAddress || null,
       },
     });
     nav(`/quotes/${quote.id}`);
   };
+
+  // Auto-create as soon as an Opportunity is selected (including preselected from URL)
+  useEffect(() => {
+    if (!deal) return;
+    if (isCreating) return;
+    if (creatingFor === (deal as any).id) return;
+    setCreatingFor((deal as any).id);
+    handleCreate(deal);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deal]);
 
   return (
     <AppLayout>
@@ -65,6 +77,9 @@ export default function QuoteNew() {
           <CardContent className="space-y-4">
             <div>
               <Label>Opportunity</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Pick an Opportunity — the quote opens with all inputs on the next screen.
+              </p>
               <Select value={dealId} onValueChange={setDealId}>
                 <SelectTrigger><SelectValue placeholder="Select an opportunity" /></SelectTrigger>
                 <SelectContent>
@@ -80,13 +95,11 @@ export default function QuoteNew() {
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>Service Category: <strong>{(deal as any).deal_type || '—'}</strong></p>
                 <p>Contact: {(contact as any)?.name || '—'}</p>
+                <p className="italic">Creating draft quote…</p>
               </div>
             )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => nav('/quotes')}>Cancel</Button>
-              <Button disabled={!dealId || isCreating} onClick={handleCreate}>
-                {isCreating ? 'Creating…' : 'Create Quote'}
-              </Button>
             </div>
           </CardContent>
         </Card>
