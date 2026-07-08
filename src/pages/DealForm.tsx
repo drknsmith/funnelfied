@@ -128,7 +128,6 @@ export default function DealForm() {
     const missing: MissingField[] = [];
 
     if (formData.stage !== 'signal_target') {
-      if (!isTreneur && !formData.playbook_id) missing.push({ field: 'playbook_id', label: 'Assigned Playbook' });
       if (!isTreneur && !formData.primary_contact_id) missing.push({ field: 'primary_contact_id', label: 'Primary Stakeholder' });
       // Only validate deal_size_range if shown (not for Treneur)
       if (showDealSizeRange && !formData.deal_size_range) {
@@ -298,9 +297,7 @@ export default function DealForm() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>
-                    Assigned Playbook {formData.stage !== 'signal_target' && '*'}
-                  </Label>
+                  <Label>Assigned Playbook</Label>
                   <Select
                     value={formData.playbook_id}
                     onValueChange={(value) => setFormData({ ...formData, playbook_id: value })}
