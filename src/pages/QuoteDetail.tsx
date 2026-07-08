@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Printer, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Printer, Copy, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useQuote, useQuoteContractorItems, useQuotes, Quote } from '@/hooks/useQuotes';
 import { useContacts } from '@/hooks/useContacts';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   PHASES,
   laborSubtotal,
@@ -37,6 +39,8 @@ export default function QuoteDetail() {
   const { data: quote, isLoading } = useQuote(id);
   const { updateQuote, deleteQuote } = useQuotes();
   const { items, addItem, updateItem, deleteItem } = useQuoteContractorItems(id);
+  const { workspaceId } = useAuth();
+  const [polishing, setPolishing] = useState<string | null>(null);
 
   const [local, setLocal] = useState<Quote | null>(null);
   useEffect(() => { if (quote) setLocal(quote); }, [quote]);
