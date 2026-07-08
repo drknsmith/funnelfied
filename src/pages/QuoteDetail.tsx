@@ -77,6 +77,9 @@ export default function QuoteDetail() {
               <Link to={`/deals/${local.deal_id}`} className="text-xs text-primary hover:underline">
                 View Opportunity →
               </Link>
+              <p className="text-xs text-muted-foreground mt-1">
+                Fill in the sections below. Changes save automatically.
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
