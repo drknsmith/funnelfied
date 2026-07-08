@@ -353,7 +353,7 @@ export default function HelpCenter() {
                       <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                         <li>Accounts</li>
                         <li>Contacts</li>
-                        <li>Deals</li>
+                        <li>Opportunities</li>
                         <li>Interactions</li>
                         <li>Playbooks</li>
                         <li>Settings</li>
