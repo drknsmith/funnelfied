@@ -160,12 +160,43 @@ export default function QuoteDetail() {
 
         <Card>
           <CardHeader><CardTitle className="text-sm">Client & Project</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4 text-sm">
-            <Field label="Contact Name" value={local.snapshot_contact_name} />
-            <Field label="Contact Email" value={local.snapshot_contact_email} />
-            <Field label="Contact Phone" value={local.snapshot_contact_phone} />
-            <Field label="Project Name" value={local.snapshot_project_name} />
-            <Field label="Project Address" value={local.snapshot_project_address} />
+          <CardContent className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Contact Name</Label>
+              <Input
+                value={local.snapshot_contact_name ?? ''}
+                onChange={(e) => save({ snapshot_contact_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Contact Email</Label>
+              <Input
+                type="email"
+                value={local.snapshot_contact_email ?? ''}
+                onChange={(e) => save({ snapshot_contact_email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Contact Phone</Label>
+              <Input
+                value={local.snapshot_contact_phone ?? ''}
+                onChange={(e) => save({ snapshot_contact_phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Project Name</Label>
+              <Input
+                value={local.snapshot_project_name ?? ''}
+                onChange={(e) => save({ snapshot_project_name: e.target.value })}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label>Project Address</Label>
+              <Input
+                value={local.snapshot_project_address ?? ''}
+                onChange={(e) => save({ snapshot_project_address: e.target.value })}
+              />
+            </div>
           </CardContent>
         </Card>
 
