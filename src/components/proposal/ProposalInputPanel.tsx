@@ -99,9 +99,9 @@ export function ProposalInputPanel({
         <CardTitle>Community Details</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Deal Name Field */}
+        {/* Opportunity Name Field */}
         <div className="space-y-2">
-          <Label htmlFor="dealName">Deal Name</Label>
+          <Label htmlFor="dealName">Opportunity</Label>
           {isEmbeddedInDeal ? (
             <Input
               id="dealName"
@@ -121,19 +121,19 @@ export function ProposalInputPanel({
         {/* Basic Inputs */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="communityName">Community Name</Label>
+            <Label htmlFor="communityName">Project Name</Label>
             <Input
               id="communityName"
-              placeholder="e.g., Sunrise Apartments"
+              placeholder="Auto-populated from opportunity"
               value={communityName}
               onChange={(e) => setCommunityName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="communityAddress">Community Address *</Label>
+            <Label htmlFor="communityAddress">Project Address *</Label>
             <Input
               id="communityAddress"
-              placeholder="123 Main St, City, State"
+              placeholder="Auto-populated from opportunity"
               value={communityAddress}
               onChange={(e) => setCommunityAddress(e.target.value)}
             />

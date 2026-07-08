@@ -176,7 +176,7 @@ export default function SuperAdmin() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Users</TableHead>
-                      <TableHead>Deals</TableHead>
+                      <TableHead>Opportunities</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>

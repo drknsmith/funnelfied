@@ -329,11 +329,11 @@ export default function AccountDetail() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Handshake className="h-5 w-5" />
-                  Deals ({accountDeals.length})
+                  Opportunities ({accountDeals.length})
                 </CardTitle>
                 <Button size="sm" onClick={() => navigate(`/deals/new?account_id=${id}`)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  New Deal
+                  New Opportunity
                 </Button>
               </CardHeader>
               <CardContent>

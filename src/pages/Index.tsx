@@ -47,7 +47,7 @@ export default function Index() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Actions Today"
-              description="Deals & contacts needing attention"
+              description="Opportunities & contacts needing attention"
               count={metrics.actionsToday.count}
               icon={Calendar}
               variant="warning"
@@ -60,7 +60,7 @@ export default function Index() {
 
             <MetricCard
               title="High-Leverage"
-              description="Portfolio & design-led deals"
+              description="Portfolio & design-led opportunities"
               count={metrics.highLeverage.count}
               icon={TrendingUp}
               variant="default"
@@ -72,7 +72,7 @@ export default function Index() {
             </MetricCard>
 
             <MetricCard
-              title="Stalled Deals"
+              title="Stalled Opportunities"
               description="No activity in 14+ days"
               count={metrics.stalled.count}
               icon={Clock}

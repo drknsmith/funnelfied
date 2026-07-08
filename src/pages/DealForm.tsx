@@ -78,6 +78,10 @@ export default function DealForm() {
     proposal_submitted_date: null as Date | null,
     site_notes: '',
     internal_notes: '',
+    project_street: '',
+    project_city: '',
+    project_state: '',
+    project_zip: '',
   });
 
   // Auto-generate deal name
@@ -120,6 +124,10 @@ export default function DealForm() {
         proposal_submitted_date: deal.proposal_submitted_date ? new Date(deal.proposal_submitted_date) : null,
         site_notes: deal.site_notes || '',
         internal_notes: deal.internal_notes || '',
+        project_street: (deal as any).project_street || '',
+        project_city: (deal as any).project_city || '',
+        project_state: (deal as any).project_state || '',
+        project_zip: (deal as any).project_zip || '',
       });
     }
   }, [deal, isEdit]);
@@ -131,7 +139,7 @@ export default function DealForm() {
       if (!isTreneur && !formData.primary_contact_id) missing.push({ field: 'primary_contact_id', label: 'Primary Stakeholder' });
       // Only validate deal_size_range if shown (not for Treneur)
       if (showDealSizeRange && !formData.deal_size_range) {
-        missing.push({ field: 'deal_size_range', label: 'Deal Size Range' });
+        missing.push({ field: 'deal_size_range', label: 'Opportunity Size Range' });
       }
       if (formData.probability === null) missing.push({ field: 'probability', label: 'Probability' });
       if (!formData.next_action) missing.push({ field: 'next_action', label: 'Next Action' });
@@ -175,6 +183,10 @@ export default function DealForm() {
       proposal_submitted_date: formData.proposal_submitted_date?.toISOString().split('T')[0] || null,
       site_notes: formData.site_notes || null,
       internal_notes: formData.internal_notes || null,
+      project_street: formData.project_street || null,
+      project_city: formData.project_city || null,
+      project_state: formData.project_state || null,
+      project_zip: formData.project_zip || null,
       status: formData.stage === 'won' ? 'won' : formData.stage === 'lost_archived' ? 'lost' : 'open',
       last_meaningful_activity_date: undefined as string | undefined,
     };
@@ -216,15 +228,15 @@ export default function DealForm() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold text-foreground">
-            {isEdit ? 'Edit Deal' : 'New Deal'}
+            {isEdit ? 'Edit Opportunity' : 'New Opportunity'}
           </h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* SECTION 1: Core Deal Identity */}
+          {/* SECTION 1: Core Opportunity Identity */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Core Deal Identity</CardTitle>
+              <CardTitle className="text-lg">Core Opportunity Identity</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -237,13 +249,13 @@ export default function DealForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Deal Type *</Label>
+                  <Label>Opportunity Type *</Label>
                   <Select
                     value={formData.deal_type}
                     onValueChange={(value) => setFormData({ ...formData, deal_type: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select deal type" />
+                      <SelectValue placeholder="Select opportunity type" />
                     </SelectTrigger>
                     <SelectContent>
                       {dealTypes.map((type) => (
@@ -255,12 +267,53 @@ export default function DealForm() {
               </div>
 
               <div className="space-y-2">
-                <Label>Deal Name</Label>
+                <Label>Opportunity Name</Label>
                 <Input
                   value={formData.deal_name}
                   onChange={(e) => setFormData({ ...formData, deal_name: e.target.value })}
-                  placeholder="Auto-filled: Account – Deal Type"
+                  placeholder="Auto-filled: Account – Opportunity Type"
                 />
+              </div>
+
+              {/* Project Address */}
+              <div className="space-y-3 pt-2 border-t">
+                <Label className="text-sm font-semibold">Project Address</Label>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Street</Label>
+                    <Input
+                      value={formData.project_street}
+                      onChange={(e) => setFormData({ ...formData, project_street: e.target.value })}
+                      placeholder="123 Main St"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">City</Label>
+                      <Input
+                        value={formData.project_city}
+                        onChange={(e) => setFormData({ ...formData, project_city: e.target.value })}
+                        placeholder="City"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">State</Label>
+                      <Input
+                        value={formData.project_state}
+                        onChange={(e) => setFormData({ ...formData, project_state: e.target.value })}
+                        placeholder="State"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Zip</Label>
+                      <Input
+                        value={formData.project_zip}
+                        onChange={(e) => setFormData({ ...formData, project_zip: e.target.value })}
+                        placeholder="Zip"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -330,7 +383,7 @@ export default function DealForm() {
                 {showDealSizeRange && (
                   <div className="space-y-2">
                     <Label>
-                      Deal Size Range {formData.stage !== 'signal_target' && '*'}
+                      Opportunity Size Range {formData.stage !== 'signal_target' && '*'}
                     </Label>
                     <Select
                       value={formData.deal_size_range}
@@ -412,13 +465,13 @@ export default function DealForm() {
             </CardContent>
           </Card>
 
-          {/* SECTION 3: Deal Context (Collapsible) */}
+          {/* SECTION 3: Opportunity Context (Collapsible) */}
           <Collapsible open={contextOpen} onOpenChange={setContextOpen}>
             <Card>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Deal Context</CardTitle>
+                    <CardTitle className="text-lg">Opportunity Context</CardTitle>
                     {contextOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </div>
                 </CardHeader>
@@ -503,125 +556,7 @@ export default function DealForm() {
             </Card>
           </Collapsible>
 
-          {/* SECTION 4: Proposal Management (Collapsible) */}
-          <Collapsible open={proposalOpen} onOpenChange={setProposalOpen}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Proposal Management</CardTitle>
-                    {proposalOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="space-y-4">
-                  {/* Proposal Link */}
-                  <div className="space-y-2">
-                    <Label>Proposal Link</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={formData.proposal_link}
-                        onChange={(e) => setFormData({ ...formData, proposal_link: e.target.value })}
-                        placeholder="https://..."
-                        type="url"
-                        className="flex-1"
-                      />
-                      {formData.proposal_link && (
-                        <Button type="button" variant="outline" size="icon" asChild>
-                          <a href={formData.proposal_link} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Date pickers */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Proposal Requested Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full justify-start text-left font-normal',
-                              !formData.proposal_requested_date && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formData.proposal_requested_date ? format(formData.proposal_requested_date, 'PPP') : 'Pick a date'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={formData.proposal_requested_date || undefined}
-                            onSelect={(date) => setFormData({ ...formData, proposal_requested_date: date || null })}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Proposal Submitted Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full justify-start text-left font-normal',
-                              !formData.proposal_submitted_date && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formData.proposal_submitted_date ? format(formData.proposal_submitted_date, 'PPP') : 'Pick a date'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={formData.proposal_submitted_date || undefined}
-                            onSelect={(date) => setFormData({ ...formData, proposal_submitted_date: date || null })}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <p className="text-xs text-muted-foreground">
-                        Setting this will auto-advance stage to "Proposal Out"
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Proposal Files */}
-                  {isEdit ? (
-                    <DealFileUpload
-                      files={proposalFiles}
-                      fileType="proposal"
-                      onUpload={(file) => uploadFile({ dealId: id!, file, fileType: 'proposal' })}
-                      onDelete={deleteFile}
-                      getFileUrl={getFileUrl}
-                      isUploading={isUploading}
-                      isDeleting={isDeleting}
-                      label="Proposal Documents"
-                    />
-                  ) : (
-                    <div className="space-y-2">
-                      <Label>Proposal Documents</Label>
-                      <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
-                        <Upload className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Save the deal first to upload proposal files</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+          {/* Proposal Management moved to dedicated Proposal page */}
 
           {/* SECTION 5: Site Context (Collapsible) */}
           <Collapsible open={siteOpen} onOpenChange={setSiteOpen}>
@@ -678,7 +613,7 @@ export default function DealForm() {
               <CollapsibleContent>
                 <CardContent>
                   <div className="space-y-2">
-                    <Label>Internal Deal Notes</Label>
+                    <Label>Internal Opportunity Notes</Label>
                     <Textarea
                       value={formData.internal_notes}
                       onChange={(e) => setFormData({ ...formData, internal_notes: e.target.value })}
@@ -698,7 +633,7 @@ export default function DealForm() {
             </Button>
             <Button type="submit" disabled={isLoading || !canSubmit}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? 'Update Deal' : 'Create Deal'}
+              {isEdit ? 'Update Opportunity' : 'Create Opportunity'}
             </Button>
           </div>
         </form>

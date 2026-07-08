@@ -6,14 +6,14 @@ import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Loader2, Handshake, X } from 'lucide-react';
+import { Plus, Loader2, Handshake, X, MapPin } from 'lucide-react';
 import { subDays, startOfDay, isBefore, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const FILTER_LABELS: Record<string, string> = {
   'actions-today': 'Actions Today',
   'high-leverage': 'High-Leverage',
-  'stalled': 'Stalled Deals',
+  'stalled': 'Stalled Opportunities',
 };
 
 export default function Deals() {
@@ -117,7 +117,7 @@ export default function Deals() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
+              <h1 className="text-2xl font-bold text-foreground">Opportunities</h1>
               {filter && FILTER_LABELS[filter] && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   {FILTER_LABELS[filter]}
@@ -128,13 +128,13 @@ export default function Deals() {
               )}
             </div>
             <p className="text-muted-foreground">
-              {filteredDeals.length} deal{filteredDeals.length !== 1 ? 's' : ''} 
+              {filteredDeals.length} opportunit{filteredDeals.length !== 1 ? 'ies' : 'y'} 
               {filter ? ' matching filter' : ' in pipeline'}
             </p>
           </div>
           <Button onClick={() => navigate('/deals/new')}>
             <Plus className="mr-2 h-4 w-4" />
-            New Deal
+            New Opportunity
           </Button>
         </div>
 
@@ -143,10 +143,10 @@ export default function Deals() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Handshake className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="text-lg font-medium text-foreground">
-                {filter ? 'No deals match this filter' : 'No deals yet'}
+                {filter ? 'No opportunities match this filter' : 'No opportunities yet'}
               </p>
               <p className="mb-4 text-muted-foreground">
-                {filter ? 'Try clearing the filter or create a new deal' : 'Create your first deal to get started'}
+                {filter ? 'Try clearing the filter or create a new opportunity' : 'Create your first opportunity to get started'}
               </p>
               <div className="flex gap-2">
                 {filter && (
@@ -156,7 +156,7 @@ export default function Deals() {
                 )}
                 <Button onClick={() => navigate('/deals/new')}>
                   <Plus className="mr-2 h-4 w-4" />
-                  New Deal
+                  New Opportunity
                 </Button>
               </div>
             </CardContent>
@@ -192,9 +192,15 @@ export default function Deals() {
                       onClick={() => navigate(`/deals/${deal.id}`)}
                     >
                       <CardContent className="p-3">
-                        <p className="font-medium text-sm">{deal.deal_name || deal.accounts?.name || 'Untitled Deal'}</p>
+                        <p className="font-medium text-sm">{deal.deal_name || deal.accounts?.name || 'Untitled Opportunity'}</p>
                         {deal.deal_name && deal.accounts?.name && (
                           <p className="text-xs text-muted-foreground">{deal.accounts.name}</p>
+                        )}
+                        {(deal.project_street || deal.project_city) && (
+                          <p className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {[deal.project_street, deal.project_city, deal.project_state, deal.project_zip].filter(Boolean).join(', ')}
+                          </p>
                         )}
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                           <span>{deal.deal_size_range || '-'}</span>

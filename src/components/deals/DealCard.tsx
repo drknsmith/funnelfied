@@ -1,4 +1,5 @@
 import { DealWithRelations, DEAL_SIZES } from '@/hooks/useDeals';
+import { MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -53,9 +54,15 @@ export default function DealCard({ deal, onClick, onDragStart, isDragging }: Dea
       <CardContent className="p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{deal.deal_name || deal.accounts?.name || 'Untitled Deal'}</p>
+            <p className="font-medium text-sm truncate">{deal.deal_name || deal.accounts?.name || 'Untitled Opportunity'}</p>
             {deal.deal_name && deal.accounts?.name && (
               <p className="text-xs text-muted-foreground truncate">{deal.accounts.name}</p>
+            )}
+            {(deal.project_street || deal.project_city) && (
+              <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                <MapPin className="h-3 w-3 shrink-0" />
+                {[deal.project_street, deal.project_city, deal.project_state, deal.project_zip].filter(Boolean).join(', ')}
+              </p>
             )}
           </div>
           {deal.playbooks && (

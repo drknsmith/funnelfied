@@ -280,10 +280,10 @@ export default function DealDetail() {
         <div className="p-6">
           <Button variant="ghost" onClick={() => navigate('/deals')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Pipeline
+            Back to Opportunities
           </Button>
           <div className="mt-8 text-center">
-            <p className="text-muted-foreground">Deal not found</p>
+            <p className="text-muted-foreground">Opportunity not found</p>
           </div>
         </div>
       </AppLayout>
@@ -412,12 +412,12 @@ export default function DealDetail() {
               <TabsContent value="details" className="mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm font-medium">Deal Information</CardTitle>
+                    <CardTitle className="text-sm font-medium">Opportunity Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {deal.deal_name && (
                       <div>
-                        <p className="text-xs text-muted-foreground">Deal Name</p>
+                        <p className="text-xs text-muted-foreground">Opportunity Name</p>
                         <p className="text-sm font-medium">{deal.deal_name}</p>
                       </div>
                     )}
@@ -446,14 +446,32 @@ export default function DealDetail() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground">Deal Type</p>
+                        <p className="text-xs text-muted-foreground">Opportunity Type</p>
                         <p className="text-sm font-medium">{typeLabel || '-'}</p>
                       </div>
                       {showDealSizeRange && (
                         <div>
-                          <p className="text-xs text-muted-foreground">Deal Size</p>
+                          <p className="text-xs text-muted-foreground">Opportunity Size</p>
                           <p className="text-sm font-medium">{sizeLabel || '-'}</p>
                         </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground">Project Address</p>
+                      {((deal as any).project_street || (deal as any).project_city || (deal as any).project_state || (deal as any).project_zip) ? (
+                        <>
+                          <p className="text-sm font-medium">
+                            {[(deal as any).project_street, (deal as any).project_city, (deal as any).project_state, (deal as any).project_zip].filter(Boolean).join(', ')}
+                          </p>
+                          <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => navigate(`/deals/${deal.id}/edit`)}>
+                            Edit address
+                          </Button>
+                        </>
+                      ) : (
+                        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => navigate(`/deals/${deal.id}/edit`)}>
+                          + Add project address
+                        </Button>
                       )}
                     </div>
 
@@ -525,122 +543,14 @@ export default function DealDetail() {
               <TabsContent value="proposal" className="mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm font-medium">Proposal Management</CardTitle>
+                    <CardTitle className="text-sm font-medium">Proposal</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Proposal Link */}
-                    <div className="space-y-2">
-                      <Label htmlFor="proposal-link">Proposal Link</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="proposal-link"
-                          type="url"
-                          placeholder="https://..."
-                          value={proposalLink}
-                          onChange={(e) => setProposalLink(e.target.value)}
-                          className="flex-1"
-                        />
-                        {proposalLink && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => window.open(proposalLink, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          onClick={() => handleProposalFieldUpdate('proposal_link', proposalLink)}
-                          disabled={isUpdating}
-                        >
-                          Save
-                        </Button>
-                      </div>
+                  <CardContent>
+                    <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+                      <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm font-medium text-foreground mb-1">Proposal details coming from the Proposal page</p>
+                      <p className="text-xs">This section will be populated from the new Proposal page on the left menu. It will be editable here once generated.</p>
                     </div>
-
-                    {/* Date Fields */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Proposal Requested Date */}
-                      <div className="space-y-2">
-                        <Label>Proposal Requested Date</Label>
-                        <Popover open={proposalRequestedOpen} onOpenChange={setProposalRequestedOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !deal.proposal_requested_date && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {deal.proposal_requested_date
-                                ? format(new Date(deal.proposal_requested_date), 'PPP')
-                                : 'Pick a date'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={deal.proposal_requested_date ? new Date(deal.proposal_requested_date) : undefined}
-                              onSelect={(date) => {
-                                handleProposalFieldUpdate('proposal_requested_date', date ? format(date, 'yyyy-MM-dd') : null);
-                                setProposalRequestedOpen(false);
-                              }}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      {/* Proposal Submitted Date */}
-                      <div className="space-y-2">
-                        <Label>Proposal Submitted Date</Label>
-                        <Popover open={proposalSubmittedOpen} onOpenChange={setProposalSubmittedOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !deal.proposal_submitted_date && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {deal.proposal_submitted_date
-                                ? format(new Date(deal.proposal_submitted_date), 'PPP')
-                                : 'Pick a date'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={deal.proposal_submitted_date ? new Date(deal.proposal_submitted_date) : undefined}
-                              onSelect={(date) => {
-                                handleProposalFieldUpdate('proposal_submitted_date', date ? format(date, 'yyyy-MM-dd') : null);
-                                setProposalSubmittedOpen(false);
-                              }}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-
-                    {/* Proposal Documents */}
-                    <DealFileUpload
-                      files={proposalFiles}
-                      fileType="proposal"
-                      onUpload={(file) => uploadFile({ dealId: deal.id, file, fileType: 'proposal' })}
-                      onDelete={(file) => deleteFile(file)}
-                      getFileUrl={getFileUrl}
-                      isUploading={isUploading}
-                      isDeleting={isDeletingFile}
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      label="Proposal Documents"
-                    />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -708,9 +618,9 @@ export default function DealDetail() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Deal</AlertDialogTitle>
+            <AlertDialogTitle>Delete Opportunity</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this deal? This action cannot be undone.
+              Are you sure you want to delete this opportunity? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
