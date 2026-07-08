@@ -143,7 +143,13 @@ export default function QuotePreview() {
       lines.push('');
     }
     if (billingSentence) lines.push(`## Rate & Billing Terms\n\n${billingSentence}\n`);
-    if (termsAndConditions) lines.push(`## Terms and Conditions\n\n${termsAndConditions}\n`);
+    if (termsAndConditions) {
+      if (termsSplit) {
+        lines.push(`## Terms and Conditions\n\n${termsSplit.before}\n`);
+      } else {
+        lines.push(`## Terms and Conditions\n\n${termsAndConditions}\n`);
+      }
+    }
     if (doc === 'sow') {
       lines.push(`## Signatures\n`);
       lines.push(`**${sigProviderCompany}**  `);
@@ -152,6 +158,9 @@ export default function QuotePreview() {
       lines.push(`**${sigClientCompany}**  `);
       lines.push(`By: ${sigClientName}${sigClientTitle ? `, ${sigClientTitle}` : ''}  `);
       lines.push(`Signature: ______________________  Date: __________\n`);
+    }
+    if (termsAndConditions && termsSplit?.after) {
+      lines.push(`## Terms and Conditions (continued)\n\n${termsSplit.after}\n`);
     }
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
@@ -281,10 +290,10 @@ export default function QuotePreview() {
           </section>
         )}
 
-        {termsAndConditions && (
+        {termsBeforeSignatures && (
           <section>
             <h2 className="sow-h2">Terms and Conditions</h2>
-            <p className="sow-body whitespace-pre-wrap">{termsAndConditions}</p>
+            <p className="sow-body whitespace-pre-wrap">{termsBeforeSignatures}</p>
           </section>
         )}
 
@@ -309,6 +318,13 @@ export default function QuotePreview() {
             </div>
           </div>
         </section>
+
+        {termsAfterSignatures && (
+          <section>
+            <h2 className="sow-h2">Terms and Conditions (continued)</h2>
+            <p className="sow-body whitespace-pre-wrap">{termsAfterSignatures}</p>
+          </section>
+        )}
 
           </>
         )}
