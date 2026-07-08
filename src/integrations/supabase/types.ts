@@ -1007,6 +1007,7 @@ export type Database = {
           outputs: Json | null
           owner_user_id: string
           property_class: string | null
+          revoked_at: string | null
           sf_override: number | null
           token: string
           units: number | null
@@ -1028,6 +1029,7 @@ export type Database = {
           outputs?: Json | null
           owner_user_id: string
           property_class?: string | null
+          revoked_at?: string | null
           sf_override?: number | null
           token: string
           units?: number | null
@@ -1049,6 +1051,7 @@ export type Database = {
           outputs?: Json | null
           owner_user_id?: string
           property_class?: string | null
+          revoked_at?: string | null
           sf_override?: number | null
           token?: string
           units?: number | null
