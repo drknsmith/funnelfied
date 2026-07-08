@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save, X } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -131,7 +131,7 @@ export default function ServiceKnowledgePlaybookForm() {
     );
   }
 
-  const InputBox = ({
+  const TextareaBox = ({
     label,
     value,
     onChange,
@@ -142,7 +142,13 @@ export default function ServiceKnowledgePlaybookForm() {
   }) => (
     <div className="flex-1 min-w-[200px] space-y-2">
       <Label>{label}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={label} />
+      <Textarea
+        rows={4}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={label}
+        className="resize-y min-h-[100px]"
+      />
     </div>
   );
 
@@ -162,9 +168,9 @@ export default function ServiceKnowledgePlaybookForm() {
             <CardHeader><CardTitle>1. Opportunity Type</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
-                <InputBox label="Programming" value={form.opp_programming} onChange={(v) => update({ opp_programming: v })} />
-                <InputBox label="Design" value={form.opp_design} onChange={(v) => update({ opp_design: v })} />
-                <InputBox label="Policy" value={form.opp_policy} onChange={(v) => update({ opp_policy: v })} />
+                <TextareaBox label="Programming" value={form.opp_programming} onChange={(v) => update({ opp_programming: v })} />
+                <TextareaBox label="Design" value={form.opp_design} onChange={(v) => update({ opp_design: v })} />
+                <TextareaBox label="Policy" value={form.opp_policy} onChange={(v) => update({ opp_policy: v })} />
               </div>
             </CardContent>
           </Card>
@@ -173,9 +179,9 @@ export default function ServiceKnowledgePlaybookForm() {
             <CardHeader><CardTitle>2. Engagement Type</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
-                <InputBox label="One-time" value={form.eng_one_time} onChange={(v) => update({ eng_one_time: v })} />
-                <InputBox label="Retainer" value={form.eng_retainer} onChange={(v) => update({ eng_retainer: v })} />
-                <InputBox label="Phased" value={form.eng_phased} onChange={(v) => update({ eng_phased: v })} />
+                <TextareaBox label="One-time" value={form.eng_one_time} onChange={(v) => update({ eng_one_time: v })} />
+                <TextareaBox label="Retainer" value={form.eng_retainer} onChange={(v) => update({ eng_retainer: v })} />
+                <TextareaBox label="Phased" value={form.eng_phased} onChange={(v) => update({ eng_phased: v })} />
               </div>
             </CardContent>
           </Card>
@@ -184,8 +190,8 @@ export default function ServiceKnowledgePlaybookForm() {
             <CardHeader><CardTitle>3. Design Type</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
-                <InputBox label="New Construction" value={form.dtype_new_construction} onChange={(v) => update({ dtype_new_construction: v })} />
-                <InputBox label="Retrofit" value={form.dtype_retrofit} onChange={(v) => update({ dtype_retrofit: v })} />
+                <TextareaBox label="New Construction" value={form.dtype_new_construction} onChange={(v) => update({ dtype_new_construction: v })} />
+                <TextareaBox label="Retrofit" value={form.dtype_retrofit} onChange={(v) => update({ dtype_retrofit: v })} />
               </div>
             </CardContent>
           </Card>
