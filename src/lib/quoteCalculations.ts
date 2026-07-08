@@ -63,7 +63,7 @@ export const CONTRACTOR_TYPE_LABELS: Record<string, string> = {
 
 export const SERVICE_DETAIL_FIELDS: Record<
   string,
-  { key: string; label: string; type: 'text' | 'textarea' | 'number' }[]
+  { key: string; label: string; type: 'text' | 'textarea' | 'number' | 'select'; options?: { value: string; label: string }[] }[]
 > = {
   programming: [
     { key: 'target_population', label: 'Target population type and approximate size', type: 'text' },
@@ -73,8 +73,17 @@ export const SERVICE_DETAIL_FIELDS: Record<
     { key: 'facility_constraints', label: 'Existing equipment / facility constraints', type: 'textarea' },
   ],
   design: [
-    { key: 'construction_type', label: 'New construction vs. retrofit', type: 'text' },
-    { key: 'square_footage', label: 'Square footage or unit count', type: 'text' },
+    {
+      key: 'construction_type',
+      label: 'Design Type',
+      type: 'select',
+      options: [
+        { value: 'new_construction', label: 'New Construction' },
+        { value: 'retrofit', label: 'Retrofit' },
+      ],
+    },
+    { key: 'square_footage', label: 'Square Footage', type: 'number' },
+    { key: 'unit_count', label: 'Unit Count', type: 'number' },
     { key: 'occupancy_targets', label: 'Occupancy / capacity targets', type: 'text' },
     { key: 'compliance_drivers', label: 'Compliance drivers (ADA, local code, licensing)', type: 'textarea' },
     { key: 'construction_timeline', label: 'Construction timeline dependencies', type: 'textarea' },

@@ -1,17 +1,21 @@
-## Fix: "new row violates row-level security" on quote create
+## Changes to `src/pages/QuoteDetail.tsx` and `src/lib/quoteCalculations.ts`
 
-**Root cause:** `src/hooks/useQuotes.ts` uses `profile.workspace_id` for inserts. For a super_admin with a workspace override (you're viewing Red Loft while your profile lives in Superior), that sends `workspace_id = 000…0001` even though the deal belongs to Red Loft `54d6…ac1f`. RLS correctly rejects the row.
+### 1. Bottom action bar
+- Remove the "Delete Quote" destructive button.
+- Replace with a "Save" button that triggers `updateQuote({ id, patch: local })` and shows a toast confirming save. (Note: fields already autosave on change; this button provides an explicit confirmation.)
 
-Project memory rule: **always use `workspaceId` from `useAuth()`**, never `profile.workspace_id`.
+### 2. Client & Project card
+- Remove the "Referral Source" `<Field>` from the Client & Project section. Data field on the quote is left untouched (no DB migration).
 
-### Change
-- In `src/hooks/useQuotes.ts`, replace `profile.workspace_id` with `workspaceId` from `useAuth()` in:
-  - `createQuote` (insert `workspace_id: workspaceId`, and clone-items insert)
-  - `useQuoteContractorItems.addItem`
-  - the list `queryKey` and `enabled` gate
-  - `useQuote` list gate
+### 3. Design service details (`SERVICE_DETAIL_FIELDS.design` in `quoteCalculations.ts`)
+- Change `construction_type` field:
+  - Label: "Design Type"
+  - Type: `select` (new type) with options: "New Construction", "Retrofit"
+- Split `square_footage` into two separate fields:
+  - `square_footage` — label "Square Footage", type `number`
+  - `unit_count` — label "Unit Count", type `number`
+- Extend the field renderer in `QuoteDetail.tsx` to support the new `select` field type (renders a shadcn `Select`).
 
-No DB migration, no policy change. Frontend-only fix.
-
-### Files touched
-- `src/hooks/useQuotes.ts`
+### Notes
+- All values continue to persist inside the existing `service_details` JSONB column — no schema migration needed.
+- Existing quotes with a free-text `construction_type` value will show empty in the new dropdown until re-selected; that's acceptable since Design quotes are new.
