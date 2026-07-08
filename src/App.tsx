@@ -40,6 +40,10 @@ import SMCampaigns from "./pages/social-media/Campaigns";
 import SMContentList from "./pages/social-media/ContentList";
 import SMAssetLibrary from "./pages/social-media/AssetLibrary";
 import NotFound from "./pages/NotFound";
+import Quotes from "./pages/Quotes";
+import QuoteNew from "./pages/QuoteNew";
+import QuoteDetail from "./pages/QuoteDetail";
+import QuotePreview from "./pages/QuotePreview";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +84,10 @@ const App = () => (
               <Route path="/super-admin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
               <Route path="/help" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
               <Route path="/research" element={<ProtectedRoute><Research /></ProtectedRoute>} />
+              <Route path="/quotes" element={<ProtectedRoute><Quotes /></ProtectedRoute>} />
+              <Route path="/quotes/new" element={<ProtectedRoute><QuoteNew /></ProtectedRoute>} />
+              <Route path="/quotes/:id" element={<ProtectedRoute><QuoteDetail /></ProtectedRoute>} />
+              <Route path="/quotes/:id/preview" element={<ProtectedRoute><QuotePreview /></ProtectedRoute>} />
               <Route path="/superior/reports/:token" element={<SuperiorReport />} />
               <Route path="/install" element={<Install />} />
               <Route path="/social-media" element={<ProtectedRoute><SocialMedia /></ProtectedRoute>}>
