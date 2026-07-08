@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Pencil, Copy, Archive, BookOpen } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Copy, Archive, BookOpen, Pencil as PencilIcon } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +67,6 @@ export default function Playbooks() {
   };
 
   const communicationPlaybooks = playbooks.filter((p: any) => (p.kind ?? 'communication') === 'communication');
-  const serviceKnowledgePlaybooks = playbooks.filter((p: any) => p.kind === 'service_knowledge');
 
   const renderTable = (rows: typeof playbooks, kind: 'communication' | 'service_knowledge') => (
     <div className="border rounded-lg overflow-hidden">
@@ -267,19 +266,14 @@ export default function Playbooks() {
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold text-foreground">Service Knowledge Playbook</h2>
-                <Button onClick={() => navigate('/playbooks/service-knowledge/new')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create a Service Knowledge Playbook
+                <Button onClick={() => navigate('/playbooks/service-knowledge')}>
+                  <PencilIcon className="h-4 w-4 mr-2" />
+                  Edit Service Knowledge Playbook
                 </Button>
               </div>
-              {serviceKnowledgePlaybooks.length === 0 ? (
-                <div className="text-center py-10 border rounded-lg bg-muted/20">
-                  <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">No service knowledge playbooks yet.</p>
-                </div>
-              ) : (
-                renderTable(serviceKnowledgePlaybooks, 'service_knowledge')
-              )}
+              <div className="text-sm text-muted-foreground border rounded-lg bg-muted/20 p-4">
+                A single repository the AI uses when generating SOWs. Click Edit to update opportunity types, engagement types, design types, and their details.
+              </div>
             </section>
           </div>
         )}
