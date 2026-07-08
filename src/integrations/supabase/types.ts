@@ -1596,15 +1596,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      validate_invitation_code: {
-        Args: { _email: string; _invite_code: string }
-        Returns: {
-          email: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          workspace_id: string
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "super_admin" | "admin" | "moderator" | "user"
