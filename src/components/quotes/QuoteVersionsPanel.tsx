@@ -4,17 +4,48 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuotes } from '@/hooks/useQuotes';
+import { useDeals } from '@/hooks/useDeals';
+import { useContacts } from '@/hooks/useContacts';
 
 export function QuoteVersionsPanel({ dealId }: { dealId: string }) {
   const nav = useNavigate();
   const { quotes, isLoading } = useQuotes(dealId);
+  const { createQuote, isCreating } = useQuotes();
+  const { deals } = useDeals();
+  const { contacts } = useContacts();
+
+  const handleNew = async () => {
+    const deal: any = deals.find((d: any) => d.id === dealId);
+    if (!deal) {
+      nav(`/quotes/new?dealId=${dealId}`);
+      return;
+    }
+    const contact: any = contacts.find((c: any) => c.id === deal.primary_contact_id);
+    const projectAddress = [deal.project_street, deal.project_city, deal.project_state, deal.project_zip]
+      .filter(Boolean)
+      .join(', ');
+    const quote = await createQuote({
+      deal_id: deal.id,
+      contact_id: deal.primary_contact_id ?? null,
+      service_category: deal.deal_type ?? null,
+      snapshot: {
+        snapshot_contact_name: contact?.name ?? null,
+        snapshot_contact_email: contact?.email ?? null,
+        snapshot_contact_phone: contact?.phone ?? null,
+        snapshot_referral_source: contact?.referred_by ?? null,
+        snapshot_project_name: deal.deal_name ?? null,
+        snapshot_project_address: projectAddress || null,
+      },
+    });
+    nav(`/quotes/${quote.id}`);
+  };
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium">Quotes</CardTitle>
-        <Button size="sm" onClick={() => nav(`/quotes/new?dealId=${dealId}`)}>
-          <Plus className="mr-1 h-4 w-4" /> New Quote
+        <Button size="sm" onClick={handleNew} disabled={isCreating}>
+          <Plus className="mr-1 h-4 w-4" /> {isCreating ? 'Creating…' : 'New Quote'}
         </Button>
       </CardHeader>
       <CardContent>
