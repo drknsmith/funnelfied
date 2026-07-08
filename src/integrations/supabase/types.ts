@@ -251,7 +251,9 @@ export type Database = {
       }
       deal_files: {
         Row: {
+          contractor_type: string | null
           deal_id: string
+          file_category: string | null
           file_name: string
           file_ref: string
           file_type: string
@@ -261,7 +263,9 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          contractor_type?: string | null
           deal_id: string
+          file_category?: string | null
           file_name: string
           file_ref: string
           file_type: string
@@ -271,7 +275,9 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          contractor_type?: string | null
           deal_id?: string
+          file_category?: string | null
           file_name?: string
           file_ref?: string
           file_type?: string
@@ -1019,6 +1025,187 @@ export type Database = {
           },
           {
             foreignKeyName: "proposal_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_contractor_items: {
+        Row: {
+          contractor_type: string
+          created_at: string
+          flat_fee: number
+          id: string
+          markup_percentage: number
+          quote_id: string
+          sort_order: number
+          updated_at: string
+          vendor_name: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contractor_type: string
+          created_at?: string
+          flat_fee?: number
+          id?: string
+          markup_percentage?: number
+          quote_id: string
+          sort_order?: number
+          updated_at?: string
+          vendor_name?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contractor_type?: string
+          created_at?: string
+          flat_fee?: number
+          id?: string
+          markup_percentage?: number
+          quote_id?: string
+          sort_order?: number
+          updated_at?: string
+          vendor_name?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_contractor_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_contractor_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          deal_id: string
+          decision_maker_count: number | null
+          discount_reason: string | null
+          discount_type: string | null
+          discount_value: number
+          engagement_type: string | null
+          hourly_rate: number
+          id: string
+          include_discount_reason_on_pdf: boolean
+          owner_user_id: string | null
+          phase_concept_hours: number
+          phase_consultation_hours: number
+          phase_handoff_hours: number
+          phase_pm_hours: number
+          phase_revisions_hours: number
+          phase_revisions_rounds: number
+          phase_sourcing_hours: number
+          service_category: string | null
+          service_details: Json
+          snapshot_contact_email: string | null
+          snapshot_contact_name: string | null
+          snapshot_contact_phone: string | null
+          snapshot_project_address: string | null
+          snapshot_project_name: string | null
+          snapshot_referral_source: string | null
+          status: string
+          timeline_urgency: string | null
+          updated_at: string
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          deal_id: string
+          decision_maker_count?: number | null
+          discount_reason?: string | null
+          discount_type?: string | null
+          discount_value?: number
+          engagement_type?: string | null
+          hourly_rate?: number
+          id?: string
+          include_discount_reason_on_pdf?: boolean
+          owner_user_id?: string | null
+          phase_concept_hours?: number
+          phase_consultation_hours?: number
+          phase_handoff_hours?: number
+          phase_pm_hours?: number
+          phase_revisions_hours?: number
+          phase_revisions_rounds?: number
+          phase_sourcing_hours?: number
+          service_category?: string | null
+          service_details?: Json
+          snapshot_contact_email?: string | null
+          snapshot_contact_name?: string | null
+          snapshot_contact_phone?: string | null
+          snapshot_project_address?: string | null
+          snapshot_project_name?: string | null
+          snapshot_referral_source?: string | null
+          status?: string
+          timeline_urgency?: string | null
+          updated_at?: string
+          version_number?: number
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string
+          decision_maker_count?: number | null
+          discount_reason?: string | null
+          discount_type?: string | null
+          discount_value?: number
+          engagement_type?: string | null
+          hourly_rate?: number
+          id?: string
+          include_discount_reason_on_pdf?: boolean
+          owner_user_id?: string | null
+          phase_concept_hours?: number
+          phase_consultation_hours?: number
+          phase_handoff_hours?: number
+          phase_pm_hours?: number
+          phase_revisions_hours?: number
+          phase_revisions_rounds?: number
+          phase_sourcing_hours?: number
+          service_category?: string | null
+          service_details?: Json
+          snapshot_contact_email?: string | null
+          snapshot_contact_name?: string | null
+          snapshot_contact_phone?: string | null
+          snapshot_project_address?: string | null
+          snapshot_project_name?: string | null
+          snapshot_referral_source?: string | null
+          status?: string
+          timeline_urgency?: string | null
+          updated_at?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
