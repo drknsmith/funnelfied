@@ -43,8 +43,7 @@ const EMPTY: SKForm = {
 export default function ServiceKnowledgePlaybookForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { profile } = useAuth();
-  const workspaceId = profile?.workspace_id;
+  const { workspaceId, user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: existing, isLoading } = useQuery({
@@ -90,7 +89,6 @@ export default function ServiceKnowledgePlaybookForm() {
     if (!workspaceId) return;
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       const payload: any = {
         ...form,
         workspace_id: workspaceId,

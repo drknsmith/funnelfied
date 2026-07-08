@@ -108,8 +108,7 @@ interface UsePlaybooksOptions {
 }
 
 export function usePlaybooks(options: UsePlaybooksOptions = {}) {
-  const { profile } = useAuth();
-  const workspaceId = profile?.workspace_id;
+  const { workspaceId } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: playbooks = [], isLoading, error } = useQuery({
