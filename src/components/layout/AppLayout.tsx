@@ -49,7 +49,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { canUseMapping, canUseProposalCreator, canUseSocialMedia } from '@/lib/workspaceFeatures';
+import { canUseMapping, canUseResearch, canUseSocialMedia } from '@/lib/workspaceFeatures';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
