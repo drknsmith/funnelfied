@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuote, useQuoteContractorItems } from '@/hooks/useQuotes';
+import logoAsset from '@/assets/red-loft-logo.png.asset.json';
 import {
   PHASES,
   laborSubtotal,
@@ -18,6 +19,8 @@ import {
 export default function QuotePreview() {
   const { id } = useParams();
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const doc = params.get('doc') === 'invoice' ? 'invoice' : 'sow';
   const { data: quote } = useQuote(id);
   const { items } = useQuoteContractorItems(id);
 
@@ -32,6 +35,9 @@ export default function QuotePreview() {
   const total = grandTotal(quote, items);
   const rate = Number(quote.hourly_rate) || 0;
   const categories = quote.service_category ?? [];
+  const visiblePhases = PHASES.filter(
+    (p) => !('requiresCategory' in p) || categories.includes((p as any).requiresCategory),
+  );
 
   const gapKeys: Record<string, string> = {
     programming: 'programming_gaps',
@@ -59,8 +65,10 @@ export default function QuotePreview() {
 
       <div className="max-w-[8.5in] mx-auto my-6 bg-white text-slate-900 shadow print:shadow-none p-10 space-y-6">
         <header className="border-b pb-4">
-          <h1 className="text-2xl font-bold tracking-tight text-red-700">RED LOFT CONSULTING</h1>
-          <p className="text-xs text-slate-600 mt-1">Programming · Design · Policy</p>
+          <img src={logoAsset.url} alt="Red Loft Consulting" className="h-16 w-auto" />
+          <p className="text-xs text-slate-600 mt-2">
+            {doc === 'invoice' ? 'Invoice' : 'Statement of Work'} · Programming · Design · Policy
+          </p>
         </header>
 
         <section className="grid grid-cols-2 gap-4 text-sm">
@@ -75,10 +83,12 @@ export default function QuotePreview() {
             <p className="font-medium">{quote.snapshot_project_name || '—'}</p>
             <p className="text-slate-600">{quote.snapshot_project_address}</p>
             <p className="text-slate-600 mt-1">Date: {new Date(quote.created_at).toLocaleDateString()}</p>
-            <p className="text-slate-600">Quote v{quote.version_number}</p>
+            <p className="text-slate-600">{doc === 'invoice' ? 'Invoice' : 'Quote'} v{quote.version_number}</p>
           </div>
         </section>
 
+        {doc === 'sow' && (
+          <>
         <section>
           <h2 className="text-sm font-semibold uppercase text-red-700 border-b pb-1 mb-2">Problem Statement</h2>
           <p className="text-sm whitespace-pre-wrap">{problemStatement || 'Details to be finalized.'}</p>
@@ -96,7 +106,10 @@ export default function QuotePreview() {
         {categories.map((cat) => {
           const fields = SERVICE_DETAIL_FIELDS[cat] ?? [];
           const catDetails = (quote.service_details?.[cat] as Record<string, any>) || {};
-          const visible = fields.filter((f) => catDetails[f.key]);
+          const visible = fields.filter((f) => {
+            const v = catDetails[f.key];
+            return Array.isArray(v) ? v.length > 0 : Boolean(v);
+          });
           if (visible.length === 0) return null;
           return (
             <section key={cat}>
@@ -107,7 +120,13 @@ export default function QuotePreview() {
                 {visible.map((f) => (
                   <div key={f.key} className="grid grid-cols-3 gap-2">
                     <dt className="text-slate-500">{f.label}</dt>
-                    <dd className="col-span-2">{String(catDetails[f.key])}</dd>
+                    <dd className="col-span-2">
+                      {Array.isArray(catDetails[f.key])
+                        ? (catDetails[f.key] as string[])
+                            .map((v) => f.options?.find((o) => o.value === v)?.label ?? v)
+                            .join(', ')
+                        : String(catDetails[f.key])}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -121,12 +140,15 @@ export default function QuotePreview() {
             <p className="text-sm">{quote.timeline_urgency}</p>
           </section>
         )}
+          </>
+        )}
 
+        {doc === 'invoice' && (
         <section>
           <h2 className="text-sm font-semibold uppercase text-red-700 border-b pb-1 mb-2">Investment</h2>
           <table className="w-full text-sm">
             <tbody>
-              {PHASES.map((p) => {
+              {visiblePhases.map((p) => {
                 const hours = Number(quote[p.key]) || 0;
                 if (hours === 0) return null;
                 return (
@@ -157,9 +179,10 @@ export default function QuotePreview() {
             </tbody>
           </table>
         </section>
+        )}
 
         <footer className="pt-6 text-xs text-slate-500 border-t">
-          Prepared by Red Loft Consulting. Quote valid for 30 days from date issued.
+          Prepared by Red Loft Consulting. {doc === 'invoice' ? 'Invoice' : 'Quote'} valid for 30 days from date issued.
         </footer>
       </div>
 
