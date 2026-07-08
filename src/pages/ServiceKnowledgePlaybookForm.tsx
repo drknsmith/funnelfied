@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save, X } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -131,7 +131,7 @@ export default function ServiceKnowledgePlaybookForm() {
     );
   }
 
-  const InputBox = ({
+  const TextareaBox = ({
     label,
     value,
     onChange,
@@ -142,7 +142,13 @@ export default function ServiceKnowledgePlaybookForm() {
   }) => (
     <div className="flex-1 min-w-[200px] space-y-2">
       <Label>{label}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={label} />
+      <Textarea
+        rows={4}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={label}
+        className="resize-y min-h-[100px]"
+      />
     </div>
   );
 
