@@ -59,6 +59,7 @@ export default function QuotePreview() {
   const deliverables = Array.isArray(quote.sow_deliverables) ? quote.sow_deliverables : [];
   const milestones = Array.isArray(quote.sow_milestones) ? quote.sow_milestones : [];
   const pillars: string[] = Array.isArray(quote.sow_approach_pillars) ? quote.sow_approach_pillars : [];
+  const termsAndConditions: string = (quote as any).sow_terms_and_conditions ?? '';
 
   const billingSentence = useMemo(() => {
     if (doc !== 'sow') return '';
@@ -110,6 +111,7 @@ export default function QuotePreview() {
       lines.push('');
     }
     if (billingSentence) lines.push(`## Rate & Billing Terms\n\n${billingSentence}\n`);
+    if (termsAndConditions) lines.push(`## Terms and Conditions\n\n${termsAndConditions}\n`);
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
       toast({ title: 'Copied as Markdown' });
