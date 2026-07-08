@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Book, Calendar, AlertCircle } from 'lucide-react';
+import { Book } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,6 @@ import {
 } from '@/components/ui/select';
 import { usePlaybooks, PLAYBOOK_DEAL_TYPES } from '@/hooks/usePlaybooks';
 import { DealWithRelations } from '@/hooks/useDeals';
-import { useAuth } from '@/contexts/AuthContext';
-import { isTreneurWorkspace } from '@/lib/workspaceFeatures';
 
 interface PlaybookPanelProps {
   deal: DealWithRelations;
