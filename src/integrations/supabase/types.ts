@@ -1182,6 +1182,12 @@ export type Database = {
           sow_nte_enabled: boolean
           sow_problem_statement: string | null
           sow_proposed_approach: string | null
+          sow_signature_client_company: string | null
+          sow_signature_client_name: string | null
+          sow_signature_client_title: string | null
+          sow_signature_provider_company: string | null
+          sow_signature_provider_name: string | null
+          sow_signature_provider_title: string | null
           sow_terms_and_conditions: string | null
           status: string
           timeline_urgency: string | null
@@ -1236,6 +1242,12 @@ export type Database = {
           sow_nte_enabled?: boolean
           sow_problem_statement?: string | null
           sow_proposed_approach?: string | null
+          sow_signature_client_company?: string | null
+          sow_signature_client_name?: string | null
+          sow_signature_client_title?: string | null
+          sow_signature_provider_company?: string | null
+          sow_signature_provider_name?: string | null
+          sow_signature_provider_title?: string | null
           sow_terms_and_conditions?: string | null
           status?: string
           timeline_urgency?: string | null
@@ -1290,6 +1302,12 @@ export type Database = {
           sow_nte_enabled?: boolean
           sow_problem_statement?: string | null
           sow_proposed_approach?: string | null
+          sow_signature_client_company?: string | null
+          sow_signature_client_name?: string | null
+          sow_signature_client_title?: string | null
+          sow_signature_provider_company?: string | null
+          sow_signature_provider_name?: string | null
+          sow_signature_provider_title?: string | null
           sow_terms_and_conditions?: string | null
           status?: string
           timeline_urgency?: string | null
