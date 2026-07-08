@@ -12,7 +12,15 @@ export interface DealFile {
   file_name: string;
   uploaded_at: string;
   uploaded_by: string | null;
+  file_category: string | null;
+  contractor_type: string | null;
 }
+
+export type ContractorType =
+  | 'fitness_equipment'
+  | 'interior_designer'
+  | 'architect'
+  | 'graphic_designer';
 
 export function useDealFiles(dealId: string | undefined) {
   const { profile } = useAuth();
@@ -39,18 +47,25 @@ export function useDealFiles(dealId: string | undefined) {
     mutationFn: async ({ 
       dealId, 
       file, 
-      fileType 
+      fileType,
+      fileCategory,
+      contractorType,
     }: { 
       dealId: string; 
       file: File; 
       fileType: 'proposal' | 'site_photo';
+      fileCategory?: string | null;
+      contractorType?: ContractorType | null;
     }) => {
       if (!profile?.workspace_id) throw new Error('No workspace');
       const { data: { user } } = await supabase.auth.getUser();
 
       // Upload to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.workspace_id}/${dealId}/${fileType}/${Date.now()}.${fileExt}`;
+      const subdir = fileCategory === 'contractor_proposal' && contractorType
+        ? `contractor-proposals/${contractorType}`
+        : fileType;
+      const fileName = `${profile.workspace_id}/${dealId}/${subdir}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('deal-files')
@@ -68,6 +83,8 @@ export function useDealFiles(dealId: string | undefined) {
           file_ref: fileName,
           file_name: file.name,
           uploaded_by: user?.id || null,
+          file_category: fileCategory ?? null,
+          contractor_type: contractorType ?? null,
         })
         .select()
         .single();
