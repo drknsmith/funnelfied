@@ -805,8 +805,11 @@ export type Database = {
           created_by: string | null
           default_nurture_tag: string | null
           design_details: string | null
-          design_type: string | null
-          engagement_type: string | null
+          dtype_new_construction: string | null
+          dtype_retrofit: string | null
+          eng_one_time: string | null
+          eng_phased: string | null
+          eng_retainer: string | null
           exit_rule: string | null
           expansion_seed: string | null
           expedited: boolean | null
@@ -819,7 +822,9 @@ export type Database = {
           kind: string
           name: string
           objective: string | null
-          opportunity_types: string[] | null
+          opp_design: string | null
+          opp_policy: string | null
+          opp_programming: string | null
           owner_user_id: string | null
           policy_details: string | null
           programming_details: string | null
@@ -841,8 +846,11 @@ export type Database = {
           created_by?: string | null
           default_nurture_tag?: string | null
           design_details?: string | null
-          design_type?: string | null
-          engagement_type?: string | null
+          dtype_new_construction?: string | null
+          dtype_retrofit?: string | null
+          eng_one_time?: string | null
+          eng_phased?: string | null
+          eng_retainer?: string | null
           exit_rule?: string | null
           expansion_seed?: string | null
           expedited?: boolean | null
@@ -855,7 +863,9 @@ export type Database = {
           kind?: string
           name: string
           objective?: string | null
-          opportunity_types?: string[] | null
+          opp_design?: string | null
+          opp_policy?: string | null
+          opp_programming?: string | null
           owner_user_id?: string | null
           policy_details?: string | null
           programming_details?: string | null
@@ -877,8 +887,11 @@ export type Database = {
           created_by?: string | null
           default_nurture_tag?: string | null
           design_details?: string | null
-          design_type?: string | null
-          engagement_type?: string | null
+          dtype_new_construction?: string | null
+          dtype_retrofit?: string | null
+          eng_one_time?: string | null
+          eng_phased?: string | null
+          eng_retainer?: string | null
           exit_rule?: string | null
           expansion_seed?: string | null
           expedited?: boolean | null
@@ -891,7 +904,9 @@ export type Database = {
           kind?: string
           name?: string
           objective?: string | null
-          opportunity_types?: string[] | null
+          opp_design?: string | null
+          opp_policy?: string | null
+          opp_programming?: string | null
           owner_user_id?: string | null
           policy_details?: string | null
           programming_details?: string | null

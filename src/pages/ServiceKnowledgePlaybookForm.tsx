@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save, X } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -7,116 +8,120 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { usePlaybooks, usePlaybook } from '@/hooks/usePlaybooks';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-const OPPORTUNITY_TYPES = [
-  { value: 'programming', label: 'Programming' },
-  { value: 'design', label: 'Design' },
-  { value: 'policy', label: 'Policy' },
-];
+type SKForm = {
+  opp_programming: string;
+  opp_design: string;
+  opp_policy: string;
+  eng_one_time: string;
+  eng_retainer: string;
+  eng_phased: string;
+  dtype_new_construction: string;
+  dtype_retrofit: string;
+  design_details: string;
+  programming_details: string;
+  policy_details: string;
+};
 
-const ENGAGEMENT_TYPES = [
-  { value: 'one_time', label: 'One-time' },
-  { value: 'retainer', label: 'Retainer' },
-  { value: 'phased', label: 'Phased' },
-];
-
-const DESIGN_TYPES = [
-  { value: 'new_construction', label: 'New Construction' },
-  { value: 'retrofit', label: 'Retrofit' },
-];
-
-interface BoxProps {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}
-
-function SelectableBox({ label, selected, onClick }: BoxProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'flex-1 min-w-[140px] rounded-lg border-2 px-4 py-6 text-center text-sm font-medium transition-colors',
-        selected
-          ? 'border-primary bg-primary/10 text-foreground'
-          : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
-      )}
-    >
-      {label}
-    </button>
-  );
-}
+const EMPTY: SKForm = {
+  opp_programming: '',
+  opp_design: '',
+  opp_policy: '',
+  eng_one_time: '',
+  eng_retainer: '',
+  eng_phased: '',
+  dtype_new_construction: '',
+  dtype_retrofit: '',
+  design_details: '',
+  programming_details: '',
+  policy_details: '',
+};
 
 export default function ServiceKnowledgePlaybookForm() {
-  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const isEditing = !!id;
+  const { profile } = useAuth();
+  const workspaceId = profile?.workspace_id;
+  const queryClient = useQueryClient();
 
-  const { playbook, isLoading: isLoadingPlaybook } = usePlaybook(id);
-  const { createPlaybook, updatePlaybook } = usePlaybooks();
+  const { data: existing, isLoading } = useQuery({
+    queryKey: ['service-knowledge-playbook', workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return null;
+      const { data, error } = await supabase
+        .from('playbooks')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('kind', 'service_knowledge')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!workspaceId,
+  });
 
-  const [name, setName] = useState('');
-  const [opportunityTypes, setOpportunityTypes] = useState<string[]>([]);
-  const [engagementType, setEngagementType] = useState<string>('');
-  const [designType, setDesignType] = useState<string>('');
-  const [designDetails, setDesignDetails] = useState('');
-  const [programmingDetails, setProgrammingDetails] = useState('');
-  const [policyDetails, setPolicyDetails] = useState('');
+  const [form, setForm] = useState<SKForm>(EMPTY);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (playbook && isEditing) {
-      setName(playbook.name || '');
-      setOpportunityTypes(playbook.opportunity_types || []);
-      setEngagementType(playbook.engagement_type || '');
-      setDesignType(playbook.design_type || '');
-      setDesignDetails(playbook.design_details || '');
-      setProgrammingDetails(playbook.programming_details || '');
-      setPolicyDetails(playbook.policy_details || '');
+    if (existing) {
+      setForm({
+        opp_programming: (existing as any).opp_programming || '',
+        opp_design: (existing as any).opp_design || '',
+        opp_policy: (existing as any).opp_policy || '',
+        eng_one_time: (existing as any).eng_one_time || '',
+        eng_retainer: (existing as any).eng_retainer || '',
+        eng_phased: (existing as any).eng_phased || '',
+        dtype_new_construction: (existing as any).dtype_new_construction || '',
+        dtype_retrofit: (existing as any).dtype_retrofit || '',
+        design_details: (existing as any).design_details || '',
+        programming_details: (existing as any).programming_details || '',
+        policy_details: (existing as any).policy_details || '',
+      });
     }
-  }, [playbook, isEditing]);
+  }, [existing]);
 
-  const toggleOpportunity = (v: string) => {
-    setOpportunityTypes((prev) =>
-      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
-    );
-  };
+  const update = (patch: Partial<SKForm>) => setForm((f) => ({ ...f, ...patch }));
 
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      toast({ title: 'Name is required', variant: 'destructive' });
-      return;
-    }
-    const payload: any = {
-      name,
-      status: 'active',
-      kind: 'service_knowledge',
-      opportunity_types: opportunityTypes,
-      engagement_type: engagementType || null,
-      design_type: designType || null,
-      design_details: designDetails,
-      programming_details: programmingDetails,
-      policy_details: policyDetails,
-    };
+  const handleSave = async () => {
+    if (!workspaceId) return;
+    setSaving(true);
     try {
-      if (isEditing && id) {
-        await updatePlaybook.mutateAsync({ id, ...payload });
-        toast({ title: 'Playbook updated' });
+      const { data: { user } } = await supabase.auth.getUser();
+      const payload: any = {
+        ...form,
+        workspace_id: workspaceId,
+        kind: 'service_knowledge',
+        status: 'active',
+        updated_by: user?.id,
+      };
+      if (existing?.id) {
+        const { error } = await supabase.from('playbooks').update(payload).eq('id', existing.id);
+        if (error) throw error;
       } else {
-        await createPlaybook.mutateAsync(payload);
-        toast({ title: 'Playbook created' });
+        const { error } = await supabase.from('playbooks').insert({
+          ...payload,
+          name: 'Service Knowledge Playbook',
+          owner_user_id: user?.id,
+          created_by: user?.id,
+        });
+        if (error) throw error;
       }
+      await queryClient.invalidateQueries({ queryKey: ['service-knowledge-playbook', workspaceId] });
+      await queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+      toast({ title: 'Playbook saved' });
       navigate('/playbooks');
     } catch (err: any) {
       toast({ title: err.message || 'Failed to save', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (isEditing && isLoadingPlaybook) {
+  if (isLoading) {
     return (
       <AppLayout>
         <div className="p-6 flex items-center justify-center">
@@ -126,13 +131,26 @@ export default function ServiceKnowledgePlaybookForm() {
     );
   }
 
+  const InputBox = ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+  }) => (
+    <div className="flex-1 min-w-[200px] space-y-2">
+      <Label>{label}</Label>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={label} />
+    </div>
+  );
+
   return (
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-foreground">
-            {isEditing ? 'Edit Service Knowledge Playbook' : 'New Service Knowledge Playbook'}
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Service Knowledge Playbook</h1>
           <Button variant="ghost" onClick={() => navigate('/playbooks')}>
             <X className="h-4 w-4 mr-2" />
             Cancel
@@ -141,121 +159,63 @@ export default function ServiceKnowledgePlaybookForm() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Name</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>1. Opportunity Type</CardTitle></CardHeader>
             <CardContent>
-              <Label htmlFor="name" className="sr-only">Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Programming — Retainer Retrofit"
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>1. Opportunity Type</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
-                {OPPORTUNITY_TYPES.map((o) => (
-                  <SelectableBox
-                    key={o.value}
-                    label={o.label}
-                    selected={opportunityTypes.includes(o.value)}
-                    onClick={() => toggleOpportunity(o.value)}
-                  />
-                ))}
+              <div className="flex flex-wrap gap-4">
+                <InputBox label="Programming" value={form.opp_programming} onChange={(v) => update({ opp_programming: v })} />
+                <InputBox label="Design" value={form.opp_design} onChange={(v) => update({ opp_design: v })} />
+                <InputBox label="Policy" value={form.opp_policy} onChange={(v) => update({ opp_policy: v })} />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>2. Engagement Type</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>2. Engagement Type</CardTitle></CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-3">
-                {ENGAGEMENT_TYPES.map((o) => (
-                  <SelectableBox
-                    key={o.value}
-                    label={o.label}
-                    selected={engagementType === o.value}
-                    onClick={() => setEngagementType(o.value)}
-                  />
-                ))}
+              <div className="flex flex-wrap gap-4">
+                <InputBox label="One-time" value={form.eng_one_time} onChange={(v) => update({ eng_one_time: v })} />
+                <InputBox label="Retainer" value={form.eng_retainer} onChange={(v) => update({ eng_retainer: v })} />
+                <InputBox label="Phased" value={form.eng_phased} onChange={(v) => update({ eng_phased: v })} />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>3. Design Type</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>3. Design Type</CardTitle></CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-3">
-                {DESIGN_TYPES.map((o) => (
-                  <SelectableBox
-                    key={o.value}
-                    label={o.label}
-                    selected={designType === o.value}
-                    onClick={() => setDesignType(o.value)}
-                  />
-                ))}
+              <div className="flex flex-wrap gap-4">
+                <InputBox label="New Construction" value={form.dtype_new_construction} onChange={(v) => update({ dtype_new_construction: v })} />
+                <InputBox label="Retrofit" value={form.dtype_retrofit} onChange={(v) => update({ dtype_retrofit: v })} />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>4. Design Details</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>4. Design Details</CardTitle></CardHeader>
             <CardContent>
-              <Textarea
-                value={designDetails}
-                onChange={(e) => setDesignDetails(e.target.value)}
-                rows={6}
-                placeholder="Describe the design scope, deliverables, and considerations..."
-              />
+              <Textarea rows={6} value={form.design_details} onChange={(e) => update({ design_details: e.target.value })} />
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>5. Programming Details</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>5. Programming Details</CardTitle></CardHeader>
             <CardContent>
-              <Textarea
-                value={programmingDetails}
-                onChange={(e) => setProgrammingDetails(e.target.value)}
-                rows={6}
-                placeholder="Describe programming scope, activities, and outcomes..."
-              />
+              <Textarea rows={6} value={form.programming_details} onChange={(e) => update({ programming_details: e.target.value })} />
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>6. Policy Details</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>6. Policy Details</CardTitle></CardHeader>
             <CardContent>
-              <Textarea
-                value={policyDetails}
-                onChange={(e) => setPolicyDetails(e.target.value)}
-                rows={6}
-                placeholder="Describe policy scope, guidelines, and considerations..."
-              />
+              <Textarea rows={6} value={form.policy_details} onChange={(e) => update({ policy_details: e.target.value })} />
             </CardContent>
           </Card>
 
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => navigate('/playbooks')}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={createPlaybook.isPending || updatePlaybook.isPending}>
+            <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />
-              {isEditing ? 'Save Changes' : 'Create Playbook'}
+              Save Playbook
             </Button>
           </div>
         </div>
