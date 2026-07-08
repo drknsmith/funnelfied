@@ -64,7 +64,6 @@ serve(async (req) => {
     const categories: string[] = Array.isArray(quote.service_category) ? quote.service_category : [];
     const details = quote.service_details ?? {};
     const existingDeliverables = Array.isArray(quote.sow_deliverables) ? quote.sow_deliverables : [];
-    const existingMilestones = Array.isArray(quote.sow_milestones) ? quote.sow_milestones : [];
     const pillars: string[] = Array.isArray(quote.sow_approach_pillars) ? quote.sow_approach_pillars : [];
 
     const formState = {
@@ -87,7 +86,6 @@ serve(async (req) => {
         proposed_approach: quote.sow_proposed_approach ?? "",
       },
       existing_deliverables: existingDeliverables,
-      existing_milestones: existingMilestones,
     };
 
     const systemPrompt = `You are drafting a Statement of Work (SOW) for Red Loft Consulting. You are given the ENTIRE form state at once and must produce the complete SOW body in ONE cross-referenced pass.
@@ -98,11 +96,12 @@ ${playbookBlock}
 MERGE RULES:
 - Salesperson notes are PRIMARY content. Rewrite into polished client-facing prose, expanding where thin.
 - Structured fields are primary when notes are blank — draft the section from them.
-- Existing Deliverables/Milestones rows are primary; refine and complete them. If empty, generate suggested rows from the active component(s)' typical deliverables and the engagement type's phase structure.
+- Existing Deliverables rows are primary; refine and complete them. If empty, generate suggested rows from the active component(s)' typical deliverables and the engagement type's phase structure.
+- Milestones are owned by a separate step and MUST NOT be generated here. Do not include a "milestones" field in the output.
 - Use the playbook only to (a) catch standard scope components the notes missed, (b) apply correct disclaimers, (c) keep terminology consistent. Never output playbook language verbatim.
 
 CROSS-SECTION CONSISTENCY (resolve these in one pass, do not generate sections independently):
-- Funding Source Status "grant pending" → recommend Phased engagement framing in Proposed Approach AND phase-gated Milestones AND urgency framing in Problem Statement.
+- Funding Source Status "grant pending" → recommend Phased engagement framing in Proposed Approach AND urgency framing in Problem Statement.
 - Compliance drivers (ADA, local code, licensing, Fitwel) → trigger the non-architectural disclaimer worded around the SPECIFIC driver named, sitting with the client's architect.
 - Multiple active components → Proposed Approach must address each so the reader can tell them apart. Group Deliverables by component.
 - 4 P's emphasis tags (Policy/People/Process/Product) are a separate axis from Opportunity Type — apply them as emphasis in Proposed Approach even when they don't match the component types.
@@ -125,11 +124,10 @@ OUTPUT: Return ONLY valid JSON matching this exact shape, no prose, no code fenc
   "problem_statement": string,
   "proposed_approach": string,
   "deliverables": [{ "name": string, "description": string }],
-  "milestones": [{ "name": string, "description": string, "target_date": string }],
   "terms_and_conditions": string,
   "warnings": [string]
 }
-Dates should be YYYY-MM-DD or empty string. Keep warnings [] when nothing is atypical.`;
+Keep warnings [] when nothing is atypical.`;
 
     const userPrompt = `FORM STATE:\n${JSON.stringify(formState, null, 2)}`;
 
@@ -182,7 +180,6 @@ Dates should be YYYY-MM-DD or empty string. Keep warnings [] when nothing is aty
       sow_problem_statement: parsed.problem_statement ?? quote.sow_problem_statement ?? "",
       sow_proposed_approach: parsed.proposed_approach ?? quote.sow_proposed_approach ?? "",
       sow_deliverables: Array.isArray(parsed.deliverables) ? parsed.deliverables : existingDeliverables,
-      sow_milestones: Array.isArray(parsed.milestones) ? parsed.milestones : existingMilestones,
       sow_terms_and_conditions: parsed.terms_and_conditions ?? "",
     };
 

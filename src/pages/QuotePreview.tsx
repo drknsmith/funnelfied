@@ -12,9 +12,7 @@ import {
   discountAmount,
   grandTotal,
   formatMoney,
-  SERVICE_CATEGORY_LABELS,
   CONTRACTOR_TYPE_LABELS,
-  SERVICE_DETAIL_FIELDS,
 } from '@/lib/quoteCalculations';
 
 const TERMS_LABEL: Record<string, string> = { net15: 'Net 15', net30: 'Net 30', net45: 'Net 45' };
@@ -246,37 +244,6 @@ export default function QuotePreview() {
             <p className="sow-body whitespace-pre-wrap">{termsAndConditions}</p>
           </section>
         )}
-
-        {categories.map((cat) => {
-          const fields = SERVICE_DETAIL_FIELDS[cat] ?? [];
-          const catDetails = (quote.service_details?.[cat] as Record<string, any>) || {};
-          const visible = fields.filter((f) => {
-            const v = catDetails[f.key];
-            return Array.isArray(v) ? v.length > 0 : Boolean(v);
-          });
-          if (visible.length === 0) return null;
-          return (
-            <section key={cat}>
-              <h2 className="sow-h2">
-                {SERVICE_CATEGORY_LABELS[cat] ?? cat} — Project Context
-              </h2>
-              <dl className="sow-body space-y-1">
-                {visible.map((f) => (
-                  <div key={f.key} className="grid grid-cols-3 gap-2">
-                    <dt className="sow-muted">{f.label}</dt>
-                    <dd className="col-span-2">
-                      {Array.isArray(catDetails[f.key])
-                        ? (catDetails[f.key] as string[])
-                            .map((v) => f.options?.find((o) => o.value === v)?.label ?? v)
-                            .join(', ')
-                        : String(catDetails[f.key])}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          );
-        })}
 
           </>
         )}

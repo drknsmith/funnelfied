@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, Printer, Copy, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Printer, Copy, Trash2, Loader2, Sparkles } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +42,9 @@ export default function QuoteDetail() {
   const { items, addItem, updateItem, deleteItem } = useQuoteContractorItems(id);
   const { workspaceId } = useAuth();
   const [generating, setGenerating] = useState(false);
+  const [processingMilestones, setProcessingMilestones] = useState(false);
+  const [milestonesDirty, setMilestonesDirty] = useState(false);
+  const [localMilestones, setLocalMilestones] = useState<Array<{ name: string; description: string; target_date: string }> | null>(null);
   const qc = useQueryClient();
 
   const [local, setLocal] = useState<Quote | null>(null);
@@ -85,6 +88,7 @@ export default function QuoteDetail() {
   const milestones: Array<{ name: string; description: string; target_date: string }> = Array.isArray((local as any).sow_milestones)
     ? (local as any).sow_milestones
     : [];
+  const effectiveMilestones = localMilestones ?? milestones;
   const pillars: string[] = Array.isArray((local as any).sow_approach_pillars) ? (local as any).sow_approach_pillars : [];
   const PILLARS = ['Policy', 'People', 'Process', 'Product'];
 
@@ -108,6 +112,53 @@ export default function QuoteDetail() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  async function processMilestones() {
+    setProcessingMilestones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('suggest-milestones', {
+        body: { quoteId: local!.id, workspaceId, currentMilestones: effectiveMilestones },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const next = Array.isArray((data as any)?.milestones) ? (data as any).milestones : [];
+      setLocalMilestones(next);
+      setMilestonesDirty(true);
+      const warnings: string[] = Array.isArray((data as any)?.warnings) ? (data as any).warnings : [];
+      warnings.forEach((w) => toast({ title: 'Heads up', description: w }));
+      toast({ title: 'AI suggestions applied — review and Save' });
+    } catch (e: any) {
+      toast({ title: 'Milestone processing failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setProcessingMilestones(false);
+    }
+  }
+
+  function updateMilestone(i: number, patch: Partial<{ name: string; description: string; target_date: string }>) {
+    const next = [...effectiveMilestones];
+    next[i] = { ...next[i], ...patch };
+    setLocalMilestones(next);
+    setMilestonesDirty(true);
+  }
+
+  function removeMilestone(i: number) {
+    const next = effectiveMilestones.filter((_, j) => j !== i);
+    setLocalMilestones(next);
+    setMilestonesDirty(true);
+  }
+
+  function addMilestone() {
+    const next = [...effectiveMilestones, { name: '', description: '', target_date: '' }];
+    setLocalMilestones(next);
+    setMilestonesDirty(true);
+  }
+
+  function saveMilestones() {
+    save({ sow_milestones: effectiveMilestones } as any);
+    setMilestonesDirty(false);
+    setLocalMilestones(null);
+    toast({ title: 'Milestones saved' });
   }
 
   return (
@@ -468,50 +519,52 @@ export default function QuoteDetail() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Milestones</Label>
-                <Button type="button" size="sm" variant="outline" onClick={() => save({ sow_milestones: [...milestones, { name: '', description: '', target_date: '' }] } as any)}>
-                  <Plus className="mr-1 h-3 w-3" /> Add
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={processMilestones} disabled={processingMilestones}>
+                    {processingMilestones ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                    Process Milestones with AI
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={addMilestone}>
+                    <Plus className="mr-1 h-3 w-3" /> Add
+                  </Button>
+                  {milestonesDirty && (
+                    <Button type="button" size="sm" onClick={saveMilestones}>
+                      Save
+                    </Button>
+                  )}
+                </div>
               </div>
-              {milestones.length === 0 && <p className="text-xs text-muted-foreground">No milestones yet.</p>}
-              {milestones.map((m, i) => (
+              {milestonesDirty && (
+                <p className="text-xs text-primary">AI suggestions applied — review and Save.</p>
+              )}
+              {effectiveMilestones.length === 0 && <p className="text-xs text-muted-foreground">No milestones yet.</p>}
+              {effectiveMilestones.map((m, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-start">
                   <Input
                     className="col-span-3"
                     placeholder="Milestone name"
                     value={m.name}
-                    onChange={(e) => {
-                      const next = [...milestones];
-                      next[i] = { ...next[i], name: e.target.value };
-                      save({ sow_milestones: next } as any);
-                    }}
+                    onChange={(e) => updateMilestone(i, { name: e.target.value })}
                   />
                   <Textarea
                     className="col-span-6"
                     rows={2}
                     placeholder="Description"
                     value={m.description}
-                    onChange={(e) => {
-                      const next = [...milestones];
-                      next[i] = { ...next[i], description: e.target.value };
-                      save({ sow_milestones: next } as any);
-                    }}
+                    onChange={(e) => updateMilestone(i, { description: e.target.value })}
                   />
                   <Input
                     className="col-span-2"
                     type="date"
                     value={m.target_date}
-                    onChange={(e) => {
-                      const next = [...milestones];
-                      next[i] = { ...next[i], target_date: e.target.value };
-                      save({ sow_milestones: next } as any);
-                    }}
+                    onChange={(e) => updateMilestone(i, { target_date: e.target.value })}
                   />
                   <Button
                     type="button"
                     size="icon"
                     variant="ghost"
                     className="col-span-1"
-                    onClick={() => save({ sow_milestones: milestones.filter((_, j) => j !== i) } as any)}
+                    onClick={() => removeMilestone(i)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

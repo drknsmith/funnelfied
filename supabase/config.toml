@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.generate-sow]
 verify_jwt = true
+
+[functions.suggest-milestones]
+verify_jwt = true
