@@ -40,18 +40,19 @@ import AppLayout from '@/components/layout/AppLayout';
 
 export default function Research() {
   const navigate = useNavigate();
-  const { activeWorkspaceId } = useAuth();
+  const { activeWorkspaceId, workspaceId } = useAuth();
   const printRef = useRef<HTMLDivElement>(null);
+  const featureWorkspaceId = workspaceId || activeWorkspaceId;
 
   // Check workspace access
-  const hasAccess = canUseResearch(activeWorkspaceId);
+  const hasAccess = canUseResearch(featureWorkspaceId);
 
   // Redirect if no access
   useEffect(() => {
-    if (activeWorkspaceId && !hasAccess) {
+    if (featureWorkspaceId && !hasAccess) {
       navigate('/');
     }
-  }, [activeWorkspaceId, hasAccess, navigate]);
+  }, [featureWorkspaceId, hasAccess, navigate]);
 
   // Deal selection state (for standalone Research page)
   const [selectedDealId, setSelectedDealId] = useState('');
