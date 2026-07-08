@@ -117,7 +117,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setAvailableWorkspaces(allWorkspaces || []);
 
-        const effectiveWorkspaceId = overrideData?.active_workspace_id || profileData?.workspace_id;
+        const effectiveWorkspaceId =
+          overrideData?.active_workspace_id ||
+          profileData?.workspace_id ||
+          allWorkspaces?.[0]?.id ||
+          null;
+
+        // Ensure a super_admin_workspace_overrides row exists so that
+        // private.current_workspace() reliably resolves in RLS policies.
+        if (effectiveWorkspaceId && !overrideData?.active_workspace_id) {
+          await supabase
+            .from('super_admin_workspace_overrides')
+            .upsert({
+              user_id: userId,
+              active_workspace_id: effectiveWorkspaceId,
+              updated_at: new Date().toISOString(),
+            });
+        }
+
         setActiveWorkspaceId(effectiveWorkspaceId);
 
         // Fetch workspace name for effective workspace
