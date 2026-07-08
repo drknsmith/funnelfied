@@ -91,13 +91,24 @@ export default function DealForm() {
     if (selectedAccount && selectedDealType) {
       return `${selectedAccount.name} – ${selectedDealType.label}`;
     }
+    if (selectedAccount) {
+      return selectedAccount.name;
+    }
     return '';
   }, [selectedAccount, selectedDealType]);
 
   useEffect(() => {
-    if (!formData.deal_name && autoDealName) {
-      setFormData((prev) => ({ ...prev, deal_name: autoDealName }));
-    }
+    if (isEdit) return;
+    if (!autoDealName) return;
+    setFormData((prev) => {
+      // Only overwrite if empty or still matches a previous auto-generated value
+      const isAutoValue =
+        !prev.deal_name ||
+        prev.deal_name === selectedAccount?.name ||
+        (selectedAccount && prev.deal_name.startsWith(`${selectedAccount.name} – `));
+      if (!isAutoValue) return prev;
+      return { ...prev, deal_name: autoDealName };
+    });
   }, [autoDealName]);
 
   // Load existing deal data
