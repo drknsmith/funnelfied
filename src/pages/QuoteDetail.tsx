@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, Printer, Copy, Trash2, Loader2 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ export default function QuoteDetail() {
   const { items, addItem, updateItem, deleteItem } = useQuoteContractorItems(id);
   const { workspaceId } = useAuth();
   const [generating, setGenerating] = useState(false);
+  const qc = useQueryClient();
 
   const [local, setLocal] = useState<Quote | null>(null);
   useEffect(() => { if (quote) setLocal(quote); }, [quote]);
@@ -99,6 +101,7 @@ export default function QuoteDetail() {
         toast({ title: 'Heads up', description: w }),
       );
       toast({ title: 'SOW generated' });
+      await qc.invalidateQueries({ queryKey: ['quote', local!.id] });
       nav(`/quotes/${local!.id}/preview?doc=sow`);
     } catch (e: any) {
       toast({ title: 'SOW generation failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
