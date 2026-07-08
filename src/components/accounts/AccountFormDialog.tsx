@@ -8,13 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Account, useAccounts } from '@/hooks/useAccounts';
 import { useAuth } from '@/contexts/AuthContext';
-import { isTreneurWorkspace } from '@/lib/workspaceFeatures';
+import { isTreneurWorkspace, isRedLoftWorkspace } from '@/lib/workspaceFeatures';
 import { Loader2 } from 'lucide-react';
 
 const SEGMENTS = ['Enterprise', 'Mid-Market', 'SMB'];
 const TRENEUR_SEGMENTS = ['Boutique Gym', 'Yoga Studio', 'Pilates Studio', 'Big Box Gym', 'Martial Arts/Boxing', 'Student Rec Center', 'Corporate Wellness'];
 const PORTFOLIO_SIZES = ['1', '2-5', '6-20', '20+'];
 const DEAL_TYPES = ['portfolio', 'design_led', 'transactional', 'other'];
+const REDLOFT_DEAL_TYPES = ['programming', 'design', 'policy'];
 const TRENEUR_BUSINESS_MODELS = ['Hire Trainers', 'Rent to Trainers', 'Hybrid'];
 const STATUSES = ['active', 'inactive', 'churned'];
 const MEMBERSHIP_OPTIONS = ['Yes', 'No', 'Unknown'] as const;
@@ -28,6 +29,7 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
   const { createAccount, updateAccount } = useAccounts();
   const { activeWorkspaceId } = useAuth();
   const isTreneur = isTreneurWorkspace(activeWorkspaceId);
+  const isRedLoft = isRedLoftWorkspace(activeWorkspaceId);
   const isEdit = !!account;
 
   const [formData, setFormData] = useState({
@@ -190,7 +192,7 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="deal_type_default">{isTreneur ? 'Business Model' : 'Default Deal Type'}</Label>
+              <Label htmlFor="deal_type_default">{isTreneur ? 'Business Model' : 'Default Opportunity Type'}</Label>
               <Select
                 value={formData.deal_type_default}
                 onValueChange={(value) => setFormData({ ...formData, deal_type_default: value })}
@@ -199,8 +201,8 @@ export default function AccountFormDialog({ open, onOpenChange, account }: Accou
                   <SelectValue placeholder={isTreneur ? 'Select model' : 'Select type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {(isTreneur ? TRENEUR_BUSINESS_MODELS : DEAL_TYPES).map((t) => (
-                    <SelectItem key={t} value={t}>{isTreneur ? t : t.replace('_', '-')}</SelectItem>
+                  {(isTreneur ? TRENEUR_BUSINESS_MODELS : isRedLoft ? REDLOFT_DEAL_TYPES : DEAL_TYPES).map((t) => (
+                    <SelectItem key={t} value={t}>{isTreneur ? t : isRedLoft ? t.charAt(0).toUpperCase() + t.slice(1) : t.replace('_', '-')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
