@@ -211,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: new Error('Error validating invite code') };
     }
 
-    const invitation = (validateData as { invitation: { id: string; workspace_id: string; role: string; email: string } | null } | null)?.invitation;
+    const invitation = (validateData as { invitation: { id: string; workspace_id: string; role: 'admin' | 'moderator' | 'super_admin' | 'user'; email: string } | null } | null)?.invitation;
     if (!invitation) {
       return { error: new Error('Invalid or expired invite code. Please check the code and email address.') };
     }
