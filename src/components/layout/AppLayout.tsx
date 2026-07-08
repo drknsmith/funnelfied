@@ -47,9 +47,10 @@ import {
   Map,
   FileBarChart,
   Share2,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { canUseMapping, canUseResearch, canUseSocialMedia } from '@/lib/workspaceFeatures';
+import { canUseMapping, canUseResearch, canUseSocialMedia, isRedLoftWorkspace } from '@/lib/workspaceFeatures';
 import logoPrimary from '@/assets/logo-primary.png';
 import logoInverse from '@/assets/logo-inverse.png';
 import { PWAInstallBanner } from '@/components/pwa/PWAInstallBanner';
@@ -274,6 +275,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               )}
               {canUseResearch(featureWorkspaceId) && (
                 <NavItem to="/research" icon={<FileBarChart className="h-4 w-4" />} label="Research" collapsed={isCollapsed} />
+              )}
+              {isRedLoftWorkspace(featureWorkspaceId) && (
+                <NavItem to="/quotes" icon={<Calculator className="h-4 w-4" />} label="Quote Tool" collapsed={isCollapsed} />
               )}
               {canUseSocialMedia(featureWorkspaceId) && (
                 <NavItem to="/social-media" icon={<Share2 className="h-4 w-4" />} label="Social Media" collapsed={isCollapsed} />
