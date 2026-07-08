@@ -12,9 +12,7 @@ import {
   discountAmount,
   grandTotal,
   formatMoney,
-  SERVICE_CATEGORY_LABELS,
   CONTRACTOR_TYPE_LABELS,
-  SERVICE_DETAIL_FIELDS,
 } from '@/lib/quoteCalculations';
 
 const TERMS_LABEL: Record<string, string> = { net15: 'Net 15', net30: 'Net 30', net45: 'Net 45' };
