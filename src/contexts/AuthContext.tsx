@@ -201,20 +201,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedCode = inviteCode.toUpperCase().trim();
 
-    // First, validate the invite code
-    const { data: invitation, error: inviteError } = await supabase
-      .from('pending_invitations')
-      .select('*')
-      .eq('invite_code', normalizedCode)
-      .eq('email', normalizedEmail)
-      .is('used_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle();
+    // First, validate the invite code via secure edge function
+    const { data: validateData, error: inviteError } = await supabase.functions.invoke(
+      'validate-invitation',
+      { body: { invite_code: normalizedCode, email: normalizedEmail } },
+    );
 
     if (inviteError) {
       return { error: new Error('Error validating invite code') };
     }
 
+    const invitation = (validateData as { invitation: { id: string; workspace_id: string; role: string; email: string } | null } | null)?.invitation;
     if (!invitation) {
       return { error: new Error('Invalid or expired invite code. Please check the code and email address.') };
     }
