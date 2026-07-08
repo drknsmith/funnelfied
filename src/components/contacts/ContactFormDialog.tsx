@@ -43,6 +43,7 @@ export default function ContactFormDialog({ open, onOpenChange, contact, default
         title: contact.title || '',
         email: contact.email || '',
         phone: contact.phone || '',
+        referred_by: contact.referred_by || '',
         role_type: contact.role_type || '',
         linkedin_url: contact.linkedin_url || '',
         notes: contact.notes || '',
@@ -54,6 +55,7 @@ export default function ContactFormDialog({ open, onOpenChange, contact, default
         title: '',
         email: '',
         phone: '',
+        referred_by: '',
         role_type: '',
         linkedin_url: '',
         notes: '',
@@ -70,6 +72,7 @@ export default function ContactFormDialog({ open, onOpenChange, contact, default
       title: formData.title || null,
       email: formData.email || null,
       phone: formData.phone || null,
+      referred_by: formData.referred_by || null,
       role_type: formData.role_type || null,
       linkedin_url: formData.linkedin_url || null,
       notes: formData.notes || null,
@@ -173,6 +176,16 @@ export default function ContactFormDialog({ open, onOpenChange, contact, default
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="referred_by">Referred by</Label>
+            <Input
+              id="referred_by"
+              value={formData.referred_by}
+              onChange={(e) => setFormData({ ...formData, referred_by: e.target.value })}
+              placeholder="Name of referrer"
+            />
           </div>
 
           <div className="space-y-2">
