@@ -76,6 +76,40 @@ export default function QuoteDetail() {
     interior_design: { design: 'Design & Products', shipping: 'Shipping & Delivery' },
   };
 
+  const sowReference = `SOW-${(local.id || '').slice(0, 6).toUpperCase()}-v${local.version_number}`;
+  const deliverables: Array<{ name: string; description: string }> = Array.isArray((local as any).sow_deliverables)
+    ? (local as any).sow_deliverables
+    : [];
+  const milestones: Array<{ name: string; description: string; target_date: string }> = Array.isArray((local as any).sow_milestones)
+    ? (local as any).sow_milestones
+    : [];
+  const pillars: string[] = Array.isArray((local as any).sow_approach_pillars) ? (local as any).sow_approach_pillars : [];
+  const PILLARS = ['Policy', 'People', 'Process', 'Product'];
+
+  async function polish(field: 'executive_summary' | 'problem_statement' | 'proposed_approach', current: string, apply: (v: string) => void) {
+    if (!current?.trim()) {
+      toast({ title: 'Add some text first', description: 'Write a draft, then polish it with AI.' });
+      return;
+    }
+    setPolishing(field);
+    try {
+      const { data, error } = await supabase.functions.invoke('polish-sow-field', {
+        body: { field, text: current, workspaceId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const polished = (data as any)?.polished as string;
+      if (polished) {
+        apply(polished);
+        toast({ title: 'Polished with AI' });
+      }
+    } catch (e: any) {
+      toast({ title: 'AI polish failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setPolishing(null);
+    }
+  }
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6 max-w-5xl">
