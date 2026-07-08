@@ -235,7 +235,7 @@ export default function QuoteDetail() {
 
             <div className="flex justify-end">
               <Button onClick={() => {
-                const { id: _id, created_at, updated_at, version_number, workspace_id, ...patch } = local as any;
+                const { id: _id, created_at, updated_at, version_number, workspace_id, deals, contacts, ...patch } = local as any;
                 updateQuote({ id: local.id, patch });
                 toast({ title: 'Quote saved' });
               }}>

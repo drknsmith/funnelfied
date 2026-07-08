@@ -65,7 +65,7 @@ export default function QuotePreview() {
 
       <div className="max-w-[8.5in] mx-auto my-6 bg-white text-slate-900 shadow print:shadow-none p-10 space-y-6">
         <header className="border-b pb-4">
-          <img src={logoAsset.url} alt="Red Loft Consulting" className="h-16 w-auto" />
+          <img src={logoAsset.url} alt="Red Loft Consulting" className="h-28 w-auto" />
           <p className="text-xs text-slate-600 mt-2">
             {doc === 'invoice' ? 'Invoice' : 'Statement of Work'} · Programming · Design · Policy
           </p>
