@@ -36,6 +36,10 @@ export interface Quote {
   snapshot_referral_source: string | null;
   snapshot_project_name: string | null;
   snapshot_project_address: string | null;
+  redloft_contact_name: string | null;
+  redloft_contact_title: string | null;
+  redloft_contact_email: string | null;
+  redloft_contact_phone: string | null;
   created_at: string;
   updated_at: string;
 }

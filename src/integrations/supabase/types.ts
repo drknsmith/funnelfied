@@ -1115,6 +1115,10 @@ export type Database = {
           phase_revisions_hours: number
           phase_revisions_rounds: number
           phase_sourcing_hours: number
+          redloft_contact_email: string | null
+          redloft_contact_name: string | null
+          redloft_contact_phone: string | null
+          redloft_contact_title: string | null
           service_category: string[] | null
           service_details: Json
           snapshot_contact_email: string | null
@@ -1151,6 +1155,10 @@ export type Database = {
           phase_revisions_hours?: number
           phase_revisions_rounds?: number
           phase_sourcing_hours?: number
+          redloft_contact_email?: string | null
+          redloft_contact_name?: string | null
+          redloft_contact_phone?: string | null
+          redloft_contact_title?: string | null
           service_category?: string[] | null
           service_details?: Json
           snapshot_contact_email?: string | null
@@ -1187,6 +1195,10 @@ export type Database = {
           phase_revisions_hours?: number
           phase_revisions_rounds?: number
           phase_sourcing_hours?: number
+          redloft_contact_email?: string | null
+          redloft_contact_name?: string | null
+          redloft_contact_phone?: string | null
+          redloft_contact_title?: string | null
           service_category?: string[] | null
           service_details?: Json
           snapshot_contact_email?: string | null
