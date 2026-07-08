@@ -172,13 +172,27 @@ export default function ServiceKnowledgePlaybookForm() {
                 <TextareaBox label="Design" value={form.opp_design} onChange={(v) => update({ opp_design: v })} />
                 <TextareaBox label="Policy" value={form.opp_policy} onChange={(v) => update({ opp_policy: v })} />
               </div>
-...
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>2. Engagement Type</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4">
+                <TextareaBox label="One-time" value={form.eng_one_time} onChange={(v) => update({ eng_one_time: v })} />
+                <TextareaBox label="Retainer" value={form.eng_retainer} onChange={(v) => update({ eng_retainer: v })} />
+                <TextareaBox label="Phased" value={form.eng_phased} onChange={(v) => update({ eng_phased: v })} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>3. Design Type</CardTitle></CardHeader>
+            <CardContent>
               <div className="flex flex-wrap gap-4">
                 <TextareaBox label="New Construction" value={form.dtype_new_construction} onChange={(v) => update({ dtype_new_construction: v })} />
                 <TextareaBox label="Retrofit" value={form.dtype_retrofit} onChange={(v) => update({ dtype_retrofit: v })} />
               </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader><CardTitle>4. Design Details</CardTitle></CardHeader>
