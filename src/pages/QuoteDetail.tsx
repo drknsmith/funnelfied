@@ -659,6 +659,82 @@ export default function QuoteDetail() {
           </CardContent>
         </Card>
 
+        {/* ===== Signatures ===== */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>Signatures</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  save({
+                    sow_signature_provider_company: 'Red Loft Consulting',
+                    sow_signature_provider_name: local.redloft_contact_name ?? '',
+                    sow_signature_provider_title: local.redloft_contact_title ?? '',
+                    sow_signature_client_company: (local as any).snapshot_account_name ?? (local as any).snapshot_project_name ?? '',
+                    sow_signature_client_name: local.snapshot_contact_name ?? '',
+                    sow_signature_client_title: '',
+                  } as any)
+                }
+              >
+                Reset to defaults
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Provider</p>
+              <div>
+                <Label>Company</Label>
+                <Input
+                  value={(local as any).sow_signature_provider_company ?? 'Red Loft Consulting'}
+                  onChange={(e) => save({ sow_signature_provider_company: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={(local as any).sow_signature_provider_name ?? local.redloft_contact_name ?? ''}
+                  onChange={(e) => save({ sow_signature_provider_name: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Title</Label>
+                <Input
+                  value={(local as any).sow_signature_provider_title ?? local.redloft_contact_title ?? ''}
+                  onChange={(e) => save({ sow_signature_provider_title: e.target.value } as any)}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Client</p>
+              <div>
+                <Label>Company</Label>
+                <Input
+                  value={(local as any).sow_signature_client_company ?? (local as any).snapshot_account_name ?? (local as any).snapshot_project_name ?? ''}
+                  onChange={(e) => save({ sow_signature_client_company: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={(local as any).sow_signature_client_name ?? local.snapshot_contact_name ?? ''}
+                  onChange={(e) => save({ sow_signature_client_name: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Title</Label>
+                <Input
+                  value={(local as any).sow_signature_client_title ?? ''}
+                  onChange={(e) => save({ sow_signature_client_title: e.target.value } as any)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
           </TabsContent>
 
           <TabsContent value="invoice" className="space-y-6 mt-4">

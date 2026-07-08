@@ -59,6 +59,13 @@ export default function QuotePreview() {
   const pillars: string[] = Array.isArray(quote.sow_approach_pillars) ? quote.sow_approach_pillars : [];
   const termsAndConditions: string = (quote as any).sow_terms_and_conditions ?? '';
 
+  const sigProviderCompany = (quote as any).sow_signature_provider_company || 'Red Loft Consulting';
+  const sigProviderName = (quote as any).sow_signature_provider_name || quote.redloft_contact_name || '';
+  const sigProviderTitle = (quote as any).sow_signature_provider_title || quote.redloft_contact_title || '';
+  const sigClientCompany = (quote as any).sow_signature_client_company || (quote as any).snapshot_account_name || quote.snapshot_project_name || '';
+  const sigClientName = (quote as any).sow_signature_client_name || quote.snapshot_contact_name || '';
+  const sigClientTitle = (quote as any).sow_signature_client_title || '';
+
   const billingSentence = useMemo(() => {
     if (doc !== 'sow') return '';
     const parts: string[] = [];
@@ -110,6 +117,15 @@ export default function QuotePreview() {
     }
     if (billingSentence) lines.push(`## Rate & Billing Terms\n\n${billingSentence}\n`);
     if (termsAndConditions) lines.push(`## Terms and Conditions\n\n${termsAndConditions}\n`);
+    if (doc === 'sow') {
+      lines.push(`## Signatures\n`);
+      lines.push(`**${sigProviderCompany}**  `);
+      lines.push(`By: ${sigProviderName}${sigProviderTitle ? `, ${sigProviderTitle}` : ''}  `);
+      lines.push(`Signature: ______________________  Date: __________\n`);
+      lines.push(`**${sigClientCompany}**  `);
+      lines.push(`By: ${sigClientName}${sigClientTitle ? `, ${sigClientTitle}` : ''}  `);
+      lines.push(`Signature: ______________________  Date: __________\n`);
+    }
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
       toast({ title: 'Copied as Markdown' });
@@ -244,6 +260,28 @@ export default function QuotePreview() {
             <p className="sow-body whitespace-pre-wrap">{termsAndConditions}</p>
           </section>
         )}
+
+        <section>
+          <h2 className="sow-h2">Signatures</h2>
+          <div className="grid grid-cols-2 gap-8 sow-body">
+            <div>
+              <p className="sow-strong">{sigProviderCompany}</p>
+              <div className="mt-8 border-t border-black pt-1">
+                <p className="sow-strong">{sigProviderName}</p>
+                {sigProviderTitle && <p className="sow-muted">{sigProviderTitle}</p>}
+                <p className="sow-muted mt-2">Date: ______________________</p>
+              </div>
+            </div>
+            <div>
+              <p className="sow-strong">{sigClientCompany}</p>
+              <div className="mt-8 border-t border-black pt-1">
+                <p className="sow-strong">{sigClientName}</p>
+                {sigClientTitle && <p className="sow-muted">{sigClientTitle}</p>}
+                <p className="sow-muted mt-2">Date: ______________________</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
           </>
         )}
