@@ -29,6 +29,7 @@ export default function ContactFormDialog({ open, onOpenChange, contact, default
     title: '',
     email: '',
     phone: '',
+    referred_by: '',
     role_type: '',
     linkedin_url: '',
     notes: '',

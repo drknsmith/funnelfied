@@ -12,6 +12,7 @@ export interface Contact {
   title: string | null;
   email: string | null;
   phone: string | null;
+  referred_by: string | null;
   role_type: string | null;
   linkedin_url: string | null;
   notes: string | null;
