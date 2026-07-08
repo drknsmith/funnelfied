@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -215,6 +216,10 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await requireUser(req, corsHeaders);
+    if ("response" in authResult) return authResult.response;
+    const { userId } = authResult.user;
+
     const { messages, context } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -228,6 +233,21 @@ serve(async (req) => {
     // Create Supabase client for data access
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
+    // Derive workspace_id and role from the authenticated user's profile — never
+    // trust a client-supplied workspace_id, which would allow cross-workspace exfiltration.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("workspace_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const { data: roleRow } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const verifiedWorkspaceId: string | null = profile?.workspace_id ?? null;
+    const verifiedRole: string | null = roleRow?.role ?? null;
+
     // Build context-aware system prompt
     let systemPrompt = SCRIBE_SYSTEM_PROMPT;
     
@@ -235,13 +255,13 @@ serve(async (req) => {
     if (context) {
       systemPrompt += `\n\n--- CURRENT SESSION ---
 User: ${context.user_name || 'Unknown'}
-Role: ${context.user_role || 'User'}
+Role: ${verifiedRole || 'User'}
 Page: ${context.current_page}`;
 
       // Fetch and add CRM statistics if we have workspace_id
-      if (context.workspace_id) {
-        console.log("Fetching CRM stats for workspace:", context.workspace_id);
-        const stats = await getCRMStats(supabase, context.workspace_id, context.user_role);
+      if (verifiedWorkspaceId) {
+        console.log("Fetching CRM stats for workspace:", verifiedWorkspaceId);
+        const stats = await getCRMStats(supabase, verifiedWorkspaceId, verifiedRole, userId);
         
         systemPrompt += `\n\n--- YOUR CRM STATISTICS ---
 Total Contacts: ${stats.total_contacts}
@@ -261,7 +281,7 @@ Actions Due Today: ${stats.actions_today}`;
         }
 
         // Fetch and add available assets
-        const assets = await getWorkspaceAssets(supabase, context.workspace_id);
+        const assets = await getWorkspaceAssets(supabase, verifiedWorkspaceId);
         if (assets.length > 0) {
           systemPrompt += `\n\n--- AVAILABLE ASSETS ---`;
           for (const asset of assets) {
@@ -308,7 +328,7 @@ Next Action Date: ${d.next_action_date || 'Not set'}
 Internal Notes: ${d.internal_notes || 'None'}`;
     }
 
-    console.log("Scribe chat - User:", context?.user_name, "Page:", context?.current_page, "Workspace:", context?.workspace_id);
+    console.log("Scribe chat - User:", userId, "Page:", context?.current_page, "Workspace:", verifiedWorkspaceId);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
