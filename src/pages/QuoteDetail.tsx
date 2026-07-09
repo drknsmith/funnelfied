@@ -47,6 +47,12 @@ export default function QuoteDetail() {
   const [processingMilestones, setProcessingMilestones] = useState(false);
   const [milestonesDirty, setMilestonesDirty] = useState(false);
   const [localMilestones, setLocalMilestones] = useState<Array<{ name: string; description: string; target_date: string }> | null>(null);
+  const [processingWork, setProcessingWork] = useState(false);
+  const [workDirty, setWorkDirty] = useState(false);
+  const [localWork, setLocalWork] = useState<Array<{ name: string; description: string }> | null>(null);
+  const [processingDeliverables, setProcessingDeliverables] = useState(false);
+  const [deliverablesDirty, setDeliverablesDirty] = useState(false);
+  const [localDeliverables, setLocalDeliverables] = useState<Array<{ name: string; description: string }> | null>(null);
   const qc = useQueryClient();
 
   const [local, setLocal] = useState<Quote | null>(null);
@@ -100,6 +106,11 @@ export default function QuoteDetail() {
   const deliverables: Array<{ name: string; description: string }> = Array.isArray((local as any).sow_deliverables)
     ? (local as any).sow_deliverables
     : [];
+  const workItems: Array<{ name: string; description: string }> = Array.isArray((local as any).sow_work_items)
+    ? (local as any).sow_work_items
+    : [];
+  const effectiveWork = localWork ?? workItems;
+  const effectiveDeliverables = localDeliverables ?? deliverables;
   const milestones: Array<{ name: string; description: string; target_date: string }> = Array.isArray((local as any).sow_milestones)
     ? (local as any).sow_milestones
     : [];
@@ -174,6 +185,90 @@ export default function QuoteDetail() {
     setMilestonesDirty(false);
     setLocalMilestones(null);
     toast({ title: 'Milestones saved' });
+  }
+
+  async function processWork() {
+    setProcessingWork(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-work', {
+        body: { quoteId: local!.id, workspaceId, currentItems: effectiveWork },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const next = Array.isArray((data as any)?.items) ? (data as any).items : [];
+      setLocalWork(next);
+      setWorkDirty(true);
+      const warnings: string[] = Array.isArray((data as any)?.warnings) ? (data as any).warnings : [];
+      warnings.forEach((w) => toast({ title: 'Heads up', description: w }));
+      toast({ title: 'AI suggestions applied — review and Save' });
+    } catch (e: any) {
+      toast({ title: 'Work processing failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setProcessingWork(false);
+    }
+  }
+
+  function updateWork(i: number, patch: Partial<{ name: string; description: string }>) {
+    const next = [...effectiveWork];
+    next[i] = { ...next[i], ...patch };
+    setLocalWork(next);
+    setWorkDirty(true);
+  }
+  function removeWork(i: number) {
+    setLocalWork(effectiveWork.filter((_, j) => j !== i));
+    setWorkDirty(true);
+  }
+  function addWork() {
+    setLocalWork([...effectiveWork, { name: '', description: '' }]);
+    setWorkDirty(true);
+  }
+  function saveWork() {
+    save({ sow_work_items: effectiveWork } as any);
+    setWorkDirty(false);
+    setLocalWork(null);
+    toast({ title: 'Work items saved' });
+  }
+
+  async function processDeliverables() {
+    setProcessingDeliverables(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-deliverables', {
+        body: { quoteId: local!.id, workspaceId, currentItems: effectiveDeliverables },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const next = Array.isArray((data as any)?.items) ? (data as any).items : [];
+      setLocalDeliverables(next);
+      setDeliverablesDirty(true);
+      const warnings: string[] = Array.isArray((data as any)?.warnings) ? (data as any).warnings : [];
+      warnings.forEach((w) => toast({ title: 'Heads up', description: w }));
+      toast({ title: 'AI suggestions applied — review and Save' });
+    } catch (e: any) {
+      toast({ title: 'Deliverables processing failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setProcessingDeliverables(false);
+    }
+  }
+
+  function updateDeliverable(i: number, patch: Partial<{ name: string; description: string }>) {
+    const next = [...effectiveDeliverables];
+    next[i] = { ...next[i], ...patch };
+    setLocalDeliverables(next);
+    setDeliverablesDirty(true);
+  }
+  function removeDeliverable(i: number) {
+    setLocalDeliverables(effectiveDeliverables.filter((_, j) => j !== i));
+    setDeliverablesDirty(true);
+  }
+  function addDeliverable() {
+    setLocalDeliverables([...effectiveDeliverables, { name: '', description: '' }]);
+    setDeliverablesDirty(true);
+  }
+  function saveDeliverables() {
+    save({ sow_deliverables: effectiveDeliverables } as any);
+    setDeliverablesDirty(false);
+    setLocalDeliverables(null);
+    toast({ title: 'Deliverables saved' });
   }
 
   return (
