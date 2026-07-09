@@ -38,6 +38,7 @@ export interface SavedReport {
   expiresAt: string | null;
   createdAt: string;
   dealId: string | null;
+  workspaceId: string | null;
 }
 
 function generateToken(): string {
@@ -180,7 +181,8 @@ export function useProposalReport() {
         mapCenter: data.map_center as { lat: number; lng: number } | null,
         expiresAt: data.expires_at,
         createdAt: data.created_at,
-        dealId: data.deal_id
+        dealId: data.deal_id,
+        workspaceId: (data as any).workspace_id ?? null,
       };
     } catch (error) {
       console.error('Error loading report:', error);
@@ -221,7 +223,8 @@ export function useProposalReport() {
         mapCenter: data.map_center as { lat: number; lng: number } | null,
         expiresAt: data.expires_at,
         createdAt: data.created_at,
-        dealId: data.deal_id
+        dealId: data.deal_id,
+        workspaceId: (data as any).workspace_id ?? null,
       };
     } catch (error) {
       console.error('Error loading report by deal ID:', error);

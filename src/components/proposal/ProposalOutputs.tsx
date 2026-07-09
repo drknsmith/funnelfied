@@ -29,7 +29,7 @@ export function ProposalOutputsComponent({
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
-            Recommended Budget
+            Recommended Fitness Equipment Budget
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -76,7 +76,7 @@ export function ProposalOutputsComponent({
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Ruler className="h-5 w-5 text-primary" />
-            Recommended Square Footage
+            Recommended Fitness Center Square Footage
           </CardTitle>
         </CardHeader>
         <CardContent>

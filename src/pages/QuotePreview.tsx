@@ -1,10 +1,12 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Printer, ArrowLeft, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { useQuote, useQuoteContractorItems } from '@/hooks/useQuotes';
 import logoAsset from '@/assets/red-loft-logo.png.asset.json';
+import { useProposalReport, type SavedReport } from '@/hooks/useProposalReport';
+import { formatCurrency, formatNumber } from '@/lib/superiorProposalAlgorithm';
 import {
   PHASES,
   laborSubtotal,
@@ -48,6 +50,18 @@ export default function QuotePreview() {
   const doc = params.get('doc') === 'invoice' ? 'invoice' : 'sow';
   const { data: quote } = useQuote(id);
   const { items } = useQuoteContractorItems(id);
+  const { loadReportByDealId } = useProposalReport();
+  const [research, setResearch] = useState<SavedReport | null>(null);
+  const includeResearch = !!(quote as any)?.sow_include_research;
+  const dealId = (quote as any)?.deal_id as string | undefined;
+
+  useEffect(() => {
+    if (!includeResearch || !dealId) { setResearch(null); return; }
+    (async () => {
+      const r = await loadReportByDealId(dealId);
+      setResearch(r);
+    })();
+  }, [includeResearch, dealId]);
 
   useEffect(() => {
     document.body.classList.add('quote-print-mode');
@@ -143,6 +157,26 @@ export default function QuotePreview() {
       lines.push('');
     }
     if (billingSentence) lines.push(`## Rate & Billing Terms\n\n${billingSentence}\n`);
+    if (includeResearch && research) {
+      const b = research.outputs?.section1_budget;
+      const s = research.outputs?.section2_squareFootage;
+      const e = research.outputs?.section3_equipmentFocus;
+      lines.push(`## Location Research\n`);
+      if (research.communityAddress) lines.push(`Address: ${research.communityAddress}\n`);
+      if (b?.ok) lines.push(`- **Recommended Fitness Equipment Budget:** ${formatCurrency(b.budget || 0)} (${formatCurrency(b.costPerSF || 0)} / SF, Class ${b.propertyClass})`);
+      if (s?.ok) lines.push(`- **Recommended Fitness Center Square Footage:** ${formatNumber(s.squareFootage || 0)} sq ft`);
+      if (e?.topPriorities?.length) lines.push(`- **Equipment Focus:** ${e.topPriorities.map((p: any) => p.type).join(', ')}`);
+      if (e?.activityLevel) lines.push(`- **Activity Profile:** ${e.activityLevel}`);
+      if (research.multifamilyComps?.length) {
+        lines.push(`\n**Multifamily Comps (${research.multifamilyComps.length})**`);
+        research.multifamilyComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
+      }
+      if (research.fitnessComps?.length) {
+        lines.push(`\n**Fitness Comps (${research.fitnessComps.length})**`);
+        research.fitnessComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
+      }
+      lines.push('');
+    }
     if (termsAndConditions) {
       if (termsSplit) {
         lines.push(`## Terms and Conditions\n\n${termsSplit.before}\n`);
@@ -287,6 +321,59 @@ export default function QuotePreview() {
           <section>
             <h2 className="sow-h2">Rate &amp; Billing Terms</h2>
             <p className="sow-body">{billingSentence}</p>
+          </section>
+        )}
+
+        {includeResearch && research && (
+          <section>
+            <h2 className="sow-h2">Location Research</h2>
+            {research.communityAddress && (
+              <p className="sow-muted mb-2">{research.communityAddress}</p>
+            )}
+            <div className="grid grid-cols-2 gap-4 sow-body">
+              {research.outputs?.section1_budget?.ok && (
+                <div>
+                  <p className="sow-eyebrow">Recommended Fitness Equipment Budget</p>
+                  <p className="sow-strong">{formatCurrency(research.outputs.section1_budget.budget || 0)}</p>
+                  <p className="sow-muted">{formatCurrency(research.outputs.section1_budget.costPerSF || 0)} / SF · Class {research.outputs.section1_budget.propertyClass}</p>
+                </div>
+              )}
+              {research.outputs?.section2_squareFootage?.ok && (
+                <div>
+                  <p className="sow-eyebrow">Recommended Fitness Center Square Footage</p>
+                  <p className="sow-strong">{formatNumber(research.outputs.section2_squareFootage.squareFootage || 0)} sq ft</p>
+                </div>
+              )}
+            </div>
+            {research.outputs?.section3_equipmentFocus && (
+              <div className="mt-3 sow-body">
+                <p className="sow-eyebrow">Equipment Focus</p>
+                <p>{research.outputs.section3_equipmentFocus.topPriorities?.map((p: any) => p.type).join(' · ')}</p>
+                {research.outputs.section3_equipmentFocus.activityLevel && (
+                  <p className="sow-muted">Activity Profile: {research.outputs.section3_equipmentFocus.activityLevel}</p>
+                )}
+              </div>
+            )}
+            {research.multifamilyComps?.length > 0 && (
+              <div className="mt-4 sow-body">
+                <p className="sow-eyebrow">Multifamily Comps ({research.multifamilyComps.length})</p>
+                <ul className="list-disc pl-5">
+                  {research.multifamilyComps.slice(0, 8).map((c: any, i: number) => (
+                    <li key={i}><span className="sow-strong">{c.name}</span> — {c.distance?.toFixed(1)} mi <span className="sow-muted">({c.address})</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {research.fitnessComps?.length > 0 && (
+              <div className="mt-4 sow-body">
+                <p className="sow-eyebrow">Fitness Comps ({research.fitnessComps.length})</p>
+                <ul className="list-disc pl-5">
+                  {research.fitnessComps.slice(0, 8).map((c: any, i: number) => (
+                    <li key={i}><span className="sow-strong">{c.name}</span> — {c.distance?.toFixed(1)} mi <span className="sow-muted">({c.address})</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
         )}
 

@@ -20,6 +20,8 @@ import { useQuote, useQuoteContractorItems, useQuotes, Quote } from '@/hooks/use
 import { useContacts } from '@/hooks/useContacts';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useProposalReport } from '@/hooks/useProposalReport';
+import { isRedLoftWorkspace } from '@/lib/workspaceFeatures';
 import {
   PHASES,
   laborSubtotal,
@@ -51,6 +53,19 @@ export default function QuoteDetail() {
   useEffect(() => { if (quote) setLocal(quote); }, [quote]);
   const accountId = (quote as any)?.deals?.account_id as string | undefined;
   const { contacts: accountContacts } = useContacts(accountId);
+  const { loadReportByDealId } = useProposalReport();
+  const [dealResearch, setDealResearch] = useState<{ community_name: string; created_at: string } | null>(null);
+  const isRedLoft = isRedLoftWorkspace(workspaceId);
+
+  useEffect(() => {
+    const dealId = (quote as any)?.deal_id;
+    if (!isRedLoft || !dealId) { setDealResearch(null); return; }
+    (async () => {
+      const r = await loadReportByDealId(dealId);
+      if (r) setDealResearch({ community_name: r.communityName, created_at: r.createdAt });
+      else setDealResearch(null);
+    })();
+  }, [(quote as any)?.deal_id, isRedLoft]);
 
   if (isLoading || !local) {
     return <AppLayout><div className="p-6">Loading…</div></AppLayout>;
@@ -734,6 +749,34 @@ export default function QuoteDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {isRedLoft && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Location Research</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={!!(local as any).sow_include_research}
+                  onCheckedChange={(v) => save({ sow_include_research: v } as any)}
+                  disabled={!dealResearch}
+                />
+                <Label>Include Location Research in SOW</Label>
+              </div>
+              {dealResearch ? (
+                <p className="text-xs text-muted-foreground">
+                  Latest research: {dealResearch.community_name || 'Untitled'} — saved {new Date(dealResearch.created_at).toLocaleDateString()}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No research saved to this opportunity yet. Use Research → Share to Opportunity.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                When enabled, the research summary is inserted as the last section before Terms and Conditions.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
           </TabsContent>
 
