@@ -157,26 +157,6 @@ export default function QuotePreview() {
       lines.push('');
     }
     if (billingSentence) lines.push(`## Rate & Billing Terms\n\n${billingSentence}\n`);
-    if (includeResearch && research) {
-      const b = research.outputs?.section1_budget;
-      const s = research.outputs?.section2_squareFootage;
-      const e = research.outputs?.section3_equipmentFocus;
-      lines.push(`## Location Research\n`);
-      if (research.communityAddress) lines.push(`Address: ${research.communityAddress}\n`);
-      if (b?.ok) lines.push(`- **Recommended Fitness Equipment Budget:** ${formatCurrency(b.budget || 0)} (${formatCurrency(b.costPerSF || 0)} / SF, Class ${b.propertyClass})`);
-      if (s?.ok) lines.push(`- **Recommended Fitness Center Square Footage:** ${formatNumber(s.squareFootage || 0)} sq ft`);
-      if (e?.topPriorities?.length) lines.push(`- **Equipment Focus:** ${e.topPriorities.map((p: any) => p.type).join(', ')}`);
-      if (e?.activityLevel) lines.push(`- **Activity Profile:** ${e.activityLevel}`);
-      if (research.multifamilyComps?.length) {
-        lines.push(`\n**Multifamily Comps (${research.multifamilyComps.length})**`);
-        research.multifamilyComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
-      }
-      if (research.fitnessComps?.length) {
-        lines.push(`\n**Fitness Comps (${research.fitnessComps.length})**`);
-        research.fitnessComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
-      }
-      lines.push('');
-    }
     if (termsAndConditions) {
       if (termsSplit) {
         lines.push(`## Terms and Conditions\n\n${termsSplit.before}\n`);
@@ -195,6 +175,26 @@ export default function QuotePreview() {
     }
     if (termsAndConditions && termsSplit?.after) {
       lines.push(`## Terms and Conditions (continued)\n\n${termsSplit.after}\n`);
+    }
+    if (includeResearch && research) {
+      const b = research.outputs?.section1_budget;
+      const s = research.outputs?.section2_squareFootage;
+      const e = research.outputs?.section3_equipmentFocus;
+      lines.push(`## Appendix: Location Research\n`);
+      if (research.communityAddress) lines.push(`Address: ${research.communityAddress}\n`);
+      if (b?.ok) lines.push(`- **Recommended Fitness Equipment Budget:** ${formatCurrency(b.budget || 0)} (${formatCurrency(b.costPerSF || 0)} / SF, Class ${b.propertyClass})`);
+      if (s?.ok) lines.push(`- **Recommended Fitness Center Square Footage:** ${formatNumber(s.squareFootage || 0)} sq ft`);
+      if (e?.topPriorities?.length) lines.push(`- **Equipment Focus:** ${e.topPriorities.map((p: any) => p.type).join(', ')}`);
+      if (e?.activityLevel) lines.push(`- **Activity Profile:** ${e.activityLevel}`);
+      if (research.multifamilyComps?.length) {
+        lines.push(`\n**Multifamily Comps (${research.multifamilyComps.length})**`);
+        research.multifamilyComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
+      }
+      if (research.fitnessComps?.length) {
+        lines.push(`\n**Fitness Comps (${research.fitnessComps.length})**`);
+        research.fitnessComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
+      }
+      lines.push('');
     }
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
