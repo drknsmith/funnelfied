@@ -999,7 +999,7 @@ export type Database = {
           created_at: string
           deal_id: string | null
           demographics: Json | null
-          expires_at: string
+          expires_at: string | null
           fitness_comps: Json | null
           id: string
           map_center: Json | null
@@ -1021,7 +1021,7 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           demographics?: Json | null
-          expires_at?: string
+          expires_at?: string | null
           fitness_comps?: Json | null
           id?: string
           map_center?: Json | null
@@ -1043,7 +1043,7 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           demographics?: Json | null
-          expires_at?: string
+          expires_at?: string | null
           fitness_comps?: Json | null
           id?: string
           map_center?: Json | null
