@@ -324,9 +324,45 @@ export default function QuotePreview() {
           </section>
         )}
 
-        {includeResearch && research && (
+        {termsBeforeSignatures && (
           <section>
-            <h2 className="sow-h2">Location Research</h2>
+            <h2 className="sow-h2">Terms and Conditions</h2>
+            <p className="sow-body whitespace-pre-wrap">{termsBeforeSignatures}</p>
+          </section>
+        )}
+
+        <section>
+          <h2 className="sow-h2">Signatures</h2>
+          <div className="grid grid-cols-2 gap-8 sow-body">
+            <div>
+              <p className="sow-strong">{sigProviderCompany}</p>
+              <div className="mt-8 border-t border-black pt-1">
+                <p className="sow-strong">{sigProviderName}</p>
+                {sigProviderTitle && <p className="sow-muted">{sigProviderTitle}</p>}
+                <p className="sow-muted mt-2">Date: ______________________</p>
+              </div>
+            </div>
+            <div>
+              <p className="sow-strong">{sigClientCompany}</p>
+              <div className="mt-8 border-t border-black pt-1">
+                <p className="sow-strong">{sigClientName}</p>
+                {sigClientTitle && <p className="sow-muted">{sigClientTitle}</p>}
+                <p className="sow-muted mt-2">Date: ______________________</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {termsAfterSignatures && (
+          <section>
+            <h2 className="sow-h2">Terms and Conditions (continued)</h2>
+            <p className="sow-body whitespace-pre-wrap">{termsAfterSignatures}</p>
+          </section>
+        )}
+
+        {includeResearch && research && (
+          <section style={{ pageBreakBefore: 'always' }}>
+            <h2 className="sow-h2">Appendix: Location Research</h2>
             {research.communityAddress && (
               <p className="sow-muted mb-2">{research.communityAddress}</p>
             )}
@@ -374,42 +410,6 @@ export default function QuotePreview() {
                 </ul>
               </div>
             )}
-          </section>
-        )}
-
-        {termsBeforeSignatures && (
-          <section>
-            <h2 className="sow-h2">Terms and Conditions</h2>
-            <p className="sow-body whitespace-pre-wrap">{termsBeforeSignatures}</p>
-          </section>
-        )}
-
-        <section>
-          <h2 className="sow-h2">Signatures</h2>
-          <div className="grid grid-cols-2 gap-8 sow-body">
-            <div>
-              <p className="sow-strong">{sigProviderCompany}</p>
-              <div className="mt-8 border-t border-black pt-1">
-                <p className="sow-strong">{sigProviderName}</p>
-                {sigProviderTitle && <p className="sow-muted">{sigProviderTitle}</p>}
-                <p className="sow-muted mt-2">Date: ______________________</p>
-              </div>
-            </div>
-            <div>
-              <p className="sow-strong">{sigClientCompany}</p>
-              <div className="mt-8 border-t border-black pt-1">
-                <p className="sow-strong">{sigClientName}</p>
-                {sigClientTitle && <p className="sow-muted">{sigClientTitle}</p>}
-                <p className="sow-muted mt-2">Date: ______________________</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {termsAfterSignatures && (
-          <section>
-            <h2 className="sow-h2">Terms and Conditions (continued)</h2>
-            <p className="sow-body whitespace-pre-wrap">{termsAfterSignatures}</p>
           </section>
         )}
 
