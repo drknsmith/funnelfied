@@ -251,6 +251,29 @@ export default function QuoteDetail() {
     }
   }
 
+  async function processHours() {
+    setProcessingHours(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-hours', {
+        body: { quoteId: local!.id, workspaceId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const min = Number((data as any)?.min);
+      const max = Number((data as any)?.max);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) throw new Error('Invalid AI response');
+      save({ sow_estimated_hours_min: min, sow_estimated_hours_max: max } as any);
+      const warnings: string[] = Array.isArray((data as any)?.warnings) ? (data as any).warnings : [];
+      warnings.forEach((w) => toast({ title: 'Heads up', description: w }));
+      const rationale = typeof (data as any)?.rationale === 'string' ? (data as any).rationale : '';
+      toast({ title: `AI estimated ${min}–${max} hrs`, description: rationale || undefined });
+    } catch (e: any) {
+      toast({ title: 'Hours estimation failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setProcessingHours(false);
+    }
+  }
+
   function updateDeliverable(i: number, patch: Partial<{ name: string; description: string }>) {
     const next = [...effectiveDeliverables];
     next[i] = { ...next[i], ...patch };
