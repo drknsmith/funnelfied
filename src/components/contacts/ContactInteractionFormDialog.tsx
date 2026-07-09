@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { INTERACTION_TYPES } from '@/hooks/useInteractions';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
   type: z.string().min(1, 'Type is required'),
@@ -103,37 +104,23 @@ export default function ContactInteractionFormDialog({
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interaction-assist`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            raw_text: rawText,
-            deal_context: contactContext
-              ? {
-                  deal_name: contactContext.contact_name,
-                  account_name: contactContext.account_name,
-                  stage: contactContext.title || 'Contact',
-                }
-              : {
-                  deal_name: 'Unknown',
-                  account_name: 'Unknown',
-                  stage: 'Contact',
-                },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze notes');
-      }
-
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('interaction-assist', {
+        body: {
+          raw_text: rawText,
+          deal_context: contactContext
++            ? {
+                deal_name: contactContext.contact_name,
+                account_name: contactContext.account_name,
+                stage: contactContext.title || 'Contact',
+              }
+            : {
+                deal_name: 'Unknown',
+                account_name: 'Unknown',
+                stage: 'Contact',
+              },
+        },
+      });
+      if (error) throw new Error(error.message || 'Failed to analyze notes');
 
       if (data.summary) form.setValue('summary', data.summary);
       if (data.objections) form.setValue('objections', data.objections);
