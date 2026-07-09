@@ -1,0 +1,1 @@
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS sow_include_research boolean NOT NULL DEFAULT false;

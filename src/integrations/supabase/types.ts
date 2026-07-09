@@ -1175,6 +1175,7 @@ export type Database = {
           sow_estimated_hours_min: number | null
           sow_executive_summary: string | null
           sow_expense_threshold: number
+          sow_include_research: boolean
           sow_invoice_terms: string | null
           sow_invoicing_cadence: string | null
           sow_milestones: Json
@@ -1235,6 +1236,7 @@ export type Database = {
           sow_estimated_hours_min?: number | null
           sow_executive_summary?: string | null
           sow_expense_threshold?: number
+          sow_include_research?: boolean
           sow_invoice_terms?: string | null
           sow_invoicing_cadence?: string | null
           sow_milestones?: Json
@@ -1295,6 +1297,7 @@ export type Database = {
           sow_estimated_hours_min?: number | null
           sow_executive_summary?: string | null
           sow_expense_threshold?: number
+          sow_include_research?: boolean
           sow_invoice_terms?: string | null
           sow_invoicing_cadence?: string | null
           sow_milestones?: Json
