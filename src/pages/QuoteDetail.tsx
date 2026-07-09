@@ -750,6 +750,34 @@ export default function QuoteDetail() {
           </CardContent>
         </Card>
 
+        {isRedLoft && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Location Research</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={!!(local as any).sow_include_research}
+                  onCheckedChange={(v) => save({ sow_include_research: v } as any)}
+                  disabled={!dealResearch}
+                />
+                <Label>Include Location Research in SOW</Label>
+              </div>
+              {dealResearch ? (
+                <p className="text-xs text-muted-foreground">
+                  Latest research: {dealResearch.community_name || 'Untitled'} — saved {new Date(dealResearch.created_at).toLocaleDateString()}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No research saved to this opportunity yet. Use Research → Share to Opportunity.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                When enabled, the research summary is inserted as the last section before Terms and Conditions.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
           </TabsContent>
 
           <TabsContent value="invoice" className="space-y-6 mt-4">
