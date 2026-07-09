@@ -604,14 +604,13 @@ export default function QuoteDetail() {
               </div>
             </div>
 
-            {/* Work */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Work</Label>
+                <Label>Scope of Services</Label>
                 <div className="flex gap-2">
                   <Button type="button" size="sm" variant="outline" onClick={processWork} disabled={processingWork}>
                     {processingWork ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                    Process Work with AI
+                    Process Scope with AI
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={addWork}>
                     <Plus className="mr-1 h-3 w-3" /> Add
@@ -624,7 +623,7 @@ export default function QuoteDetail() {
               {workDirty && (
                 <p className="text-xs text-primary">AI suggestions applied — review and Save.</p>
               )}
-              {effectiveWork.length === 0 && <p className="text-xs text-muted-foreground">No work items yet.</p>}
+              {effectiveWork.length === 0 && <p className="text-xs text-muted-foreground">No scope items yet.</p>}
               {effectiveWork.map((w, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-start">
                   <Input
