@@ -580,45 +580,86 @@ export default function QuoteDetail() {
               </div>
             </div>
 
+            {/* Work */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Work</Label>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={processWork} disabled={processingWork}>
+                    {processingWork ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                    Process Work with AI
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={addWork}>
+                    <Plus className="mr-1 h-3 w-3" /> Add
+                  </Button>
+                  {workDirty && (
+                    <Button type="button" size="sm" onClick={saveWork}>Save</Button>
+                  )}
+                </div>
+              </div>
+              {workDirty && (
+                <p className="text-xs text-primary">AI suggestions applied — review and Save.</p>
+              )}
+              {effectiveWork.length === 0 && <p className="text-xs text-muted-foreground">No work items yet.</p>}
+              {effectiveWork.map((w, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                  <Input
+                    className="col-span-4"
+                    placeholder="Name"
+                    value={w.name}
+                    onChange={(e) => updateWork(i, { name: e.target.value })}
+                  />
+                  <Textarea
+                    className="col-span-7"
+                    rows={2}
+                    placeholder="Short description"
+                    value={w.description}
+                    onChange={(e) => updateWork(i, { description: e.target.value })}
+                  />
+                  <Button type="button" size="icon" variant="ghost" className="col-span-1" onClick={() => removeWork(i)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
             {/* Deliverables */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Deliverables</Label>
-                <Button type="button" size="sm" variant="outline" onClick={() => save({ sow_deliverables: [...deliverables, { name: '', description: '' }] } as any)}>
-                  <Plus className="mr-1 h-3 w-3" /> Add
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={processDeliverables} disabled={processingDeliverables}>
+                    {processingDeliverables ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                    Process Deliverables with AI
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={addDeliverable}>
+                    <Plus className="mr-1 h-3 w-3" /> Add
+                  </Button>
+                  {deliverablesDirty && (
+                    <Button type="button" size="sm" onClick={saveDeliverables}>Save</Button>
+                  )}
+                </div>
               </div>
-              {deliverables.length === 0 && <p className="text-xs text-muted-foreground">No deliverables yet.</p>}
-              {deliverables.map((d, i) => (
+              {deliverablesDirty && (
+                <p className="text-xs text-primary">AI suggestions applied — review and Save.</p>
+              )}
+              {effectiveDeliverables.length === 0 && <p className="text-xs text-muted-foreground">No deliverables yet.</p>}
+              {effectiveDeliverables.map((d, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-start">
                   <Input
                     className="col-span-4"
                     placeholder="Name"
                     value={d.name}
-                    onChange={(e) => {
-                      const next = [...deliverables];
-                      next[i] = { ...next[i], name: e.target.value };
-                      save({ sow_deliverables: next } as any);
-                    }}
+                    onChange={(e) => updateDeliverable(i, { name: e.target.value })}
                   />
                   <Textarea
                     className="col-span-7"
                     rows={2}
                     placeholder="Short description"
                     value={d.description}
-                    onChange={(e) => {
-                      const next = [...deliverables];
-                      next[i] = { ...next[i], description: e.target.value };
-                      save({ sow_deliverables: next } as any);
-                    }}
+                    onChange={(e) => updateDeliverable(i, { description: e.target.value })}
                   />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="col-span-1"
-                    onClick={() => save({ sow_deliverables: deliverables.filter((_, j) => j !== i) } as any)}
-                  >
+                  <Button type="button" size="icon" variant="ghost" className="col-span-1" onClick={() => removeDeliverable(i)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
