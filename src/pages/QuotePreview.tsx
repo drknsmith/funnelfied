@@ -52,6 +52,7 @@ export default function QuotePreview() {
   const { items } = useQuoteContractorItems(id);
   const { loadReportByDealId } = useProposalReport();
   const [research, setResearch] = useState<SavedReport | null>(null);
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const includeResearch = !!(quote as any)?.sow_include_research;
   const dealId = (quote as any)?.deal_id as string | undefined;
 
@@ -62,6 +63,16 @@ export default function QuotePreview() {
       setResearch(r);
     })();
   }, [includeResearch, dealId]);
+
+  useEffect(() => {
+    if (!includeResearch) return;
+    (async () => {
+      try {
+        const { data } = await (await import('@/integrations/supabase/client')).supabase.functions.invoke('get-mapbox-token');
+        if ((data as any)?.token) setMapboxToken((data as any).token);
+      } catch { /* ignore */ }
+    })();
+  }, [includeResearch]);
 
   useEffect(() => {
     document.body.classList.add('quote-print-mode');
@@ -92,6 +103,7 @@ export default function QuotePreview() {
 
   const sowRef = `SOW-${(quote.id || '').slice(0, 6).toUpperCase()}-v${quote.version_number}`;
   const deliverables = Array.isArray(quote.sow_deliverables) ? quote.sow_deliverables : [];
+  const workItems: Array<{ name: string; description: string }> = Array.isArray((quote as any).sow_work_items) ? (quote as any).sow_work_items : [];
   const milestones = Array.isArray(quote.sow_milestones) ? quote.sow_milestones : [];
   const pillars: string[] = Array.isArray(quote.sow_approach_pillars) ? quote.sow_approach_pillars : [];
   const termsAndConditions: string = (quote as any).sow_terms_and_conditions ?? '';
@@ -128,6 +140,19 @@ export default function QuotePreview() {
     if (thr > 0) parts.push(`Expenses over ${formatMoney(thr)} require prior written approval.`);
     return parts.join(' ');
   }, [doc, rate, quote]);
+
+  const staticMapUrl = (() => {
+    if (!research?.mapCenter || !mapboxToken) return null;
+    const { lat, lng } = research.mapCenter;
+    const markers: string[] = [`pin-l-star+fbbf24(${lng},${lat})`];
+    (research.multifamilyComps || []).slice(0, 20).forEach((c: any) => {
+      if (c.lat && c.lng) markers.push(`pin-s+ef4444(${c.lng},${c.lat})`);
+    });
+    (research.fitnessComps || []).slice(0, 20).forEach((c: any) => {
+      if (c.lat && c.lng) markers.push(`pin-s+3b82f6(${c.lng},${c.lat})`);
+    });
+    return `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/${markers.join(',')}/auto/800x400@2x?access_token=${mapboxToken}`;
+  })();
 
   const copyMarkdown = async () => {
     const lines: string[] = [];
