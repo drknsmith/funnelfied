@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { canUseResearch } from '@/lib/workspaceFeatures';
+import { canUseResearch, isRedLoftWorkspace } from '@/lib/workspaceFeatures';
 import { Button } from '@/components/ui/button';
 import { Printer, Share2, Loader2, Copy, Check, Save } from 'lucide-react';
 import { 
@@ -46,6 +46,7 @@ export default function Research() {
 
   // Check workspace access
   const hasAccess = canUseResearch(featureWorkspaceId);
+  const isRedLoft = isRedLoftWorkspace(featureWorkspaceId);
 
   // Redirect if no access
   useEffect(() => {
@@ -191,7 +192,7 @@ export default function Research() {
             </p>
           </div>
           <div className="flex gap-2">
-            {selectedDealId && (
+            {selectedDealId && !isRedLoft && (
               <Button
                 variant="default"
                 onClick={async () => {
@@ -240,13 +241,69 @@ export default function Research() {
               <Printer className="h-4 w-4 mr-2" />
               Print PDF
             </Button>
-            <Button
-              onClick={() => setShareDialogOpen(true)}
-              disabled={!outputs.section1_budget.ok && !outputs.section2_squareFootage.ok}
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share Research
-            </Button>
+            {isRedLoft ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setShareDialogOpen(true)}
+                  disabled={!outputs.section1_budget.ok && !outputs.section2_squareFootage.ok}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Copy Public Link
+                </Button>
+                <Button
+                  onClick={async () => {
+                    const result = await saveReport(
+                      {
+                        communityName,
+                        communityAddress,
+                        units: units ? parseInt(units) : undefined,
+                        sfOverride: sfOverride ? parseInt(sfOverride) : undefined,
+                        propertyClass,
+                        demographics,
+                        compsRadius,
+                        advancedOverrides,
+                        outputs,
+                        multifamilyComps,
+                        fitnessComps,
+                        mapCenter,
+                        dealId: selectedDealId
+                      },
+                      undefined
+                    );
+                    if (result) {
+                      toast.success('Research shared to opportunity', {
+                        action: {
+                          label: 'View Opportunity',
+                          onClick: () => navigate(`/deals/${selectedDealId}`)
+                        }
+                      });
+                    }
+                  }}
+                  disabled={
+                    !selectedDealId ||
+                    isSaving ||
+                    (!outputs.section1_budget.ok && !outputs.section2_squareFootage.ok)
+                  }
+                  title={!selectedDealId ? 'Select an opportunity first' : undefined}
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Share to Opportunity
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={() => setShareDialogOpen(true)}
+                disabled={!outputs.section1_budget.ok && !outputs.section2_squareFootage.ok}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Research
+              </Button>
+            )}
           </div>
         </div>
 
@@ -303,6 +360,7 @@ export default function Research() {
             fitnessComps={fitnessComps}
             mapCenter={mapCenter}
             mapboxToken={mapboxToken}
+            workspaceId={featureWorkspaceId}
           />
         </div>
 
