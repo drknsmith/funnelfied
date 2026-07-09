@@ -108,7 +108,7 @@ export default function ContactInteractionFormDialog({
         body: {
           raw_text: rawText,
           deal_context: contactContext
-+            ? {
+            ? {
                 deal_name: contactContext.contact_name,
                 account_name: contactContext.account_name,
                 stage: contactContext.title || 'Contact',
