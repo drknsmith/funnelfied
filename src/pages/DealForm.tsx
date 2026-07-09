@@ -199,13 +199,13 @@ export default function DealForm() {
       project_city: formData.project_city || null,
       project_state: formData.project_state || null,
       project_zip: formData.project_zip || null,
-      status: formData.stage === 'won' ? 'won' : formData.stage === 'lost_archived' ? 'lost' : 'open',
+      status: formData.stage === 'closed' ? 'won' : 'open',
       last_meaningful_activity_date: undefined as string | undefined,
     };
 
     // Auto-update stage when proposal is submitted
-    if (formData.proposal_submitted_date && formData.stage !== 'proposal_out' && formData.stage !== 'decision' && formData.stage !== 'won') {
-      dealData.stage = 'proposal_out';
+    if (formData.proposal_submitted_date && formData.stage !== 'sow' && formData.stage !== 'under_contract' && formData.stage !== 'closed') {
+      dealData.stage = 'sow';
       dealData.last_meaningful_activity_date = new Date().toISOString().split('T')[0];
     }
 

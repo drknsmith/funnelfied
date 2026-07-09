@@ -21,13 +21,10 @@ interface MergeContext {
 const STAGE_LABELS: Record<string, string> = {
   signal_target: 'Signal Target',
   contacted: 'Contacted',
-  discovery_scheduled: 'Discovery Scheduled',
-  discovery_done: 'Discovery Done',
-  proposal_out: 'Proposal Out',
-  decision: 'Decision',
-  won: 'Won',
-  lost_archived: 'Lost/Archived',
-  nurture: 'Nurture',
+  discovery: 'Discovery',
+  sow: 'SOW',
+  under_contract: 'Under Contract',
+  closed: 'Closed',
 };
 
 const DEAL_TYPE_LABELS: Record<string, string> = {
