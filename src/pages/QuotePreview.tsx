@@ -53,8 +53,26 @@ export default function QuotePreview() {
   const { loadReportByDealId } = useProposalReport();
   const [research, setResearch] = useState<SavedReport | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const [playbookTerms, setPlaybookTerms] = useState<string>('');
   const includeResearch = !!(quote as any)?.sow_include_research;
   const dealId = (quote as any)?.deal_id as string | undefined;
+  const workspaceId = (quote as any)?.workspace_id as string | undefined;
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    (async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data } = await (supabase as any)
+          .from('playbooks')
+          .select('terms_and_conditions')
+          .eq('workspace_id', workspaceId)
+          .eq('kind', 'service_knowledge')
+          .maybeSingle();
+        if (data?.terms_and_conditions) setPlaybookTerms(data.terms_and_conditions);
+      } catch { /* ignore */ }
+    })();
+  }, [workspaceId]);
 
   useEffect(() => {
     if (!includeResearch || !dealId) { setResearch(null); return; }
@@ -106,7 +124,10 @@ export default function QuotePreview() {
   const workItems: Array<{ name: string; description: string }> = Array.isArray((quote as any).sow_work_items) ? (quote as any).sow_work_items : [];
   const milestones = Array.isArray(quote.sow_milestones) ? quote.sow_milestones : [];
   const pillars: string[] = Array.isArray(quote.sow_approach_pillars) ? quote.sow_approach_pillars : [];
-  const termsAndConditions: string = (quote as any).sow_terms_and_conditions ?? '';
+  const termsAndConditions: string =
+    ((quote as any).sow_terms_and_conditions && String((quote as any).sow_terms_and_conditions).trim())
+      ? (quote as any).sow_terms_and_conditions
+      : playbookTerms;
 
   const sigProviderCompany = (quote as any).sow_signature_provider_company || 'Red Loft Consulting';
   const sigProviderName = (quote as any).sow_signature_provider_name || quote.redloft_contact_name || '';
