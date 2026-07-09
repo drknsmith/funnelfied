@@ -312,6 +312,17 @@ export default function QuotePreview() {
           </section>
         )}
 
+        {workItems.length > 0 && (
+          <section>
+            <h2 className="sow-h2">Scope of Services</h2>
+            <ul className="sow-body list-disc pl-5 space-y-1">
+              {workItems.map((w, i) => (
+                <li key={i}><span className="sow-strong">{w.name || 'Item'}</span>{w.description ? ` — ${w.description}` : ''}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {deliverables.length > 0 && (
           <section>
             <h2 className="sow-h2">Deliverables</h2>
@@ -395,6 +406,16 @@ export default function QuotePreview() {
             <h2 className="sow-h2">Appendix: Location Research</h2>
             {research.communityAddress && (
               <p className="sow-muted mb-2">{research.communityAddress}</p>
+            )}
+            {staticMapUrl && (
+              <div className="mb-4">
+                <div className="flex gap-4 text-xs sow-muted mb-2">
+                  <span>★ Subject Property</span>
+                  <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#ef4444', borderRadius: 2, marginRight: 4 }} />Multifamily</span>
+                  <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#3b82f6', borderRadius: 999, marginRight: 4 }} />Fitness</span>
+                </div>
+                <img src={staticMapUrl} alt="Market map" style={{ width: '100%', maxHeight: 400, objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: 6 }} />
+              </div>
             )}
             <div className="grid grid-cols-2 gap-4 sow-body">
               {research.outputs?.section1_budget?.ok && (
