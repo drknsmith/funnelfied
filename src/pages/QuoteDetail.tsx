@@ -752,6 +752,8 @@ export default function QuoteDetail() {
 
           </TabsContent>
 
+          {/* placeholder to keep patch context correct */}
+
           <TabsContent value="invoice" className="space-y-6 mt-4">
             <div className="flex justify-end">
               <Button onClick={() => nav(`/quotes/${local.id}/preview?doc=invoice`)}>
