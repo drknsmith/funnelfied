@@ -51,6 +51,7 @@ export default function QuoteDetail() {
   const [workDirty, setWorkDirty] = useState(false);
   const [localWork, setLocalWork] = useState<Array<{ name: string; description: string }> | null>(null);
   const [processingDeliverables, setProcessingDeliverables] = useState(false);
+  const [processingHours, setProcessingHours] = useState(false);
   const [deliverablesDirty, setDeliverablesDirty] = useState(false);
   const [localDeliverables, setLocalDeliverables] = useState<Array<{ name: string; description: string }> | null>(null);
   const qc = useQueryClient();
@@ -247,6 +248,29 @@ export default function QuoteDetail() {
       toast({ title: 'Deliverables processing failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
     } finally {
       setProcessingDeliverables(false);
+    }
+  }
+
+  async function processHours() {
+    setProcessingHours(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-hours', {
+        body: { quoteId: local!.id, workspaceId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const min = Number((data as any)?.min);
+      const max = Number((data as any)?.max);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) throw new Error('Invalid AI response');
+      save({ sow_estimated_hours_min: min, sow_estimated_hours_max: max } as any);
+      const warnings: string[] = Array.isArray((data as any)?.warnings) ? (data as any).warnings : [];
+      warnings.forEach((w) => toast({ title: 'Heads up', description: w }));
+      const rationale = typeof (data as any)?.rationale === 'string' ? (data as any).rationale : '';
+      toast({ title: `AI estimated ${min}–${max} hrs`, description: rationale || undefined });
+    } catch (e: any) {
+      toast({ title: 'Hours estimation failed', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setProcessingHours(false);
     }
   }
 
@@ -747,7 +771,13 @@ export default function QuoteDetail() {
               />
             </div>
             <div>
-              <Label>Estimated Hours (min)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Estimated Hours (min)</Label>
+                <Button type="button" size="sm" variant="outline" onClick={processHours} disabled={processingHours}>
+                  {processingHours ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                  Process Estimated Hours with AI
+                </Button>
+              </div>
               <Input
                 type="number"
                 value={(local as any).sow_estimated_hours_min ?? ''}
