@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { INTERACTION_TYPES } from '@/hooks/useInteractions';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
   type: z.string().min(1, 'Type is required'),
@@ -109,31 +110,17 @@ export default function InteractionFormDialog({
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interaction-assist`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      const { data, error } = await supabase.functions.invoke('interaction-assist', {
+        body: {
+          raw_text: rawText,
+          deal_context: dealContext || {
+            deal_name: 'Unknown',
+            account_name: 'Unknown',
+            stage: 'Unknown',
           },
-          body: JSON.stringify({
-            raw_text: rawText,
-            deal_context: dealContext || {
-              deal_name: 'Unknown',
-              account_name: 'Unknown',
-              stage: 'Unknown',
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze notes');
-      }
-
-      const data = await response.json();
+        },
+      });
+      if (error) throw new Error(error.message || 'Failed to analyze notes');
 
       // Update form fields with AI-extracted data
       if (data.summary) form.setValue('summary', data.summary);
