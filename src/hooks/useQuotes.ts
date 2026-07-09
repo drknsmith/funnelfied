@@ -45,6 +45,7 @@ export interface Quote {
   sow_proposed_approach: string | null;
   sow_approach_pillars: string[] | null;
   sow_deliverables: Array<{ name: string; description: string }>;
+  sow_work_items: Array<{ name: string; description: string }>;
   sow_milestones: Array<{ name: string; description: string; target_date: string }>;
   sow_estimated_hours_min: number | null;
   sow_estimated_hours_max: number | null;
