@@ -1,0 +1,1 @@
+ALTER TABLE public.proposal_reports ALTER COLUMN expires_at DROP NOT NULL;
