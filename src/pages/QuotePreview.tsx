@@ -157,26 +157,6 @@ export default function QuotePreview() {
       lines.push('');
     }
     if (billingSentence) lines.push(`## Rate & Billing Terms\n\n${billingSentence}\n`);
-    if (includeResearch && research) {
-      const b = research.outputs?.section1_budget;
-      const s = research.outputs?.section2_squareFootage;
-      const e = research.outputs?.section3_equipmentFocus;
-      lines.push(`## Location Research\n`);
-      if (research.communityAddress) lines.push(`Address: ${research.communityAddress}\n`);
-      if (b?.ok) lines.push(`- **Recommended Fitness Equipment Budget:** ${formatCurrency(b.budget || 0)} (${formatCurrency(b.costPerSF || 0)} / SF, Class ${b.propertyClass})`);
-      if (s?.ok) lines.push(`- **Recommended Fitness Center Square Footage:** ${formatNumber(s.squareFootage || 0)} sq ft`);
-      if (e?.topPriorities?.length) lines.push(`- **Equipment Focus:** ${e.topPriorities.map((p: any) => p.type).join(', ')}`);
-      if (e?.activityLevel) lines.push(`- **Activity Profile:** ${e.activityLevel}`);
-      if (research.multifamilyComps?.length) {
-        lines.push(`\n**Multifamily Comps (${research.multifamilyComps.length})**`);
-        research.multifamilyComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
-      }
-      if (research.fitnessComps?.length) {
-        lines.push(`\n**Fitness Comps (${research.fitnessComps.length})**`);
-        research.fitnessComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
-      }
-      lines.push('');
-    }
     if (termsAndConditions) {
       if (termsSplit) {
         lines.push(`## Terms and Conditions\n\n${termsSplit.before}\n`);
@@ -195,6 +175,26 @@ export default function QuotePreview() {
     }
     if (termsAndConditions && termsSplit?.after) {
       lines.push(`## Terms and Conditions (continued)\n\n${termsSplit.after}\n`);
+    }
+    if (includeResearch && research) {
+      const b = research.outputs?.section1_budget;
+      const s = research.outputs?.section2_squareFootage;
+      const e = research.outputs?.section3_equipmentFocus;
+      lines.push(`## Appendix: Location Research\n`);
+      if (research.communityAddress) lines.push(`Address: ${research.communityAddress}\n`);
+      if (b?.ok) lines.push(`- **Recommended Fitness Equipment Budget:** ${formatCurrency(b.budget || 0)} (${formatCurrency(b.costPerSF || 0)} / SF, Class ${b.propertyClass})`);
+      if (s?.ok) lines.push(`- **Recommended Fitness Center Square Footage:** ${formatNumber(s.squareFootage || 0)} sq ft`);
+      if (e?.topPriorities?.length) lines.push(`- **Equipment Focus:** ${e.topPriorities.map((p: any) => p.type).join(', ')}`);
+      if (e?.activityLevel) lines.push(`- **Activity Profile:** ${e.activityLevel}`);
+      if (research.multifamilyComps?.length) {
+        lines.push(`\n**Multifamily Comps (${research.multifamilyComps.length})**`);
+        research.multifamilyComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
+      }
+      if (research.fitnessComps?.length) {
+        lines.push(`\n**Fitness Comps (${research.fitnessComps.length})**`);
+        research.fitnessComps.slice(0, 8).forEach((c: any) => lines.push(`- ${c.name} — ${c.distance?.toFixed(1)} mi (${c.address})`));
+      }
+      lines.push('');
     }
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
@@ -324,9 +324,45 @@ export default function QuotePreview() {
           </section>
         )}
 
-        {includeResearch && research && (
+        {termsBeforeSignatures && (
           <section>
-            <h2 className="sow-h2">Location Research</h2>
+            <h2 className="sow-h2">Terms and Conditions</h2>
+            <p className="sow-body whitespace-pre-wrap">{termsBeforeSignatures}</p>
+          </section>
+        )}
+
+        <section>
+          <h2 className="sow-h2">Signatures</h2>
+          <div className="grid grid-cols-2 gap-8 sow-body">
+            <div>
+              <p className="sow-strong">{sigProviderCompany}</p>
+              <div className="mt-8 border-t border-black pt-1">
+                <p className="sow-strong">{sigProviderName}</p>
+                {sigProviderTitle && <p className="sow-muted">{sigProviderTitle}</p>}
+                <p className="sow-muted mt-2">Date: ______________________</p>
+              </div>
+            </div>
+            <div>
+              <p className="sow-strong">{sigClientCompany}</p>
+              <div className="mt-8 border-t border-black pt-1">
+                <p className="sow-strong">{sigClientName}</p>
+                {sigClientTitle && <p className="sow-muted">{sigClientTitle}</p>}
+                <p className="sow-muted mt-2">Date: ______________________</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {termsAfterSignatures && (
+          <section>
+            <h2 className="sow-h2">Terms and Conditions (continued)</h2>
+            <p className="sow-body whitespace-pre-wrap">{termsAfterSignatures}</p>
+          </section>
+        )}
+
+        {includeResearch && research && (
+          <section style={{ pageBreakBefore: 'always' }}>
+            <h2 className="sow-h2">Appendix: Location Research</h2>
             {research.communityAddress && (
               <p className="sow-muted mb-2">{research.communityAddress}</p>
             )}
@@ -374,42 +410,6 @@ export default function QuotePreview() {
                 </ul>
               </div>
             )}
-          </section>
-        )}
-
-        {termsBeforeSignatures && (
-          <section>
-            <h2 className="sow-h2">Terms and Conditions</h2>
-            <p className="sow-body whitespace-pre-wrap">{termsBeforeSignatures}</p>
-          </section>
-        )}
-
-        <section>
-          <h2 className="sow-h2">Signatures</h2>
-          <div className="grid grid-cols-2 gap-8 sow-body">
-            <div>
-              <p className="sow-strong">{sigProviderCompany}</p>
-              <div className="mt-8 border-t border-black pt-1">
-                <p className="sow-strong">{sigProviderName}</p>
-                {sigProviderTitle && <p className="sow-muted">{sigProviderTitle}</p>}
-                <p className="sow-muted mt-2">Date: ______________________</p>
-              </div>
-            </div>
-            <div>
-              <p className="sow-strong">{sigClientCompany}</p>
-              <div className="mt-8 border-t border-black pt-1">
-                <p className="sow-strong">{sigClientName}</p>
-                {sigClientTitle && <p className="sow-muted">{sigClientTitle}</p>}
-                <p className="sow-muted mt-2">Date: ______________________</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {termsAfterSignatures && (
-          <section>
-            <h2 className="sow-h2">Terms and Conditions (continued)</h2>
-            <p className="sow-body whitespace-pre-wrap">{termsAfterSignatures}</p>
           </section>
         )}
 

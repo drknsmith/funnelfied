@@ -772,7 +772,7 @@ export default function QuoteDetail() {
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                When enabled, the research summary is inserted as the last section before Terms and Conditions.
+                When enabled, the research summary is appended as an appendix after the Signatures section.
               </p>
             </CardContent>
           </Card>
