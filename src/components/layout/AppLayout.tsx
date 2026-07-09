@@ -263,21 +263,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <nav className="space-y-1">
               <NavItem to="/" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" collapsed={isCollapsed} />
               <NavItem to="/leads" icon={<Inbox className="h-4 w-4" />} label="Leads" collapsed={isCollapsed} />
-              <NavItem to="/deals" icon={<Handshake className="h-4 w-4" />} label="Opportunities" collapsed={isCollapsed} />
-              <NavItem to="/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" collapsed={isCollapsed} />
               <NavItem to="/accounts" icon={<Building2 className="h-4 w-4" />} label="Accounts" collapsed={isCollapsed} />
               <NavItem to="/contacts" icon={<Users className="h-4 w-4" />} label="Contacts" collapsed={isCollapsed} />
-              <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" collapsed={isCollapsed} />
-              <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
-              <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
-              {canUseMapping(featureWorkspaceId) && (
-                <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
-              )}
+              <NavItem to="/deals" icon={<Handshake className="h-4 w-4" />} label="Opportunities" collapsed={isCollapsed} />
               {canUseResearch(featureWorkspaceId) && (
                 <NavItem to="/research" icon={<FileBarChart className="h-4 w-4" />} label="Research" collapsed={isCollapsed} />
               )}
               {isRedLoftWorkspace(featureWorkspaceId) && (
                 <NavItem to="/quotes" icon={<Calculator className="h-4 w-4" />} label="Quote Tool" collapsed={isCollapsed} />
+              )}
+              <NavItem to="/playbooks" icon={<BookOpen className="h-4 w-4" />} label="Playbooks" collapsed={isCollapsed} />
+              <NavItem to="/assets" icon={<FileBox className="h-4 w-4" />} label="Assets" collapsed={isCollapsed} />
+              <NavItem to="/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" collapsed={isCollapsed} />
+              <NavItem to="/interactions" icon={<MessageSquare className="h-4 w-4" />} label="Interactions" collapsed={isCollapsed} />
+              {canUseMapping(featureWorkspaceId) && (
+                <NavItem to="/mapping" icon={<Map className="h-4 w-4" />} label="Mapping" collapsed={isCollapsed} />
               )}
               {canUseSocialMedia(featureWorkspaceId) && (
                 <NavItem to="/social-media" icon={<Share2 className="h-4 w-4" />} label="Social Media" collapsed={isCollapsed} />
