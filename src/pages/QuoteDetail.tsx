@@ -51,6 +51,7 @@ export default function QuoteDetail() {
   const [workDirty, setWorkDirty] = useState(false);
   const [localWork, setLocalWork] = useState<Array<{ name: string; description: string }> | null>(null);
   const [processingDeliverables, setProcessingDeliverables] = useState(false);
+  const [processingHours, setProcessingHours] = useState(false);
   const [deliverablesDirty, setDeliverablesDirty] = useState(false);
   const [localDeliverables, setLocalDeliverables] = useState<Array<{ name: string; description: string }> | null>(null);
   const qc = useQueryClient();
