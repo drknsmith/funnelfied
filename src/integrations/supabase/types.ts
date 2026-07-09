@@ -1190,6 +1190,7 @@ export type Database = {
           sow_signature_provider_name: string | null
           sow_signature_provider_title: string | null
           sow_terms_and_conditions: string | null
+          sow_work_items: Json
           status: string
           timeline_urgency: string | null
           updated_at: string
@@ -1251,6 +1252,7 @@ export type Database = {
           sow_signature_provider_name?: string | null
           sow_signature_provider_title?: string | null
           sow_terms_and_conditions?: string | null
+          sow_work_items?: Json
           status?: string
           timeline_urgency?: string | null
           updated_at?: string
@@ -1312,6 +1314,7 @@ export type Database = {
           sow_signature_provider_name?: string | null
           sow_signature_provider_title?: string | null
           sow_terms_and_conditions?: string | null
+          sow_work_items?: Json
           status?: string
           timeline_urgency?: string | null
           updated_at?: string
