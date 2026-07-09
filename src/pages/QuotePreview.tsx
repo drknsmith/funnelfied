@@ -169,6 +169,11 @@ export default function QuotePreview() {
       if (pillars.length) lines.push(`\n_4 P's pillars: ${pillars.map((p) => p[0].toUpperCase() + p.slice(1)).join(', ')}_\n`);
       else lines.push('');
     }
+    if (workItems.length) {
+      lines.push(`## Scope of Services\n`);
+      workItems.forEach((w) => lines.push(`- **${w.name || 'Item'}** — ${w.description || ''}`));
+      lines.push('');
+    }
     if (deliverables.length) {
       lines.push(`## Deliverables\n`);
       deliverables.forEach((d) => lines.push(`- **${d.name || 'Deliverable'}** — ${d.description || ''}`));
