@@ -771,7 +771,13 @@ export default function QuoteDetail() {
               />
             </div>
             <div>
-              <Label>Estimated Hours (min)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Estimated Hours (min)</Label>
+                <Button type="button" size="sm" variant="outline" onClick={processHours} disabled={processingHours}>
+                  {processingHours ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                  Process Estimated Hours with AI
+                </Button>
+              </div>
               <Input
                 type="number"
                 value={(local as any).sow_estimated_hours_min ?? ''}
