@@ -54,6 +54,8 @@ export interface Quote {
   sow_invoicing_cadence: string | null;
   sow_invoice_terms: string | null;
   sow_expense_threshold: number;
+  invoice_date: string | null;
+  invoice_expenses: Array<{ name: string; amount: number }>;
   created_at: string;
   updated_at: string;
 }
