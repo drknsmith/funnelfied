@@ -137,8 +137,30 @@ export default function QuotePreview() {
   const sigClientTitle = (quote as any).sow_signature_client_title || '';
 
   const termsSplit = useMemo(() => splitTermsAtAcceptance(termsAndConditions), [termsAndConditions]);
-  const termsBeforeSignatures = termsSplit?.before ?? termsAndConditions;
-  const termsAfterSignatures = termsSplit?.after ?? '';
+  const applyTermsMerge = (text: string): string => {
+    if (!text) return text;
+    const rateStr = rate > 0 ? formatMoney(rate) : '';
+    const cadenceStr = CADENCE_LABEL[quote.sow_invoicing_cadence ?? ''] ?? '';
+    const termsStr = TERMS_LABEL[quote.sow_invoice_terms ?? ''] ?? '';
+    const thr = Number(quote.sow_expense_threshold ?? 0);
+    const thrStr = thr > 0 ? formatMoney(thr) : '';
+    const hoursCapStr = quote.sow_nte_enabled && quote.sow_nte_amount && Number(quote.sow_nte_amount) > 0
+      ? `${Number(quote.sow_nte_amount)} hours` : '';
+    const replacements: Array<[RegExp, string]> = [
+      [/\[HOURLY RATE(?: NOT SET)?\]/gi, rateStr],
+      [/\[INVOICING CADENCE(?: NOT SET)?\]/gi, cadenceStr],
+      [/\[INVOICE TERMS(?: NOT SET)?\]/gi, termsStr],
+      [/\[EXPENSE THRESHOLD(?: NOT SET)?\]/gi, thrStr],
+      [/\[TOTAL HOURS CAP(?: NOT SET)?\]/gi, hoursCapStr],
+    ];
+    let out = text;
+    for (const [re, val] of replacements) {
+      if (val) out = out.replace(re, val);
+    }
+    return out;
+  };
+  const termsBeforeSignatures = applyTermsMerge(termsSplit?.before ?? termsAndConditions);
+  const termsAfterSignatures = applyTermsMerge(termsSplit?.after ?? '');
 
   const billingSentence = useMemo(() => {
     if (doc !== 'sow') return '';
