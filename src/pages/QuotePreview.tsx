@@ -150,7 +150,7 @@ export default function QuotePreview() {
     else if (mn) parts.push(`Planning estimate: at least ${mn} hours (non-binding, not a cap).`);
     else if (mx) parts.push(`Planning estimate: up to ${mx} hours (non-binding, not a cap).`);
     if (quote.sow_nte_enabled && quote.sow_nte_amount && Number(quote.sow_nte_amount) > 0) {
-      parts.push(`Client-requested budget cap: ${formatMoney(Number(quote.sow_nte_amount))}.`);
+      parts.push(`Client-requested total hours cap: ${Number(quote.sow_nte_amount)} hours.`);
     }
     const cadence = CADENCE_LABEL[quote.sow_invoicing_cadence ?? ''];
     const terms = TERMS_LABEL[quote.sow_invoice_terms ?? ''];
