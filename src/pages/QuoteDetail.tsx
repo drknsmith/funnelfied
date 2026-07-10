@@ -1210,10 +1210,73 @@ export default function QuoteDetail() {
             <Row label="Discount" value={`- ${formatMoney(disc)}`} />
             <Row label="Adjusted Labor" value={formatMoney(labor - disc)} />
             <Row label="Contractor Subtotal" value={formatMoney(contractors)} />
+            <Row label="Expenses Subtotal" value={formatMoney(expensesTotal)} />
             <div className="border-t pt-2 mt-2">
               <Row label="Total" value={formatMoney(total)} bold />
             </div>
           </CardContent>
+      </Card>
+    );
+  }
+
+  function renderExpensesCard() {
+    const expenses: Array<{ name: string; amount: number }> = Array.isArray((local as any).invoice_expenses)
+      ? (local as any).invoice_expenses
+      : [];
+    const updateExpenses = (next: Array<{ name: string; amount: number }>) =>
+      save({ invoice_expenses: next } as any);
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-sm">Expenses</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => updateExpenses([...expenses, { name: '', amount: 0 }])}>
+            <Plus className="mr-1 h-4 w-4" /> Expense
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {expenses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No expenses yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {expenses.map((ex, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-7">
+                    <Label className="text-xs">Name</Label>
+                    <Input
+                      value={ex.name}
+                      onChange={(e) => {
+                        const next = expenses.slice();
+                        next[i] = { ...next[i], name: e.target.value };
+                        updateExpenses(next);
+                      }}
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <Label className="text-xs">Amount</Label>
+                    <Input
+                      type="number"
+                      value={ex.amount}
+                      onChange={(e) => {
+                        const next = expenses.slice();
+                        next[i] = { ...next[i], amount: Number(e.target.value) || 0 };
+                        updateExpenses(next);
+                      }}
+                    />
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    <Button size="icon" variant="ghost" onClick={() => updateExpenses(expenses.filter((_, j) => j !== i))}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end pt-2 text-sm">
+                <span className="font-medium">Expenses Subtotal:&nbsp;</span>
+                {formatMoney(expensesTotal)}
+              </div>
+            </div>
+          )}
+        </CardContent>
       </Card>
     );
   }
