@@ -946,12 +946,21 @@ export default function QuoteDetail() {
           </TabsContent>
 
           <TabsContent value="invoice" className="space-y-6 mt-4">
-            <div className="flex justify-end">
+            <div className="flex items-end justify-between gap-4">
+              <div className="max-w-xs">
+                <Label>Invoice Date</Label>
+                <Input
+                  type="date"
+                  value={(local as any).invoice_date ?? ''}
+                  onChange={(e) => save({ invoice_date: e.target.value || null } as any)}
+                />
+              </div>
               <Button onClick={() => nav(`/quotes/${local.id}/preview?doc=invoice`)}>
                 <Printer className="mr-2 h-4 w-4" /> Generate Invoice PDF
               </Button>
             </div>
             {renderLaborCard()}
+            {renderExpensesCard()}
             {renderContractorCard()}
             {renderDiscountCard()}
             {renderTotalsCard()}
