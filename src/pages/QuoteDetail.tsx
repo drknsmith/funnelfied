@@ -798,12 +798,12 @@ export default function QuoteDetail() {
                 checked={!!(local as any).sow_nte_enabled}
                 onCheckedChange={(v) => save({ sow_nte_enabled: v } as any)}
               />
-              <Label>Not-to-Exceed Cap</Label>
+              <Label>Total Hours Cap</Label>
               {(local as any).sow_nte_enabled && (
                 <Input
                   type="number"
                   className="max-w-xs"
-                  placeholder="Cap amount (USD)"
+                  placeholder="Cap hours"
                   value={(local as any).sow_nte_amount ?? ''}
                   onChange={(e) => save({ sow_nte_amount: e.target.value ? Number(e.target.value) : null } as any)}
                 />
