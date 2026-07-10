@@ -1147,6 +1147,8 @@ export type Database = {
           hourly_rate: number
           id: string
           include_discount_reason_on_pdf: boolean
+          invoice_date: string | null
+          invoice_expenses: Json
           owner_user_id: string | null
           phase_concept_hours: number
           phase_consultation_hours: number
@@ -1209,6 +1211,8 @@ export type Database = {
           hourly_rate?: number
           id?: string
           include_discount_reason_on_pdf?: boolean
+          invoice_date?: string | null
+          invoice_expenses?: Json
           owner_user_id?: string | null
           phase_concept_hours?: number
           phase_consultation_hours?: number
@@ -1271,6 +1275,8 @@ export type Database = {
           hourly_rate?: number
           id?: string
           include_discount_reason_on_pdf?: boolean
+          invoice_date?: string | null
+          invoice_expenses?: Json
           owner_user_id?: string | null
           phase_concept_hours?: number
           phase_consultation_hours?: number

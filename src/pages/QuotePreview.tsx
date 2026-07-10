@@ -137,8 +137,30 @@ export default function QuotePreview() {
   const sigClientTitle = (quote as any).sow_signature_client_title || '';
 
   const termsSplit = useMemo(() => splitTermsAtAcceptance(termsAndConditions), [termsAndConditions]);
-  const termsBeforeSignatures = termsSplit?.before ?? termsAndConditions;
-  const termsAfterSignatures = termsSplit?.after ?? '';
+  const applyTermsMerge = (text: string): string => {
+    if (!text) return text;
+    const rateStr = rate > 0 ? formatMoney(rate) : '';
+    const cadenceStr = CADENCE_LABEL[quote.sow_invoicing_cadence ?? ''] ?? '';
+    const termsStr = TERMS_LABEL[quote.sow_invoice_terms ?? ''] ?? '';
+    const thr = Number(quote.sow_expense_threshold ?? 0);
+    const thrStr = thr > 0 ? formatMoney(thr) : '';
+    const hoursCapStr = quote.sow_nte_enabled && quote.sow_nte_amount && Number(quote.sow_nte_amount) > 0
+      ? `${Number(quote.sow_nte_amount)} hours` : '';
+    const replacements: Array<[RegExp, string]> = [
+      [/\[HOURLY RATE(?: NOT SET)?\]/gi, rateStr],
+      [/\[INVOICING CADENCE(?: NOT SET)?\]/gi, cadenceStr],
+      [/\[INVOICE TERMS(?: NOT SET)?\]/gi, termsStr],
+      [/\[EXPENSE THRESHOLD(?: NOT SET)?\]/gi, thrStr],
+      [/\[TOTAL HOURS CAP(?: NOT SET)?\]/gi, hoursCapStr],
+    ];
+    let out = text;
+    for (const [re, val] of replacements) {
+      if (val) out = out.replace(re, val);
+    }
+    return out;
+  };
+  const termsBeforeSignatures = applyTermsMerge(termsSplit?.before ?? termsAndConditions);
+  const termsAfterSignatures = applyTermsMerge(termsSplit?.after ?? '');
 
   const billingSentence = useMemo(() => {
     if (doc !== 'sow') return '';
@@ -150,7 +172,7 @@ export default function QuotePreview() {
     else if (mn) parts.push(`Planning estimate: at least ${mn} hours (non-binding, not a cap).`);
     else if (mx) parts.push(`Planning estimate: up to ${mx} hours (non-binding, not a cap).`);
     if (quote.sow_nte_enabled && quote.sow_nte_amount && Number(quote.sow_nte_amount) > 0) {
-      parts.push(`Client-requested budget cap: ${formatMoney(Number(quote.sow_nte_amount))}.`);
+      parts.push(`Client-requested total hours cap: ${Number(quote.sow_nte_amount)} hours.`);
     }
     const cadence = CADENCE_LABEL[quote.sow_invoicing_cadence ?? ''];
     const terms = TERMS_LABEL[quote.sow_invoice_terms ?? ''];
@@ -300,7 +322,11 @@ export default function QuotePreview() {
             <p className={doc === 'sow' ? 'sow-eyebrow' : 'text-xs uppercase text-slate-500'}>Project</p>
             <p className={doc === 'sow' ? 'sow-strong' : 'font-medium'}>{quote.snapshot_project_name || '—'}</p>
             <p className={doc === 'sow' ? 'sow-muted' : 'text-slate-600'}>{quote.snapshot_project_address}</p>
-            <p className={doc === 'sow' ? 'sow-muted mt-1' : 'text-slate-600 mt-1'}>Date: {new Date(quote.created_at).toLocaleDateString()}</p>
+            <p className={doc === 'sow' ? 'sow-muted mt-1' : 'text-slate-600 mt-1'}>
+              Date: {doc === 'invoice' && (quote as any).invoice_date
+                ? new Date((quote as any).invoice_date + 'T00:00:00').toLocaleDateString()
+                : new Date(quote.created_at).toLocaleDateString()}
+            </p>
             <p className={doc === 'sow' ? 'sow-muted' : 'text-slate-600'}>{doc === 'invoice' ? 'Invoice' : 'SOW'} v{quote.version_number}</p>
           </div>
         </section>
@@ -508,6 +534,14 @@ export default function QuotePreview() {
                   <td className="py-2">{CONTRACTOR_TYPE_LABELS[it.contractor_type] ?? it.contractor_type}</td>
                   <td className="py-2 text-right">{formatMoney(contractorClientPrice(it))}</td>
                 </tr>
+              ))}
+              {(Array.isArray((quote as any).invoice_expenses) ? (quote as any).invoice_expenses : []).map((ex: any, i: number) => (
+                (Number(ex?.amount) || 0) > 0 || ex?.name ? (
+                  <tr key={`ex-${i}`} className="border-b">
+                    <td className="py-2">{ex.name || 'Expense'}</td>
+                    <td className="py-2 text-right">{formatMoney(Number(ex.amount) || 0)}</td>
+                  </tr>
+                ) : null
               ))}
               {disc > 0 && (
                 <tr className="border-b">

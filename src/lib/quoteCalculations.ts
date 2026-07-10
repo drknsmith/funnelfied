@@ -28,6 +28,11 @@ export function contractorSubtotal(items: QuoteContractorItem[]): number {
   return items.reduce((s, i) => s + contractorClientPrice(i), 0);
 }
 
+export function expensesSubtotal(quote: Quote): number {
+  const list = Array.isArray((quote as any).invoice_expenses) ? (quote as any).invoice_expenses : [];
+  return list.reduce((s: number, e: any) => s + (Number(e?.amount) || 0), 0);
+}
+
 export function discountAmount(quote: Quote): number {
   const labor = laborSubtotal(quote);
   const val = Number(quote.discount_value) || 0;
@@ -37,7 +42,7 @@ export function discountAmount(quote: Quote): number {
 }
 
 export function grandTotal(quote: Quote, items: QuoteContractorItem[]): number {
-  return laborSubtotal(quote) - discountAmount(quote) + contractorSubtotal(items);
+  return laborSubtotal(quote) - discountAmount(quote) + contractorSubtotal(items) + expensesSubtotal(quote);
 }
 
 export const formatMoney = (n: number) =>
