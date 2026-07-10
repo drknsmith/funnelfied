@@ -1,30 +1,36 @@
-## SOW Form updates (QuoteDetail → SOW tab)
+## Quote tool fixes
 
-### 1. Hourly Rate default = $200
-- DB migration on `public.quotes`: `ALTER COLUMN hourly_rate SET DEFAULT 200;` and backfill existing rows where `hourly_rate = 0` to `200` so existing draft quotes reflect the new default. The field stays a plain editable numeric `Input` (already editable today).
+### 1. Invoice tab — Expenses section
+- New DB column on `quotes`: `invoice_expenses jsonb default '[]'` (shape: `[{ name: string, amount: number }]`).
+- In `src/pages/QuoteDetail.tsx` Invoice tab, add an "Expenses" card **above** the Contractors card:
+  - Header row: `Expenses` title + `+ Expense` button.
+  - Each row: `Name` input, `Amount` number input, trash button. Empty-state text when none.
+- Include expenses in the Invoice totals in `QuoteDetail` and in `QuotePreview` (invoice view) — added as line items in the Investment table and summed into the Total.
 
-### 2. New "Work" section (above Deliverables)
-- Add a new `sow_work_items` JSONB column (default `'[]'`) on `public.quotes`. Shape: `[{ name: string, description: string }]`.
-- In `src/pages/QuoteDetail.tsx`, insert a new card block above the Deliverables block inside the Statement of Work card:
-  - Header row: "Work" label + `+ Add` button (mirrors Deliverables) + new `Process Work with AI` button (Sparkles icon).
-  - Each row: `Name` input (col-span-4) + `Short description` textarea (col-span-7) + trash button (col-span-1), identical layout to Deliverables.
-  - Empty-state text: "No work items yet."
-- AI button calls a new edge function `process-work` that surfaces service-type work items (e.g. Interior Design, SOP Creation, Fitness Equipment, Space Planning, Programming, Policy Development) based on the quote's `service_category`, `engagement_type`, and `service_details`. Uses the same Lovable AI gateway pattern as `generate-sow`. Response replaces `sow_work_items` locally; user reviews and saves (same pattern used by Milestones — dirty flag + Save button).
+### 2. Invoice date at top of Invoice page
+- New DB column: `invoice_date date` (defaults to `current_date`).
+- In `QuoteDetail` Invoice tab, add an editable date input at the top.
+- In `QuotePreview` (invoice mode), render the date in the header block so it prints.
 
-### 3. "Process Deliverables with AI" button
-- Add a new `Process Deliverables with AI` button next to the existing Deliverables `+ Add` button.
-- Calls a new edge function `process-deliverables` that surfaces deliverable artifacts (e.g. Invoice, SOPs, Policies, Training Documents, Equipment List, Design Package) informed by the quote's categories, the Work items entered above, and existing deliverables. Same dirty-flag + Save pattern as Milestones.
+### 3. SOW NTE cap → total hours cap
+- In `QuoteDetail` SOW form, relabel "Not-to-Exceed Cap" → "Total Hours Cap"; placeholder → "Cap hours"; keep field storage as `sow_nte_amount` (interpreted as hours now — no schema change).
+- In `QuotePreview` `billingSentence`, change:
+  - old: `Client-requested budget cap: $200.00.`
+  - new: `Client-requested total hours cap: 200 hours.`
 
-### Technical notes
-- Two new edge functions (`process-work`, `process-deliverables`) modeled on `generate-sow` — same auth check, playbook lookup, JSON output, error handling (429/402). Each returns `{ items: [{name, description}], warnings: [] }` without persisting; the client sets local state and Save writes to the DB.
-- `useQuotes.ts` `Quote` type gets `sow_work_items: Array<{name; description}>`.
-- No changes to Invoice tab, preview, or print view for this pass — surfacing Work in the SOW preview/appendix can be a follow-up if you want it in the client-facing PDF.
+### 4. Terms & Conditions merge fields
+The playbook terms template contains `[HOURLY RATE NOT SET]`, `[INVOICING CADENCE NOT SET]`, `[INVOICE TERMS NOT SET]`, `[EXPENSE THRESHOLD NOT SET]` placeholders. Add a token-replacement pass in `QuotePreview.tsx` when rendering `termsBeforeSignatures` / `termsAfterSignatures` that substitutes these using the quote's values:
+- `[HOURLY RATE NOT SET]` → `$200.00`
+- `[INVOICING CADENCE NOT SET]` → "monthly" / label from existing map
+- `[INVOICE TERMS NOT SET]` → label from `TERMS_LABEL` map
+- `[EXPENSE THRESHOLD NOT SET]` → `$${sow_expense_threshold}`
+- Also `[TOTAL HOURS CAP NOT SET]` etc. if present.
+Only replace when the quote has a value; otherwise leave the "NOT SET" placeholder visible.
 
 ### Files touched
-- New migration: default hourly_rate 200, backfill zeros, add `sow_work_items` jsonb column.
-- `src/hooks/useQuotes.ts` — add field to Quote type.
-- `src/pages/QuoteDetail.tsx` — Work section UI + AI buttons + local dirty state for both AI flows.
-- `supabase/functions/process-work/index.ts` (new).
-- `supabase/functions/process-deliverables/index.ts` (new).
+- New migration: add `invoice_expenses jsonb` and `invoice_date date` to `quotes`.
+- `src/hooks/useQuotes.ts` — Quote type additions.
+- `src/pages/QuoteDetail.tsx` — Expenses UI, invoice date input, cap relabel.
+- `src/pages/QuotePreview.tsx` — invoice date header, expenses line items, billing sentence text, terms token replacement.
 
 Confirm and I'll build it.
