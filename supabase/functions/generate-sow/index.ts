@@ -150,12 +150,13 @@ Keep warnings [] when nothing is atypical.`;
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      const status = response.status === 429 || response.status === 402 ? response.status : 500;
+      const isCredit = response.status === 402 || response.status === 403;
+      const status = response.status === 429 ? 429 : isCredit ? 402 : 500;
       const msg =
         response.status === 429
           ? "Rate limit exceeded. Try again shortly."
-          : response.status === 402
-          ? "AI credits exhausted. Add credits to continue."
+          : isCredit
+          ? "Workspace AI credit limit reached. Ask your workspace owner to add credits or raise the limit."
           : "AI service unavailable";
       return new Response(JSON.stringify({ error: msg }), {
         status,
