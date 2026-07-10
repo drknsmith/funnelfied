@@ -34,6 +34,7 @@ import {
   ENGAGEMENT_TYPES,
   CONTRACTOR_TYPE_LABELS,
   SERVICE_DETAIL_FIELDS,
+  expensesSubtotal,
 } from '@/lib/quoteCalculations';
 
 export default function QuoteDetail() {
@@ -93,6 +94,7 @@ export default function QuoteDetail() {
   const labor = laborSubtotal(local);
   const disc = discountAmount(local);
   const contractors = contractorSubtotal(items);
+  const expensesTotal = expensesSubtotal(local);
   const total = grandTotal(local, items);
   const categories = local.service_category ?? [];
   const visiblePhases = PHASES.filter(
