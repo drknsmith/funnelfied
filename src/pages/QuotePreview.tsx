@@ -300,7 +300,11 @@ export default function QuotePreview() {
             <p className={doc === 'sow' ? 'sow-eyebrow' : 'text-xs uppercase text-slate-500'}>Project</p>
             <p className={doc === 'sow' ? 'sow-strong' : 'font-medium'}>{quote.snapshot_project_name || '—'}</p>
             <p className={doc === 'sow' ? 'sow-muted' : 'text-slate-600'}>{quote.snapshot_project_address}</p>
-            <p className={doc === 'sow' ? 'sow-muted mt-1' : 'text-slate-600 mt-1'}>Date: {new Date(quote.created_at).toLocaleDateString()}</p>
+            <p className={doc === 'sow' ? 'sow-muted mt-1' : 'text-slate-600 mt-1'}>
+              Date: {doc === 'invoice' && (quote as any).invoice_date
+                ? new Date((quote as any).invoice_date + 'T00:00:00').toLocaleDateString()
+                : new Date(quote.created_at).toLocaleDateString()}
+            </p>
             <p className={doc === 'sow' ? 'sow-muted' : 'text-slate-600'}>{doc === 'invoice' ? 'Invoice' : 'SOW'} v{quote.version_number}</p>
           </div>
         </section>
@@ -508,6 +512,14 @@ export default function QuotePreview() {
                   <td className="py-2">{CONTRACTOR_TYPE_LABELS[it.contractor_type] ?? it.contractor_type}</td>
                   <td className="py-2 text-right">{formatMoney(contractorClientPrice(it))}</td>
                 </tr>
+              ))}
+              {(Array.isArray((quote as any).invoice_expenses) ? (quote as any).invoice_expenses : []).map((ex: any, i: number) => (
+                (Number(ex?.amount) || 0) > 0 || ex?.name ? (
+                  <tr key={`ex-${i}`} className="border-b">
+                    <td className="py-2">{ex.name || 'Expense'}</td>
+                    <td className="py-2 text-right">{formatMoney(Number(ex.amount) || 0)}</td>
+                  </tr>
+                ) : null
               ))}
               {disc > 0 && (
                 <tr className="border-b">
