@@ -2,8 +2,9 @@ Funnelfied
 Next-Generation Vertical B2B CRM, Market Intelligence & Automated SOW Engine
 
 Live Demo: funnelfied.com
+
 Email: demo@funnelfied.com
-Password: DemoReview2026!
+Password: FunnelDemo!2026
 
 Built for boutique advisory firms, specialized consultancies, and multi-disciplinary development agencies.
 [!TypeScript](https://www.typescriptlang.org/)
