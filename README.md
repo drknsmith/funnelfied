@@ -125,7 +125,7 @@ Create a .env file in the project root:
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 VITE_MAPBOX_PUBLIC_TOKEN=your-mapbox-token
-Security note: never commit your .env file — keep it in .gitignore. The Supabase anon key is safe to expose in the browser; the service_role key must never be committed or shared. If a .env file was ever committed, rotate those keys before making the repository public.
+Security note: never commit your .env file — keep it in .gitignore. The Supabase publishable (anon) key is public by design and safe to expose in the browser; Row-Level Security policies govern data access. Private keys — the service_role key, database password, private API keys — must never be committed; if one ever is, rotate it before making the repository public.
 3. Run Development Server
 npm run dev
 The application will launch at http://localhost:8080.
