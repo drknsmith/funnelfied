@@ -1,2 +1,2 @@
 # Roadmap
-- [ ] Demo workspace + hiring manager login, fake data only
+- [x] Demo workspace + hiring manager login, fake data only
